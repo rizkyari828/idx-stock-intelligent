@@ -23,7 +23,7 @@ The stock system must still work when AI is unavailable.
 
 > **Current phase: PHASE 0 — DATA & RIGHTS FEASIBILITY SPIKE.**
 >
-> This repository is a foundation only. It does not yet fetch market data or make trading recommendations.
+> A one-time KSEI security-master and holiday-document spike has been recorded. There is no production data ingestion or trading recommendation.
 
 The system is EOD-first, local-first, and aims for zero-paid-data sources where feasible. Daily operation must not depend on manual market-file downloads. Trustworthy chronology, reproducibility, and explicit uncertainty matter more than feature count.
 
@@ -60,4 +60,4 @@ docker compose config
 
 Copy `.env.example` to `.env` and choose a local password before starting PostgreSQL. The worker currently performs only a readiness check; it does not access a provider.
 
-Review `docs/PHASE0_DATA_SPIKE.md`, `docs/DATA_SOURCE_MATRIX.md`, and `docs/DATA_SPIKE_RESULT.md` before source experimentation. No source may be marked PASS without rights and technical evidence. Do not fetch market data until this bootstrap is reviewed.
+Review `docs/PHASE0_DATA_SPIKE.md`, `docs/DATA_SOURCE_MATRIX.md`, and `docs/DATA_SPIKE_RESULT.md` before source experimentation. No source may be marked PASS without rights and technical evidence. The rights-first source experiment is in DATA_SPIKE_RESULT.md; routine collection remains blocked pending rights clarification.

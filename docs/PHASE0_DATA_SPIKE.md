@@ -87,4 +87,4 @@ Together with the acceptance tests above, the reviewed gates explicitly require 
 - SMALLER_GO: a deliberately reduced useful dataset passes all gates applicable to its declared scope.
 - STOP: permission, quality, reproducibility, or sustainable automation is not feasible.
 
-Current outcome: **NOT EVALUATED**. Bootstrap review must happen before any provider request.
+Current security-master and calendar outcome: **PARTIAL technical evidence, rights unresolved**. See DATA_SPIKE_RESULT.md. No routine collection or OHLCV backfill is authorized by this spike.
