@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Phase 0 ingestion and point-in-time application logic.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IdxStockIntelligence.Domain/IdxStockIntelligence.Domain.csproj" />
+  </ItemGroup>
+</Project>

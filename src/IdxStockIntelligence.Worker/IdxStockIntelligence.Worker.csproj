@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Thin Phase 0 composition root; no provider access in the bootstrap.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IdxStockIntelligence.Infrastructure/IdxStockIntelligence.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

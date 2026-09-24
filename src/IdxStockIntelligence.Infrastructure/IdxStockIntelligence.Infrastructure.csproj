@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Filesystem and PostgreSQL assets for Phase 0.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IdxStockIntelligence.Application/IdxStockIntelligence.Application.csproj" />
+  </ItemGroup>
+</Project>

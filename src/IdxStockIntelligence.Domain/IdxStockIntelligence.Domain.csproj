@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Provider-independent Phase 0 market data domain.</Description>
+  </PropertyGroup>
+</Project>
