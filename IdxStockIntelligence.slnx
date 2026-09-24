@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IdxStockIntelligence.Application/IdxStockIntelligence.Application.csproj" />
+    <Project Path="src/IdxStockIntelligence.Domain/IdxStockIntelligence.Domain.csproj" />
+    <Project Path="src/IdxStockIntelligence.Infrastructure/IdxStockIntelligence.Infrastructure.csproj" />
+    <Project Path="src/IdxStockIntelligence.Worker/IdxStockIntelligence.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IdxStockIntelligence.Tests/IdxStockIntelligence.Tests.csproj" />
+  </Folder>
+</Solution>
+
