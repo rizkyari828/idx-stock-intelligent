@@ -1,5 +1,11 @@
 # Phase 0 — Data & Rights Feasibility Spike
 
+Current narrower execution is the [zero-cost prospective pilot](ZERO_COST_PILOT.md).
+Its [exit checklist](PHASE0_EXIT_CHECKLIST.md) is separate from the broader historical
+targets below. Prospective hardening is implemented, but bootstrap is incomplete and
+the required real future-session soak is **0/10**. Historical 2022-present remains
+**BLOCKED_BY_ENTITLEMENT**; no strategy may begin before the applicable exit decision.
+
 ## Goal
 
 Prove that core EOD data can be collected automatically, preserved, validated, and replayed before building the full app.

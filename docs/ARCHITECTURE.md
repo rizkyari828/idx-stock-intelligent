@@ -2,6 +2,13 @@
 
 ## Current execution: ZERO-COST PILOT MODE
 
+[Prospective hardening](PILOT_HARDENING.md) adds durable per-invocation reports,
+separate exchange/instrument evidence, append-only listing observations, explicit
+first-seen chronology, a stale-archive guard and offline restore/failure checks.
+The one-command local operator remains a Python CLI invoking the .NET worker.
+The [exit checklist](PHASE0_EXIT_CHECKLIST.md) has **0/10** real completed future runs;
+these changes do not authorize strategies or count fixtures as operating evidence.
+
 The implemented path is fixed-panel Python EOD evidence → immutable raw archive →
 decimal normalization → .NET independent-session validation → PostgreSQL append-only
 DailyBarRevision → bounded deterministic features and a local summary. The manual

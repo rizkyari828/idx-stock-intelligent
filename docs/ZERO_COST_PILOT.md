@@ -1,5 +1,10 @@
 # ZERO-COST PILOT MODE
 
+Latest update: [prospective hardening](PILOT_HARDENING.md) and [Phase 0 exit checklist](PHASE0_EXIT_CHECKLIST.md).
+The one-command operator, durable failure reports, stale-archive correction guard,
+listing evidence and additional confirmed sessions supersede initial implementation
+details below. Bootstrap remains partial; the real soak count is **0/10**.
+
 Implemented and exercised 2026-09-28. This is private, fixed-panel prospective
 collection with conservative canonical admission, not a full IDX screener or
 trading system. **2022-present remains BLOCKED_BY_ENTITLEMENT.** That historical
@@ -28,8 +33,8 @@ unspecified lower-liquidity slot. All ten appeared in the previously archived JK
 active common-stock catalogue. Lower-volume qualification is sample-relative:
 LPIN's median provider-native count was 91,950 over this window versus 157,453,850
 for BBRI. This is neither turnover nor an execution/liquidity score.
-Listing dates remain explicitly null pending independently verified identity
-evidence. Null is not a invented listing date: missing rows with an unknown listing
+Six listing dates now have primary evidence; RAJA, VKTR, PTRO and LPIN remain
+explicitly null. Null is not an invented listing date: missing rows with an unknown listing
 boundary cannot be classified as provider gaps. Configured known pre-listing dates
 are excluded by validation. No universe discovery is performed during a run.
 
@@ -100,7 +105,8 @@ Each artifact preserves provider, token-free URI/parameters, original retrieval
 timestamp, SHA-256, bytes and parser version. Every retrieval remains in the ignored
 collector ledger; PostgreSQL `raw_fetch_observation` retains admitted batch retrieval
 manifests even when identical content already exists. Identical rows retain their
-existing revision; changed content appends, including an A→B→A reversion. Database
+existing revision; freshly retrieved changed content appends, including an A→B→A
+reversion. Older cached evidence cannot revert a newer response. Database
 triggers reject updates/deletes to bars, raw provenance and retrieval observations.
 New migration 0002 extends the foundation without editing migration 0001.
 

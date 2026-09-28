@@ -6,8 +6,10 @@ The fixed 10-equity + verified `JKSE.INDX` Free-plan pilot is now implemented fo
 private recent-window/prospective collection. [Measured results and commands](ZERO_COST_PILOT.md)
 supersede earlier dated statements that no collector exists. Seven instruments have
 archived evidence; four equities and the wider initial IHSG window await quota reset.
-Only three independently confirmed sessions were admitted (21 DEGRADED bars), with
-idempotent replay and explicit unresolved volume/segment and listing boundaries.
+Five independently confirmed sessions now support 33 DEGRADED bars, with idempotent
+replay and explicit unresolved volume/segment semantics. Six listing boundaries are
+verified and four remain UNKNOWN. [Hardening and exit evidence](PILOT_HARDENING.md)
+retain the initial three-session/21-bar result and the **0/10** real prospective soak.
 There is no production-feed PASS, full IDX screener or historical backtest.
 **2022-present remains BLOCKED_BY_ENTITLEMENT; prospective pilot collection is ready.**
 

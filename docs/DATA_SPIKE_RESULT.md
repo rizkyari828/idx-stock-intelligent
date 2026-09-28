@@ -1,5 +1,16 @@
 # Phase 0 Data Spike Result
 
+## Latest scope — prospective hardening, 2026-09-28
+
+[Hardening report](PILOT_HARDENING.md): zero additional EOD units, one zero-unit
+account check (16/20 used, pilot ceiling reached), eleven passing isolated
+failure/reproduction checks and a tested one-command operation. Two independent
+adjacent-session proofs allowed twelve more archived bars; current canonical total
+is 33. Four equities and the broader IHSG window await reset. Six listing boundaries
+are verified and four remain UNKNOWN. Actual prospective soak remains **0/10**;
+[Phase 0 exit is NO](PHASE0_EXIT_CHECKLIST.md). Historical remains
+**BLOCKED_BY_ENTITLEMENT**. Earlier dated run metrics remain preserved below.
+
 ## Latest implementation — ZERO-COST PILOT MODE, 2026-09-28
 
 [Full pilot report](ZERO_COST_PILOT.md): three new EOD requests/units, eight HTTP
