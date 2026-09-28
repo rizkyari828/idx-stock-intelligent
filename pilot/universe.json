@@ -1,0 +1,84 @@
+{
+  "mode": "ZERO_COST_PILOT",
+  "benchmark": "JKSE.INDX",
+  "daily_unit_ceiling": 16,
+  "instruments": [
+    {
+      "id": "81808734-9a0d-5fa6-aa94-ea723dcb414f",
+      "symbol": "BBCA.JK",
+      "name": "Bank Central Asia Tbk",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "517ffb58-0202-55fc-8a9f-b7862232a3a0",
+      "symbol": "BBRI.JK",
+      "name": "Bank Rakyat Indonesia Persero",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "b698ea22-04c7-5f9c-b8d3-076c36a95308",
+      "symbol": "ANTM.JK",
+      "name": "PT Antam (Persero) Tbk",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "17d3a141-b1c3-5f52-be80-63b116929fa6",
+      "symbol": "RAJA.JK",
+      "name": "Rukun Raharja Tbk",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "b2bfad81-a029-5bd1-a18c-cf5f91a9ff29",
+      "symbol": "VKTR.JK",
+      "name": "PT VKTR Teknologi Mobilitas",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "34caad60-b753-5afb-bb8e-cda047fbae66",
+      "symbol": "ENRG.JK",
+      "name": "Energi Mega Persada Tbk",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "f7d72ea1-d05d-5c5b-ace9-0435bb3e52eb",
+      "symbol": "PTRO.JK",
+      "name": "Petrosea Tbk",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "6419190e-2f43-5d94-abb2-d6bc030aa5dd",
+      "symbol": "DSSA.JK",
+      "name": "Dian Swastatika Sentosa Tbk",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "dfdddd0f-42ae-5fd3-9901-942db72cce5e",
+      "symbol": "GOTO.JK",
+      "name": "GoTo Gojek Tokopedia PT",
+      "listed_on": null,
+      "role": "Phase 0 representative panel"
+    },
+    {
+      "id": "bd4c12c4-7523-5dc1-99eb-68e4f701edf3",
+      "symbol": "LPIN.JK",
+      "name": "Multi Prima Sejahtera Tbk",
+      "listed_on": null,
+      "role": "lower-volume case in the recent pilot sample"
+    },
+    {
+      "id": "76237e96-232f-5085-9b13-dcb7104222bc",
+      "symbol": "JKSE.INDX",
+      "name": "Jakarta Stock Exchange Composite Index",
+      "listed_on": null,
+      "role": "benchmark"
+    }
+  ]
+}

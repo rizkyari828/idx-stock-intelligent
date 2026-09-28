@@ -1,5 +1,16 @@
 # Data Source Matrix — Phase 0
 
+## Current scope — ZERO-COST PILOT MODE, 2026-09-28
+
+The fixed 10-equity + verified `JKSE.INDX` Free-plan pilot is now implemented for
+private recent-window/prospective collection. [Measured results and commands](ZERO_COST_PILOT.md)
+supersede earlier dated statements that no collector exists. Seven instruments have
+archived evidence; four equities and the wider initial IHSG window await quota reset.
+Only three independently confirmed sessions were admitted (21 DEGRADED bars), with
+idempotent replay and explicit unresolved volume/segment and listing boundaries.
+There is no production-feed PASS, full IDX screener or historical backtest.
+**2022-present remains BLOCKED_BY_ENTITLEMENT; prospective pilot collection is ready.**
+
 Latest empirical review: 2026-09-28; provider selection review: 2026-09-28; original security-master/calendar evidence: 2026-09-24. Status describes **automated personal/local use**, not ordinary browser viewing. `UNCLEAR` is not approval. No dataset is approved for canonical production ingestion. Dimension-specific rights/quota PASS does not clear the other gates. The 2026-09-28 gate below supersedes the older price-provider screen; original spike evidence remains unchanged.
 
 | Dataset | Candidate Source | Official? | Access Method | Permission Status | Terms Evidence | Automation Feasibility | Historical Depth | Point-in-Time Suitability | Revision Semantics | Rate Limits | Known Limitations | Spike Status |

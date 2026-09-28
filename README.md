@@ -23,7 +23,7 @@ The stock system must still work when AI is unavailable.
 
 > **Current phase: PHASE 0 — DATA & RIGHTS FEASIBILITY SPIKE.**
 >
-> A one-time KSEI security-master and holiday-document spike has been recorded. There is no production data ingestion or trading recommendation.
+> **ZERO-COST PILOT MODE:** a fixed 10-equity + IHSG manual collector now admits only independently confirmed-session bars into append-only PostgreSQL revisions. There is no trading recommendation. See [pilot commands and limits](docs/ZERO_COST_PILOT.md).
 
 The system is EOD-first, local-first, and aims for zero-paid-data sources where feasible. Daily operation must not depend on manual market-file downloads. Trustworthy chronology, reproducibility, and explicit uncertainty matter more than feature count.
 
@@ -53,11 +53,11 @@ Requirements: .NET SDK 10, Python 3.12+, and optionally Docker Compose for Postg
 
 ```bash
 dotnet build IdxStockIntelligence.slnx
-dotnet test IdxStockIntelligence.slnx
-python3 -m unittest discover -s collectors/python/tests -v
+dotnet run --project tests/IdxStockIntelligence.Tests
+PYTHONPATH=collectors/python/src python3 -m unittest discover -s collectors/python/tests -v
 docker compose config
 ```
 
-Copy `.env.example` to `.env` and choose a local password before starting PostgreSQL. The worker currently performs only a readiness check; it does not access a provider.
+Copy `.env.example` to ignored, untracked `.env` and choose a local password before starting PostgreSQL. The manual Python pilot requires the locally loaded EODHD token; the .NET worker validates archived evidence and persists revisions without contacting a provider.
 
-Review `docs/PHASE0_DATA_SPIKE.md`, `docs/DATA_SOURCE_MATRIX.md`, and `docs/DATA_SPIKE_RESULT.md` before source experimentation. No source may be marked PASS without rights and technical evidence. The rights-first source experiment is in DATA_SPIKE_RESULT.md; routine collection remains blocked pending rights clarification.
+Review `docs/PHASE0_DATA_SPIKE.md`, `docs/DATA_SOURCE_MATRIX.md`, and `docs/DATA_SPIKE_RESULT.md` before source experimentation. No source may be marked PASS without rights and technical evidence. The private Free-plan prospective pilot is authorized within its documented limits; production-feed promotion remains uncleared. **2022-present remains BLOCKED_BY_ENTITLEMENT** and does not block the prospective pilot.

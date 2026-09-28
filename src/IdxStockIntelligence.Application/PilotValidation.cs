@@ -1,0 +1,47 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using IdxStockIntelligence.Domain;
+
+namespace IdxStockIntelligence.Application;
+
+public sealed record SessionProof(DateOnly Date, ExchangeDayStatus Status, string Reference, DateTimeOffset KnownAt);
+public sealed record PilotObservation(string Status, DailyBar? Bar, string? Reason = null);
+
+public static class PilotValidation
+{
+    public static PilotObservation Validate(Instrument instrument, DateOnly date, DailyBar? row,
+        SessionProof? proof, DateTimeOffset knownAt, bool sourceError = false)
+    {
+        if (instrument.ListedOn is not null && date < instrument.ListedOn)
+            return new("PRE_LISTING", null);
+        if (instrument.DelistedOn is not null && date > instrument.DelistedOn)
+            return new("POST_DELISTING", null);
+        if (proof is null || proof.KnownAt > knownAt || string.IsNullOrWhiteSpace(proof.Reference))
+            return new("SESSION_UNCONFIRMED", null);
+        if (proof.Date != date)
+            throw new ArgumentException("Session proof date does not match observation.", nameof(proof));
+        if (proof.Status == ExchangeDayStatus.AnnouncedClosed || date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            return new("CLOSED", null);
+        if (proof.Status != ExchangeDayStatus.ObservedTrading)
+            return new("SESSION_UNCONFIRMED", null);
+        if (sourceError) return new("SOURCE_ERROR", null);
+        if (row is null) return new(instrument.ListedOn is null ? "UNKNOWN" : "MISSING", null,
+            instrument.ListedOn is null ? "Listing boundary unknown." : null);
+        if (row.InstrumentId != instrument.Id || row.SessionDate != date || row.Source.AvailableAt > knownAt)
+            throw new ArgumentException("Row identity/date/availability does not match observation.", nameof(row));
+        if (row.Volume == 0) return new("UNKNOWN", null, "Zero volume does not establish tradable/no-trade/suspension status.");
+        return new("AVAILABLE", row, row.MarketSegment == "UNKNOWN" ? "Market segment unresolved; pilot evidence only." : null);
+    }
+
+    public static string ContentHash(DailyBar bar)
+    {
+        var content = JsonSerializer.Serialize(new[] { bar.SessionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            bar.Open.ToString("G29", CultureInfo.InvariantCulture), bar.High.ToString("G29", CultureInfo.InvariantCulture),
+            bar.Low.ToString("G29", CultureInfo.InvariantCulture), bar.Close.ToString("G29", CultureInfo.InvariantCulture),
+            bar.Volume.ToString(CultureInfo.InvariantCulture), bar.AdjustedClose?.ToString("G29", CultureInfo.InvariantCulture),
+            bar.VolumeUnit, bar.VolumeBasis, bar.MarketSegment });
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+    }
+}

@@ -1,5 +1,23 @@
 # Architecture Freeze Candidate — V0.1
 
+## Current execution: ZERO-COST PILOT MODE
+
+The implemented path is fixed-panel Python EOD evidence → immutable raw archive →
+decimal normalization → .NET independent-session validation → PostgreSQL append-only
+DailyBarRevision → bounded deterministic features and a local summary. The manual
+worker uses installed Docker/psql; it adds no driver, service or scheduler.
+See [ZERO_COST_PILOT.md](ZERO_COST_PILOT.md) for exact commands, measured bootstrap,
+session evidence, tests and limits. The broader components below remain future design.
+
+Only ten equities and verified `JKSE.INDX` are configured. Raw close/adjusted close and
+retrieval/session-known/canonical-known times are separate. Unconfirmed dates and
+zero-volume evidence cannot become canonical bars; unknown weekdays or missing bars
+break feature continuity. Pilot quality is DEGRADED with unresolved market segment.
+Feature warm-up returns null. No strategy or trading decision is implemented.
+Recent-window evidence and prospective collection begin at actual retrieval, not
+historical market dates. **2022-present: BLOCKED_BY_ENTITLEMENT.** There is no full
+IDX screener or 2022-present backtest; this does not block prospective development.
+
 ## Architecture
 
 ```text
@@ -92,7 +110,7 @@ Thesis-review + exposure monitoring first. If fundamentals are insufficient, ret
 ## Dependency direction and Phase 0 execution
 
 ```text
-permitted source (not selected yet)
+private EODHD Free fixed-panel pilot
              |
              v
 bounded Python process -- raw artifact + versioned manifest
@@ -124,7 +142,7 @@ The state groups above remain separate types; do not create a giant combined enu
 
 ## Feature boundary
 
-Phase 0 may implement only prior rolling high/low, EMA20, EMA50, ATR14/ATR%, volume ratio against the previous 20 sessions, liquidity, and relative performance versus IHSG. This bootstrap defers feature code until real provider semantics and fixtures are approved.
+The zero-cost pilot implements prior-20 high/low, EMA20, EMA50, ATR14, same-basis volume ratio against the previous 20 valid sessions and aligned 20-session relative performance versus IHSG. Calculations follow canonical admission and explicit as-of session evidence. Current data has three confirmed sessions and therefore remains in warm-up. Liquidity and ATR% are not implemented in this task.
 
 EMA9, MFI, CMF, approximate weekly VWAP, broker flow, HAKA/HAKI, order book, and theme discovery remain deferred.
 
@@ -132,10 +150,10 @@ EMA9, MFI, CMF, approximate weekly VWAP, broker flow, HAKA/HAKI, order book, and
 
 - Domain: stable instrument identity, sessions, bars, quality/availability states, source references, and invariants.
 - Application: idempotent ingestion decisions and strict as-of revision queries.
-- Infrastructure: filesystem artifact archiving and PostgreSQL migration assets.
-- Worker: composition root and future bounded collector orchestration.
-- Python collector: fetch/download/archive/parse/normalize only; currently a provider-neutral manifest contract.
+- Infrastructure: filesystem artifact archiving, ordered PostgreSQL migrations and a native psql pilot persistence path.
+- Worker: manual archived-batch validation/ingestion, features and ignored local summaries.
+- Python collector: fixed-universe bounded fetch/download/archive/parse/normalize; no canonical or strategy logic.
 
 ## Migration strategy
 
-SQL migrations are ordered immutable files under `src/IdxStockIntelligence.Infrastructure/Migrations`. Apply them transactionally with a reviewed PostgreSQL migration runner in a later Phase 0 task. Never edit an applied migration; add a new one. PostgreSQL is canonical; raw artifact content stays outside it and is referenced by local URI plus SHA-256.
+SQL migrations are ordered immutable files under `src/IdxStockIntelligence.Infrastructure/Migrations`. The manual worker initializes 0001 only when the foundation is absent and applies additive, versioned 0002 transactionally. Never edit an applied migration; add a new one. PostgreSQL is canonical; raw artifact content stays outside it and is referenced by local URI plus SHA-256. Database triggers prevent evidence updates/deletes; content deduplication compares only the latest revision so a later A→B→A reversion remains visible.

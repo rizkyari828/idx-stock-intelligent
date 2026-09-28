@@ -19,7 +19,7 @@ public readonly record struct InstrumentId
 
 public sealed record Instrument
 {
-    public Instrument(InstrumentId id, string issuerName, DateOnly listedOn, DateOnly? delistedOn = null)
+    public Instrument(InstrumentId id, string issuerName, DateOnly? listedOn, DateOnly? delistedOn = null)
     {
         if (string.IsNullOrWhiteSpace(issuerName))
         {
@@ -39,7 +39,7 @@ public sealed record Instrument
 
     public InstrumentId Id { get; }
     public string IssuerName { get; }
-    public DateOnly ListedOn { get; }
+    public DateOnly? ListedOn { get; }
     public DateOnly? DelistedOn { get; }
 }
 
@@ -148,7 +148,11 @@ public sealed record DailyBar
         decimal low,
         decimal close,
         long volume,
-        SourceReference source)
+        SourceReference source,
+        decimal? adjustedClose = null,
+        string volumeUnit = "UNKNOWN",
+        string volumeBasis = "UNKNOWN",
+        string marketSegment = "UNKNOWN")
     {
         if (open <= 0 || high <= 0 || low <= 0 || close <= 0)
         {
@@ -169,6 +173,14 @@ public sealed record DailyBar
         {
             throw new ArgumentOutOfRangeException(nameof(volume), "Volume cannot be negative.");
         }
+        if (adjustedClose is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(adjustedClose));
+        }
+        if (new[] { volumeUnit, volumeBasis, marketSegment }.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException("Unresolved volume metadata must explicitly say UNKNOWN.");
+        }
 
         InstrumentId = instrumentId;
         SessionDate = sessionDate;
@@ -178,6 +190,10 @@ public sealed record DailyBar
         Close = close;
         Volume = volume;
         Source = source;
+        AdjustedClose = adjustedClose;
+        VolumeUnit = volumeUnit;
+        VolumeBasis = volumeBasis;
+        MarketSegment = marketSegment;
     }
 
     public InstrumentId InstrumentId { get; }
@@ -188,6 +204,10 @@ public sealed record DailyBar
     public decimal Close { get; }
     public long Volume { get; }
     public SourceReference Source { get; }
+    public decimal? AdjustedClose { get; }
+    public string VolumeUnit { get; }
+    public string VolumeBasis { get; }
+    public string MarketSegment { get; }
 }
 
 public sealed record MarketObservation

@@ -1,5 +1,17 @@
 # Phase 0 provider selection gate
 
+## Current decision — ZERO-COST PILOT MODE, 2026-09-28
+
+Use EODHD **Free per-symbol EOD** for the fixed ten-equity private prospective pilot
+plus empirically verified `JKSE.INDX`. Target 11 units/run, account ceiling 16/20;
+no whole-exchange/bulk endpoint, subscription, full-universe screener or backfill.
+[Pilot implementation/results](ZERO_COST_PILOT.md) document independent-session
+admission, immutable raw provenance, DEGRADED canonical revisions, null warm-up and
+remaining semantics. Paid/full-universe roles below remain conditional future design.
+**2022-present remains BLOCKED_BY_ENTITLEMENT.** Historical identity/price blockers
+do not block this narrower prospective development. Read the latest scope before
+interpreting older statements that no canonical ingestion or IHSG identifier exists.
+
 Reviewed 2026-09-28. Decision: select **Scenario C as the conditional full-universe target**, and **Scenario A as the immediate free experiment**. EODHD is the first historical/daily price candidate; Index Alpha is the optional broker/foreign candidate. This selects roles and experiments, not a canonical production feed. No purchase, provider account creation, market-data API request, backfill, scheduler, or source-code change occurred.
 
 The security-master and calendar results remain PARTIAL, and complete historical all-IDX identity remains BLOCKED. Historical 2022 coverage is not a prerequisite for a narrower prospective system. A successful small price panel does not clear the other Phase 0 gates.

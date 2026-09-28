@@ -28,6 +28,7 @@ public static class AvailabilityClassifier
             MarketSessionStatus.Suspension => DataAvailabilityStatus.Suspension,
             MarketSessionStatus.NoTrade => DataAvailabilityStatus.NoTrade,
             MarketSessionStatus.Trading when providerRowPresent => DataAvailabilityStatus.Available,
+            MarketSessionStatus.Trading when instrument.ListedOn is null => DataAvailabilityStatus.Unknown,
             MarketSessionStatus.Trading => DataAvailabilityStatus.MissingProviderRow,
             _ => DataAvailabilityStatus.Unknown
         };

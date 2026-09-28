@@ -1,5 +1,20 @@
 # Phase 0 Data Spike Result
 
+## Latest implementation — ZERO-COST PILOT MODE, 2026-09-28
+
+[Full pilot report](ZERO_COST_PILOT.md): three new EOD requests/units, eight HTTP
+requests, 10,781 response bytes, 7.269 summed HTTP seconds; account counter 13→16.
+Four older responses were reused. Seven instruments yielded 21 independently
+confirmed-session PostgreSQL bar revisions. Identical replay added zero revisions,
+and a rolled-back mutation check confirmed database append-only enforcement.
+Two documented holiday dates have zero canonical bars; other dates stay unconfirmed.
+Feature calculations are tested but live values remain null at three-session warm-up.
+Four equities and the wider initial IHSG window are pending the next quota reset.
+This narrow prospective implementation does not clear historical/corporate-action,
+market-segment, full-universe, calendar completeness or production source gates.
+**2022-present remains BLOCKED_BY_ENTITLEMENT.** Existing dated empirical sections
+below are retained as the evidence trail, not rewritten as current pipeline status.
+
 ## Latest decision — EODHD semantic follow-up, 2026-09-28
 
 **Historical gate: NO.** The genuine IHSG identifier and a repeatable holiday carry-forward pattern are now verified within the tested scope. BBCA/ANTM share-count scale is strongly corroborated by dated references with explicit units, but a JK-specific authoritative field/market-segment definition and confirmed independent upstream remain unresolved. The free account explicitly refused the old delisted price window with an entitlement warning. No 2022-present backfill, subscription purchase or upgrade occurred.

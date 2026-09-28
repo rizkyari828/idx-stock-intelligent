@@ -57,10 +57,14 @@ public sealed class DailyBarRevisionStore
                 _revisions.Add(key, revisions);
             }
 
-            var duplicate = revisions.FirstOrDefault(item => item.ContentSha256 == normalizedHash);
-            if (duplicate is not null)
+            var duplicate = revisions.LastOrDefault();
+            if (duplicate?.ContentSha256 == normalizedHash)
             {
                 return new IngestionResult(IngestionDisposition.DuplicateIgnored, duplicate);
+            }
+            if (duplicate is not null && knownAt < duplicate.KnownAt)
+            {
+                throw new ArgumentException("Revision knowledge cannot regress.", nameof(knownAt));
             }
 
             var revision = new DailyBarRevision(
