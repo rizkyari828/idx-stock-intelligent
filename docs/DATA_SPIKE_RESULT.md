@@ -1,6 +1,142 @@
 # Phase 0 Data Spike Result
 
-## Latest decision — provider selection gate, 2026-09-28
+## Latest decision — EODHD empirical validation, 2026-09-28
+
+**CAN WE PROCEED TO A 10-SYMBOL 2022-PRESENT HISTORICAL SPIKE? NO.** Recent access works, but the observed account is free (documented past-year history), ANTM/GOTO include exchange-holiday rows, JK volume units/segment are unresolved, independent volume reconciliation is incomplete, and no IHSG identifier was verified. This is an experimental result, not canonical production approval. No historical backfill, purchase, plan change, scheduling, indicators or strategies were performed.
+
+### Entitlement and secret boundary
+
+After confirming `.env` is Git-ignored and untracked, the user-authorized shell loaded it with `set -a; source .env; set +a`. Only token presence was checked; an exact-match tracked-file scan was clean. The token was never printed or stored in evidence. `/api/user` was inspected in memory: `subscriptionType=free`, `dailyRateLimit=20`, initial `apiRequests=0` with the unset date `1970-01-01`, final `apiRequests=8` dated `2026-09-28`. `extraLimit=500` was unchanged: no bonus units were consumed. The documented [usage endpoint costs zero units](https://eodhd.com/financial-apis/api-limits); its complete response was deliberately not archived because account responses may contain credentials or personal details. Only allowlisted plan/counter fields were retained locally. No account identity was committed.
+
+### Verified instruments and scope
+
+The one-unit JK active-symbol response contained 924 entries and confirmed the panel below. Symbols were constructed from returned Code + Exchange, not guessed suffixes.
+
+| Symbol | Provider name | Exchange / currency / type | ISIN | Rows in requested range |
+|---|---|---|---|---:|
+| BBCA.JK | Bank Central Asia Tbk | JK / IDR / Common Stock | ID1000109507 | 28 |
+| ANTM.JK | PT Antam (Persero) Tbk | JK / IDR / Common Stock | ID1000106602 | 30 |
+| GOTO.JK | GoTo Gojek Tokopedia PT | JK / IDR / Common Stock | ID1000166903 | 30 |
+
+Every equity request used `from=2026-08-17`, `to=2026-09-25`, `period=d`, `order=a`, `fmt=json`. The first BBCA row is August 18; ANTM/GOTO begin August 17; all end September 25. The window has 30 weekdays, of which August 17 and August 25 are independently documented exchange closures. Each sample contains all 28 candidate open weekdays; this is a bounded calendar comparison, not a complete observed-session/suspension ledger.
+
+### Exact request accounting
+
+All ten HTTP responses were 200/application-json. There were eight billed requests and two zero-unit usage checks. The final account counter confirms **8 quota units**, below the hard 12-unit ceiling. No retries, redirects, bulk endpoints or guessed-symbol EOD probes were used. The client used a 30-second timeout, a 2 MiB response ceiling, secret-free provenance, and refused to archive any response containing the token.
+
+| Request | API path (token omitted) | Units | HTTP | Response-body bytes | Elapsed seconds |
+|---|---|---:|---:|---:|---:|
+| usage-before | `user` | 0 | 200 | 292 | 1.088 |
+| jk-active | `exchange-symbol-list/JK` | 1 | 200 | 136,964 | 1.485 |
+| bbca-eod | `eod/BBCA.JK` | 1 | 200 | 3,129 | 1.131 |
+| antm-eod | `eod/ANTM.JK` | 1 | 200 | 3,300 | 1.039 |
+| goto-eod | `eod/GOTO.JK` | 1 | 200 | 2,970 | 0.948 |
+| bbca-repeat | `eod/BBCA.JK` | 1 | 200 | 3,129 | 1.146 |
+| ihsg-search | `search/Jakarta` | 1 | 200 | 2 | 1.084 |
+| jk-delisted | `exchange-symbol-list/JK` | 1 | 200 | 14,163 | 0.895 |
+| ihsg-search-name | `search/IHSG` | 1 | 200 | 2 | 1.389 |
+| usage-after | `user` | 0 | 200 | 292 | 0.925 |
+| **Total** | **10 HTTP requests** | **8** | | **164,243** | **11.130** |
+
+These byte counts measure response bodies with identity encoding, including the two unarchived usage bodies; HTTP/TLS header/wire overhead was not instrumented and must not be presented as measured. Network/read elapsed time sums to 11.130 seconds. First request began `2026-09-28T07:47:20.678118Z`; the final one began `07:50:00.665888Z` and took 0.925 seconds, giving approximately 160.913 seconds between first start and final completion, including interactive review gaps. Rate-limit headers reported 1,200 HTTP requests/minute for this key; daily units are a separate budget.
+
+### Raw evidence and reproducibility
+
+The existing `archive_payload` content-addressed mechanism preserved the eight data/discovery responses as **six unique files / 160,528 bytes** under ignored `data/raw/eodhd-spike-20260928/`. Token-free manifests and the request/inspection records are under ignored `data/collector-output/eodhd-spike-20260928/`. Each data manifest records provider, sanitized URI/parameters, UTC retrieval time, SHA-256, byte length, original inspector version `eodhd-spike-inspect-1`, HTTP status and content type. Decimal validation subsequently used the committed experimental parser `eodhd-experimental-1`; its version is recorded in `inspection.json`. Retrieval/knowledge time was not backdated to bar dates. No downloaded dataset or generated manifest is tracked.
+
+| Response | SHA-256 | Bytes |
+|---|---|---:|
+| jk-active | `b26278e229fb2537cd36303bc03b6d5aee121d5c22fa1c99f02223c78d0e1608` | 136,964 |
+| bbca-eod | `71398b6697c94b4f7321d0f128c9b9d097df767b3b35f7ade50d2b1c0ba22593` | 3,129 |
+| antm-eod | `c6de9f9f3c8019283aa6c11a4bea127d188faaae6cca08ce8ca3e0912e7de839` | 3,300 |
+| goto-eod | `574e851f3c074305e7d50a736235bfc6db9f3c01f067d0ea2357804b2ecd207e` | 2,970 |
+| bbca-repeat | `71398b6697c94b4f7321d0f128c9b9d097df767b3b35f7ade50d2b1c0ba22593` | 3,129 |
+| ihsg-search | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` | 2 |
+| jk-delisted | `d379fca0e58db3c60bc1f3f5c308cec358a91fa7ebf15bb2bbc1dc0337a0828e` | 14,163 |
+| ihsg-search-name | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` | 2 |
+
+The BBCA repeat used identical parameters, returned identical 3,129 bytes/hash, parsed identically, and referenced the original artifact. Separate fetch observations were retained; no duplicate raw blob or canonical bar was created. Both empty index searches independently returned `[]` and also share one content-addressed artifact. Local re-archival of each sample again left the unique-file count at six. This demonstrates archive/parse idempotency only, not a provider correction SLA or long-term revision policy.
+
+### Actual schema and validation
+
+All 88 original panel rows contain exactly `date`, `open`, `high`, `low`, `close`, `adjusted_close`, `volume`. There were **zero nulls, zero duplicate dates, zero invalid OHLC bounds**, and ascending provider order. OHLC were integer JSON prices in these samples; BBCA adjusted close has up to four decimal places, while ANTM/GOTO adjusted values were integers. Volume is a nonnegative JSON integer. Dates are date-only `YYYY-MM-DD`, with no timestamp, timezone, market segment, currency, publication/availability time or revision identifier in the EOD payload; currency/exchange come from discovery. Turnover and trade frequency are absent, therefore UNKNOWN rather than zero. No additional provider fields were observed.
+
+A minimal, unwired experimental Python parser preserves raw versus adjusted close as separate exact Decimals, rejects missing/malformed required fields and invalid bounds, rejects duplicate provider dates, sorts deterministically and inserts no dates. Original payload bytes remain outside the parser in the immutable archive. It does not infer tradability, corporate-action causes or market segment, and does not convert provider volume into canonical exchange volume. Neither .NET domain nor scheduler changed.
+
+### Session and OHLC finding
+
+BBCA omits both holiday dates. ANTM and GOTO instead have **four flat zero-volume holiday rows**:
+
+| Provider date | ANTM O=H=L=C | GOTO O=H=L=C | Volume, both |
+|---|---:|---:|---:|
+| 2026-08-17 | 3,070 | 50 | 0 |
+| 2026-08-25 | 3,190 | 50 | 0 |
+
+[Panin's August 17 notice](https://pans.co.id/publikasi/libur-proklamasi-kemerdekaan-1) and [August 25 notice](https://pans.co.id/publikasi/libur-maulid-nabi-muhammad-s-a-w) independently identify both dates as exchange holidays. These provider rows cannot be treated as actual trading sessions. They remain raw evidence; no canonical ingestion or silent blanket deletion occurred. Zero volume alone does not establish holiday, suspension or no-trade. The 28 remaining candidate dates have no observed gaps, but finalization and instrument status are still unproved.
+
+### Raw versus adjusted prices
+
+On eight BBCA dates (August 18–28, excluding closures), adjusted close differs from raw close. Example August 18: raw `close=6300`, `adjusted_close=6275.6757`; difference `-24.3243` IDR. On September 25 both are 6250. All sampled ANTM/GOTO raw and adjusted closes are equal; equality does not collapse their concepts. [EOD documentation](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes) describes unadjusted OHLC, split/dividend-adjusted close, split-adjusted volume, and adjustment-history recomputation. The sample demonstrates separate values, not verified corporate-action calculations or raw pre-split volume. Raw close was never overwritten and adjusted close never promoted as exchange price.
+
+### Volume semantics and tiny manual reconciliation
+
+JK shares-versus-lots remains **UNKNOWN**, not inferred from magnitude. The daily endpoint documents split-adjusted volume; raw historical traded volume, regular-market-only versus broader trading, and the JK upstream remain unverified. No split-event window was requested. Value/frequency were absent.
+
+One dated reference comparison was performed by manually inspecting the public [IDNFinancials BBCA display](https://www.idnfinancials.com/id/bbca/pt-bank-central-asia-tbk), as surfaced by a timestamped search-index snapshot for **2026-09-25 16:55**. The refreshed live page had already advanced to September 28 intraday and was not mixed with the September 25 comparison. No IDX pages were scraped, no private broker endpoint was used, and no reference dataset was downloaded. The publisher disclaims approximately 15-minute delayed informational data. Its exact upstream, market segment and frozen-snapshot durability were not established; it is a reference observation, **not proven independent feed validation**.
+
+| BBCA, 2026-09-25 | EODHD | Reference display | EODHD minus reference |
+|---|---:|---:|---:|
+| Open | 6,225 | 6,225 | 0 |
+| High | 6,275 | 6,275 | 0 |
+| Low | 6,200 | 6,200 | 0 |
+| Close | 6,250 | 6,250 | 0 |
+| Volume | 89,447,400 | 894,474, labelled shares | **88,552,926** |
+
+Volume differs by exactly 100×. The display label conflicts with any automatic lot-to-share explanation, so no conversion or correction was applied. This could reflect display units/formatting or feed differences; cause remains UNKNOWN. OHLC reference agreement is useful but narrow; volume reconciliation is unresolved. ANTM/GOTO and a verified independent final session observation still need reconciliation.
+
+### IHSG and delisted discovery
+
+`search/Jakarta?type=index&limit=50` and `search/IHSG?type=index&limit=50` both returned empty arrays. **IHSG = NOT VERIFIED**; no index prices or guessed identifier were requested. This does not prove EODHD lacks all IHSG coverage.
+
+`exchange-symbol-list/JK?delisted=1&type=common_stock` returned 96 entries. One discovered example is **SCBD.JK**, Pt Danayasa Arthatama Tbk, IDR/Common Stock, ISIN `ID1000085608`. The response exposes Code/Name/Country/Exchange/Currency/Type/Isin but **no listing or delisting dates**. The list also includes `AGRO-W` labelled Common Stock with null ISIN, so the type filter alone does not prove an ordinary-share universe. [EODHD's delisted documentation](https://eodhd.com/financial-apis/delisted-stock-companies-data-2) describes subsequent normal EOD queries, but SCBD historical access was not empirically tested and listing/delisting chronology is NOT VERIFIED. Discovery is PARTIAL, not a survivorship-completeness claim. No old-date probe or delisted backfill was made under the free entitlement.
+
+### Request/cost extrapolation — conditional, not authorization
+
+The sample verifies one recent date-range EOD request per stock, charged one unit; it does not verify 2022 access, historical completeness or delisted prices. [Current free pricing](https://eodhd.com/pricing) documents only the past year. Extra quota does not establish a deeper-history entitlement.
+
+| Designed workload | HTTP / units | Qualification |
+|---|---|---|
+| 900–1,000-stock 2022-present bootstrap | 900–1,000 EOD + four discovery = **904–1,004** | Conditional on legitimate deeper entitlement; a verified IHSG history would add one. No per-day loop/pagination is established for ordinary EOD range requests |
+| Prospective equity EOD, per symbol | **900–1,000/day** | Exceeds observed free 20/day; verified IHSG would add one |
+| 22-session per-symbol month | **19,800–22,000** | Equities only, excludes retries/actions/revision checks; verified IHSG adds 22 |
+| Existing paid JK price-bulk design | **1 HTTP / 100 units/day; 22 / 2,200 monthly** | Documented only; not called because a single request exceeds this spike ceiling; optional verified index adds 1/day |
+| Current three-stock bounded daily design | **3/day; 66/month** | Arithmetic fits ordinary free quota, but not production-approved given session/semantic issues |
+
+Measured original panel size is 9,399 bytes / 88 provider rows ≈106.8 bytes/row including JSON framing. Applying that provisional density to the earlier 1,066,500–1,185,000-bar capacity estimate gives approximately **114–127 MB** of uncompressed EOD JSON, before discovery, actions, manifests, revisions and repeats. This is a sample-based storage estimate, not a measured historical download or a guarantee of row format. The four holiday rows are not counted as confirmed sessions. Observed EOD latency is 0.948–1.131 seconds per original request; sequential scaling would suggest roughly 14–19 minutes for 900–1,000 requests, but future latency/rate limits and long-response size are untested. No runtime SLA is inferred. No money was spent or plan upgraded; future paid operation still needs the earlier rights, entitlement and quality gates.
+
+### Verdict and exact next action
+
+| Dimension | Verdict | Evidence / remaining condition |
+|---|---|---|
+| Access | PASS for recent experiment | Authenticated free discovery and range requests succeeded; 2022 access unverified |
+| Rights | PARTIAL overall | Earlier private entitled-use grant remains; no new contractual/upstream or post-cancellation evidence |
+| BBCA/ANTM/GOTO coverage | PARTIAL | All found and recent rows returned; ANTM/GOTO include closures; no historical proof |
+| OHLC semantics | PARTIAL | Bounds pass and one dated reference agrees; exchange-session/finalization handling unresolved |
+| Volume semantics | PARTIAL | Integer/split-adjusted documented; JK units/segment/raw history and reference discrepancy unresolved |
+| Adjusted-price semantics | PARTIAL | Separate values verified; action calculations/event history not tested |
+| IHSG | NOT VERIFIED | Two name searches empty; no identifier guessed |
+| Delisted coverage | PARTIAL | Inactive discovery/example works; dates, historical access and completeness unverified |
+| Idempotency | PASS for experiment | One identical repeat, archive deduplication and deterministic parsing |
+| Reconciliation | PARTIAL | One reference OHLC agreement, unresolved 100× volume difference; feed independence unverified |
+| Operational suitability | BLOCKED for 2022/full-universe use | Free history/quota limits plus session, volume, benchmark and provenance gates |
+
+**NO** to the 10-symbol 2022-present spike and to full IDX backfill. Exact next action: resolve JK volume units/market segment and holiday-row policy with authoritative provider evidence, obtain a legitimate deeper-history entitlement without assuming bonus quota grants it, verify a genuine IHSG symbol, and compare one final dated BBCA OHLC/volume observation whose units/upstream are explicit. A separately authorized ≤6-unit recent-panel recheck can then reassess these blockers; do not start it or purchase anything automatically. Next reasoning/model level: **MEDIUM** for that bounded recheck; adjustment/replay policy would be a separately scoped HIGH task.
+
+### Validation
+
+`python3.13 -m unittest discover -s collectors/python/tests -v`: **12 passed**, including valid/malformed/missing fields, separate closes/exact decimal, duplicate dates, deterministic sorting/no fill, zero-volume evidence and existing archive/KSEI checks. System `python3` is 3.9.6 and initially failed existing `zip(strict=True)` tests; the repository requires Python 3.12+, so the supported installed 3.13 interpreter was used without changing unrelated code. `dotnet run --project tests/IdxStockIntelligence.Tests/IdxStockIntelligence.Tests.csproj --no-restore`: **10 passed**, zero errors/failures/skips. The configured `dotnet test --solution IdxStockIntelligence.slnx --no-restore` discovered zero tests (exit 5), so the existing xUnit executable was run directly; test configuration was left unchanged. Token-safe staged-file scanning, ignored-artifact verification and `git diff --check` are required before the focused commit. No push.
+
+## Earlier provider selection gate — 2026-09-28 (before empirical validation)
 
 The role recommendation and full request/cost/evidence model are in [PROVIDER_STRATEGY.md](PROVIDER_STRATEGY.md), with dimension/field classifications in [DATA_SOURCE_MATRIX.md](DATA_SOURCE_MATRIX.md). This supersedes the older price-provider next-action recommendation below, while preserving every original security-master/calendar observation and measurement.
 

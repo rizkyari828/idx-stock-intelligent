@@ -1,6 +1,6 @@
 # Data Source Matrix — Phase 0
 
-Latest provider review: 2026-09-28; original security-master/calendar evidence: 2026-09-24. Status describes **automated personal/local use**, not ordinary browser viewing. `UNCLEAR` is not approval. No dataset is approved for canonical production ingestion. Dimension-specific rights/quota PASS does not clear the other gates. The 2026-09-28 gate below supersedes the older price-provider screen; original spike evidence remains unchanged.
+Latest empirical review: 2026-09-28; provider selection review: 2026-09-28; original security-master/calendar evidence: 2026-09-24. Status describes **automated personal/local use**, not ordinary browser viewing. `UNCLEAR` is not approval. No dataset is approved for canonical production ingestion. Dimension-specific rights/quota PASS does not clear the other gates. The 2026-09-28 gate below supersedes the older price-provider screen; original spike evidence remains unchanged.
 
 | Dataset | Candidate Source | Official? | Access Method | Permission Status | Terms Evidence | Automation Feasibility | Historical Depth | Point-in-Time Suitability | Revision Semantics | Rate Limits | Known Limitations | Spike Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -87,3 +87,24 @@ Selected roles, source-specific rights, monthly prices, HTTP-versus-quota calcul
 - Fresh official IDX product discovery succeeded, while catalogue download returned 403; indexed catalogue prices/specification and earlier findings are explicitly qualified rather than presented as a fresh contractual quote. No verified IDX Edge PRO API specification or price was found.
 
 Decision: conditional target = **EODHD prices/history + optional Index Alpha shortlist enrichment + manual official sample reconciliation**. Invezgo is the broader enrichment/prospective fallback after rights/specification clearance. Benchmark remains gated on an actual authorized IHSG identifier/response. Complete historical all-IDX identity and session evidence remain BLOCKED/PARTIAL; prospective experimentation can proceed separately. No accounts, paid calls, market-data payloads or subscriptions were created in this gate.
+
+## EODHD empirical update — 2026-09-28
+
+The authenticated free-account spike consumed **8 units / 10 HTTP requests**, returning 28 BBCA and 30 each ANTM/GOTO rows for August 17–September 25. Six immutable raw blobs and token-free manifests remain ignored. See [the full empirical report](DATA_SPIKE_RESULT.md#latest-decision--eodhd-empirical-validation-2026-09-28) for exact requests, hashes, reference discrepancies and tests. This section supersedes earlier NOT TESTED/credentials-missing statements only for the bounded recent experiment; no production dataset becomes PASS.
+
+| Dimension | Experimental status | Observed limit |
+|---|---|---|
+| Recent access | PASS | Free token, 20 daily units; 8 used; deeper history not probed |
+| Panel identity/coverage | PARTIAL | BBCA.JK / ANTM.JK / GOTO.JK confirmed as JK IDR Common Stock; 28/30/30 rows |
+| OHLC/session semantics | PARTIAL | All bounds valid; ANTM/GOTO contain flat zero-volume August 17/25 exchange-holiday rows |
+| Volume | PARTIAL | Integers observed; split-adjustment documented; JK shares/lots and market segment UNKNOWN; dated reference differs 100× |
+| Adjustment | PARTIAL | Eight BBCA rows have distinct close/adjusted_close; no corporate-action calculation test |
+| Value/frequency | UNKNOWN | Neither field exists in any sampled EOD row; never map to zero |
+| IHSG | NOT VERIFIED | Jakarta and IHSG index searches both empty; no guessed price call |
+| Delisted | PARTIAL | 96 inactive entries; SCBD.JK discovered; listing/delisting dates and historical prices unverified; type labels need checks |
+| Archive/parse idempotency | PASS | BBCA identical repeat shares artifact; exact Decimal parsing deterministic, duplicate dates rejected |
+| Reconciliation | PARTIAL | One dated reference OHLC match; volume mismatch and upstream independence unresolved |
+| Rights | PARTIAL overall, unchanged | Private entitled-use grant retained; no new upstream/post-cancellation rights evidence |
+| Production/full-history suitability | BLOCKED | Free past-year entitlement plus unresolved session/volume/IHSG gates |
+
+**10-symbol 2022-present spike: NO.** Resolve the empirical blockers and legitimate deeper-history entitlement first; no upgrade, historical retrieval or full-universe authorization follows from this result.

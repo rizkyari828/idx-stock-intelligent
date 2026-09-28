@@ -157,7 +157,7 @@ Scenario C alternatives: Invezgo Advance alone is Rp499,900/month for prospectiv
 
 Amounts remain in provider billing currencies; no live IDR exchange rate or tax-inclusive checkout total was established. For any later paid decision, obtain current total cost and explicit permission first. No purchase is authorized by this document.
 
-## Tiny free empirical spike: ready in design, credentials missing
+## Original tiny-spike proposal (superseded by empirical result below)
 
 **YES** to a bounded EODHD free-account recent-panel experiment once a legitimate free key is supplied outside Git and the account's entitlements are checked. **NO** to executing an authenticated experiment now: no relevant token was present in the current environment. No credential store, `.env`, keychain or secret file was searched; no account was created. Needed credential: registered personal **`EODHD_API_TOKEN`**, passed only to the HTTP client. The public demo token's limited-symbol entitlement does not prove JK support and is not a substitute.
 
@@ -183,6 +183,18 @@ This is provider-independent, but not a ready adapter: the bar model requires OH
 
 ## Next action and stop boundary
 
-Supply a legitimate free EODHD key through the process environment outside Git, confirm the ordinary free entitlement, and run only the recent panel above in a separately scoped tiny spike. In parallel, prepare (do not send without authorization) questions on JK upstream/market units, genuine IHSG identifier, delisted coverage, rights issues, final EOD/corrections, and post-cancellation raw/normalized/derived retention. Ask Index Alpha and Invezgo for their API-specific archival/upstream grants before their tests. No bulk backfill or paid purchase follows automatically from passing the small panel.
+The original credential blocker is resolved by loading the ignored repository-local `.env` at the user’s instruction. The bounded experiment below now governs the next action. In parallel, prepare (do not send without authorization) questions on JK upstream/market units, genuine IHSG identifier, delisted coverage, rights issues, final EOD/corrections, and post-cancellation raw/normalized/derived retention. Ask Index Alpha and Invezgo for their API-specific archival/upstream grants before their tests. No bulk backfill or paid purchase follows automatically from passing the small panel.
 
 Next task reasoning: **MEDIUM** for bounded HTTP/provenance/schema validation; **HIGH** for later adjustment accounting, provider reconciliation policy or point-in-time identity/replay. LOW fits only clerical documentation. No local-AI infrastructure changes are needed.
+
+## Bounded empirical result — 2026-09-28
+
+**10-symbol 2022-present historical spike: NO.** The supplied account reports Free / 20 units per day; 10 HTTP requests consumed exactly 8 units, with 500 extra units unchanged. Recent symbols are confirmed, and 28 BBCA / 30 ANTM / 30 GOTO rows were archived. There were no nulls, duplicate dates or invalid OHLC bounds. BBCA's raw/adjusted closes differ on eight dates; the identical BBCA repeat reuses its content-addressed artifact and parses deterministically. This supersedes the original credential-missing status and its proposed two repeats: only ONE repeat was performed as authorized. No paid plan, full history or bulk endpoint was used.
+
+ANTM/GOTO include August 17 and August 25 closure rows with flat OHLC and zero volume, while BBCA omits both. Thus provider dates are not automatically confirmed exchange sessions. A tiny dated BBCA reference comparison matches OHLC but reports volume 100× lower with a shares label; no conversion or independence claim is justified. JK shares/lots, market segment, raw historical volume, upstream and finalization remain unresolved. Value/frequency are absent. Separate-close preservation is empirically established, but split/dividend calculations are not.
+
+Both index-name searches returned empty arrays: IHSG NOT VERIFIED, without guessing a symbol. Inactive JK discovery returned 96 entries including SCBD.JK; no listing/delisting dates or old prices were retrieved, and at least one warrant-style code is labelled Common Stock. Delisted discovery is PARTIAL, not a historical-universe guarantee. Six unique raw artifacts (160,528 bytes) and token-free manifests remain Git-ignored; the complete request ledger, hashes, reference provenance, conditional sizing and dimension verdicts are in [DATA_SPIKE_RESULT.md](DATA_SPIKE_RESULT.md#latest-decision--eodhd-empirical-validation-2026-09-28).
+
+Access and experiment idempotency PASS only within this narrow scope. Panel/OHLC/volume/adjustment/delisted/reconciliation and overall rights remain PARTIAL; IHSG NOT VERIFIED; operational suitability for 2022/full-universe use BLOCKED. Prior contractual/private-use findings and conditional role assignments remain unchanged: requests succeeding do not authorize production.
+
+Exact next action: obtain authoritative JK volume/segment and holiday-row semantics, an explicitly entitled deeper-history route, a verified IHSG identity and a final dated reference observation with explicit units/upstream. Reassess with a separately authorized ≤6-unit recent check, without purchasing or launching history automatically. Current free recent access and bonus quota do not prove 2022 entitlement. The historical bootstrap gate remains NO; next bounded validation uses MEDIUM reasoning.
