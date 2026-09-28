@@ -9,6 +9,16 @@ namespace IdxStockIntelligence.Infrastructure;
 // Native psql avoids a new driver for this single local CLI. Replace when hosting a service.
 public static class PilotDatabase
 {
+    public static string DatabaseName
+    {
+        get
+        {
+            var name = Environment.GetEnvironmentVariable("IDX_PILOT_DATABASE") ?? "idx_stock_intelligence";
+            if (name.Length is < 1 or > 63 || !name.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new ArgumentException("Invalid local pilot database name.");
+            return name;
+        }
+    }
     public static string SqlLiteral(string value) => "'" + value.Replace("'", "''") + "'";
 
     public static string Execute(string sql)
@@ -16,7 +26,7 @@ public static class PilotDatabase
         var info = new ProcessStartInfo("docker") { RedirectStandardInput = true, RedirectStandardOutput = true,
             RedirectStandardError = true, UseShellExecute = false };
         foreach (var arg in new[] { "compose", "exec", "-T", "postgres", "psql", "-X", "-q", "-A", "-t",
-            "-v", "ON_ERROR_STOP=1", "-U", "idx_stock", "-d", "idx_stock_intelligence" }) info.ArgumentList.Add(arg);
+            "-v", "ON_ERROR_STOP=1", "-U", "idx_stock", "-d", DatabaseName }) info.ArgumentList.Add(arg);
         using var process = Process.Start(info) ?? throw new InvalidOperationException("Cannot start psql.");
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
@@ -32,6 +42,7 @@ public static class PilotDatabase
         if (Execute("SELECT to_regclass('public.source') IS NOT NULL;") == "f")
             Execute(File.ReadAllText("src/IdxStockIntelligence.Infrastructure/Migrations/0001_phase0_foundation.sql"));
         Execute(File.ReadAllText("src/IdxStockIntelligence.Infrastructure/Migrations/0002_prospective_pilot.sql"));
+        Execute(File.ReadAllText("src/IdxStockIntelligence.Infrastructure/Migrations/0003_pilot_observation.sql"));
     }
 
     public static void Persist(object payload)
@@ -51,6 +62,10 @@ public static class PilotDatabase
             INSERT INTO instrument (instrument_id,issuer_name,listed_on)
                 SELECT (i->>'id')::uuid,i->>'name',(i->>'listed_on')::date
                 FROM pilot_input,jsonb_array_elements(data->'instruments') i ON CONFLICT DO NOTHING;
+            INSERT INTO instrument_listing_evidence
+                SELECT (i->>'id')::uuid,(i->'listing_evidence'->>'known_at')::timestamptz,i->'listing_evidence'
+                FROM pilot_input,jsonb_array_elements(data->'instruments') i
+                WHERE i ? 'listing_evidence' ON CONFLICT DO NOTHING;
             INSERT INTO raw_artifact
                 SELECT (a->>'id')::uuid,(data->>'run_id')::uuid,'eodhd',a->'manifest'->>'requested_uri',
                     a->'manifest'->'request_parameters',(a->'manifest'->>'fetched_at_utc')::timestamptz,
@@ -70,6 +85,9 @@ public static class PilotDatabase
                         WHERE instrument_id=(item->>'instrument_id')::uuid AND session_date=(item->>'date')::date
                         ORDER BY revision_number DESC LIMIT 1;
                     IF previous.canonical_content_sha256 IS DISTINCT FROM item->>'hash' THEN
+                        IF (item->>'retrieved_at')::timestamptz < previous.retrieved_at THEN
+                            CONTINUE; -- Reprocessing an older archive is not a new provider reversion.
+                        END IF;
                         IF (input->>'known_at')::timestamptz < previous.known_at THEN
                             RAISE EXCEPTION 'Revision knowledge cannot regress';
                         END IF;
@@ -89,7 +107,7 @@ public static class PilotDatabase
 
     public static IReadOnlyList<DailyBarRevision> ReadRevisions()
     {
-        var json = Execute("SELECT coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('raw_hash',a.content_sha256,'source_id',a.source_id,'fetched_at',coalesce(r.retrieved_at,a.fetched_at))),'[]') FROM daily_bar_revision r JOIN raw_artifact a USING(raw_artifact_id);");
+        var json = Execute("SELECT coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('raw_hash',a.content_sha256,'source_id',a.source_id,'fetched_at',coalesce(r.retrieved_at,a.fetched_at))),'[]') FROM pilot_revision_evidence r JOIN raw_artifact a USING(raw_artifact_id);");
         using var document = JsonDocument.Parse(json);
         return document.RootElement.EnumerateArray().Select(r =>
         {
@@ -101,7 +119,7 @@ public static class PilotDatabase
                 r.GetProperty("adjusted_close").ValueKind == JsonValueKind.Null ? null : r.GetProperty("adjusted_close").GetDecimal(),
                 r.GetProperty("volume_unit").GetString()!,r.GetProperty("volume_basis").GetString()!,r.GetProperty("market_segment").GetString()!);
             return new DailyBarRevision(r.GetProperty("revision_number").GetInt64(),bar,r.GetProperty("known_at").GetDateTimeOffset(),
-                r.GetProperty("canonical_content_sha256").GetString()!,r.GetProperty("ingestion_run_id").GetGuid());
+                r.GetProperty("canonical_content_sha256").GetString()!,r.GetProperty("ingestion_run_id").GetGuid(),r.GetProperty("first_seen_at").GetDateTimeOffset());
         }).ToArray();
     }
 }

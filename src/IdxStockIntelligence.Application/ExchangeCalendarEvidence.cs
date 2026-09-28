@@ -5,7 +5,8 @@ public enum ExchangeDayStatus
     Unknown,
     Weekend,
     AnnouncedClosed,
-    ObservedTrading
+    ObservedTrading,
+    ExceptionalClosure
 }
 
 public sealed record ExchangeDayEvidence(
@@ -25,7 +26,7 @@ public sealed class ExchangeCalendarEvidence
             throw new ArgumentException("Calendar evidence requires a source reference.", nameof(evidence));
         }
 
-        if (evidence.Status is not (ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ObservedTrading))
+        if (evidence.Status is not (ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ObservedTrading or ExchangeDayStatus.ExceptionalClosure))
         {
             throw new ArgumentException("Only sourced closure or trading evidence can be recorded.", nameof(evidence));
         }

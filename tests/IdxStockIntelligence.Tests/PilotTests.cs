@@ -52,6 +52,32 @@ public sealed class PilotTests
         Assert.Equal("UNKNOWN",PilotValidation.Validate(unknownListing,date,null,Proof(date),Known).Status);
         var futureListing = new Instrument(Stock,"Fixture",date.AddDays(1));
         Assert.Equal("PRE_LISTING",PilotValidation.Validate(futureListing,date,null,Proof(date),Known).Status);
+        Assert.Equal("CLOSED",PilotValidation.Validate(instrument,date,padding,Proof(date,ExchangeDayStatus.ExceptionalClosure),Known).Status);
+        var suspension=new InstrumentSessionProof(Stock,date,MarketSessionStatus.Suspension,"https://independent.example/suspension",Known);
+        Assert.Equal("SUSPENDED",PilotValidation.Validate(instrument,date,Bar(Stock,date),Proof(date),Known,instrumentProof:suspension).Status);
+        Assert.Equal("NO_TRADE",PilotValidation.Validate(instrument,date,null,Proof(date),Known,instrumentProof:suspension with { Status=MarketSessionStatus.NoTrade }).Status);
+        Assert.Equal("AVAILABLE",PilotValidation.Validate(instrument,date,Bar(Stock,date),Proof(date),Known,instrumentProof:suspension with { KnownAt=Known.AddDays(1) }).Status);
+    }
+
+    [Fact]
+    public void OldArchiveCannotRevertNewerResponseButFreshReversionAppends()
+    {
+        var date=new DateOnly(2026,9,25);
+        var first=Bar(Stock,date);
+        var fetched=Known.AddDays(1);
+        var source=new SourceReference("fixture",Guid.NewGuid(),fetched,fetched,new('e',64));
+        var correction=new DailyBar(Stock,date,101,102,100,101,1000,source,50,"SHARE_COUNT_CORROBORATED","SPLIT_ADJUSTED","UNKNOWN");
+        var store=new DailyBarRevisionStore();
+        store.Ingest(first,Known,PilotValidation.ContentHash(first),Guid.NewGuid());
+        store.Ingest(correction,fetched,PilotValidation.ContentHash(correction),Guid.NewGuid());
+        Assert.Equal(IngestionDisposition.StaleEvidenceIgnored,store.Ingest(first,fetched.AddDays(1),PilotValidation.ContentHash(first),Guid.NewGuid()).Disposition);
+        Assert.Equal(2,store.History(Stock,date).Count);
+        var reversionSource=new SourceReference("fixture",Guid.NewGuid(),fetched.AddDays(2),fetched.AddDays(2),new('d',64));
+        var reversion=new DailyBar(Stock,date,100,101,99,100,1000,reversionSource,50,"SHARE_COUNT_CORROBORATED","SPLIT_ADJUSTED","UNKNOWN");
+        var result=store.Ingest(reversion,fetched.AddDays(2),PilotValidation.ContentHash(reversion),Guid.NewGuid());
+        Assert.Equal(IngestionDisposition.RevisionAppended,result.Disposition);
+        Assert.Equal(Known,result.Revision.FirstSeenAt);
+        Assert.Equal(3,store.History(Stock,date).Count);
     }
 
     private static (List<DailyBarRevision> Bars,List<SessionProof> Proofs) Series()

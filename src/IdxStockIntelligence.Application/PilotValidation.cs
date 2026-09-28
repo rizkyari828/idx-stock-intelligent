@@ -8,11 +8,13 @@ namespace IdxStockIntelligence.Application;
 
 public sealed record SessionProof(DateOnly Date, ExchangeDayStatus Status, string Reference, DateTimeOffset KnownAt);
 public sealed record PilotObservation(string Status, DailyBar? Bar, string? Reason = null);
+public sealed record InstrumentSessionProof(InstrumentId Instrument, DateOnly Date,
+    MarketSessionStatus Status, string Reference, DateTimeOffset KnownAt);
 
 public static class PilotValidation
 {
     public static PilotObservation Validate(Instrument instrument, DateOnly date, DailyBar? row,
-        SessionProof? proof, DateTimeOffset knownAt, bool sourceError = false)
+        SessionProof? proof, DateTimeOffset knownAt, bool sourceError = false, InstrumentSessionProof? instrumentProof = null)
     {
         if (instrument.ListedOn is not null && date < instrument.ListedOn)
             return new("PRE_LISTING", null);
@@ -22,10 +24,17 @@ public static class PilotValidation
             return new("SESSION_UNCONFIRMED", null);
         if (proof.Date != date)
             throw new ArgumentException("Session proof date does not match observation.", nameof(proof));
-        if (proof.Status == ExchangeDayStatus.AnnouncedClosed || date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        if (proof.Status is ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ExceptionalClosure || date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
             return new("CLOSED", null);
         if (proof.Status != ExchangeDayStatus.ObservedTrading)
             return new("SESSION_UNCONFIRMED", null);
+        if (instrumentProof is not null)
+        {
+            if (instrumentProof.Instrument != instrument.Id || instrumentProof.Date != date || string.IsNullOrWhiteSpace(instrumentProof.Reference))
+                throw new ArgumentException("Invalid instrument-session proof.", nameof(instrumentProof));
+            if (instrumentProof.KnownAt <= knownAt && instrumentProof.Status is MarketSessionStatus.Suspension or MarketSessionStatus.NoTrade)
+                return new(instrumentProof.Status == MarketSessionStatus.Suspension ? "SUSPENDED" : "NO_TRADE", null);
+        }
         if (sourceError) return new("SOURCE_ERROR", null);
         if (row is null) return new(instrument.ListedOn is null ? "UNKNOWN" : "MISSING", null,
             instrument.ListedOn is null ? "Listing boundary unknown." : null);

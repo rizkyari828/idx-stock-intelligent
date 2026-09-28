@@ -7,13 +7,15 @@ public sealed record DailyBarRevision(
     DailyBar Bar,
     DateTimeOffset KnownAt,
     string ContentSha256,
-    Guid IngestionRunId);
+    Guid IngestionRunId,
+    DateTimeOffset? FirstSeenAt = null);
 
 public enum IngestionDisposition
 {
     Inserted,
     RevisionAppended,
-    DuplicateIgnored
+    DuplicateIgnored,
+    StaleEvidenceIgnored
 }
 
 public sealed record IngestionResult(IngestionDisposition Disposition, DailyBarRevision Revision);
@@ -62,6 +64,10 @@ public sealed class DailyBarRevisionStore
             {
                 return new IngestionResult(IngestionDisposition.DuplicateIgnored, duplicate);
             }
+            if (duplicate is not null && bar.Source.FetchedAt < duplicate.Bar.Source.FetchedAt)
+            {
+                return new IngestionResult(IngestionDisposition.StaleEvidenceIgnored, duplicate);
+            }
             if (duplicate is not null && knownAt < duplicate.KnownAt)
             {
                 throw new ArgumentException("Revision knowledge cannot regress.", nameof(knownAt));
@@ -72,7 +78,8 @@ public sealed class DailyBarRevisionStore
                 bar,
                 knownAt,
                 normalizedHash,
-                ingestionRunId);
+                ingestionRunId,
+                revisions.Count == 0 ? knownAt : revisions[0].KnownAt);
 
             revisions.Add(revision);
             return new IngestionResult(

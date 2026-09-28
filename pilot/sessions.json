@@ -6,10 +6,22 @@
     "known_at": "2026-09-28T08:24:22.282236+00:00"
   },
   {
+    "date": "2026-08-24",
+    "status": "ObservedTrading",
+    "reference": "https://www.bloombergtechnoz.com/detail-news/119362/ihsg-ditutup-di-6-501-saham-byan-jadi-pemberat",
+    "known_at": "2026-09-28T09:14:26.323880+00:00"
+  },
+  {
     "date": "2026-08-25",
     "status": "AnnouncedClosed",
     "reference": "https://pans.co.id/publikasi/libur-maulid-nabi-muhammad-s-a-w",
     "known_at": "2026-09-28T08:24:22.282236+00:00"
+  },
+  {
+    "date": "2026-08-26",
+    "status": "ObservedTrading",
+    "reference": "https://economy.okezone.com/amp/2026/08/26/278/3238357/ihsg-hari-ini-ditutup-melemah-ke-level-6-405",
+    "known_at": "2026-09-28T09:14:26.323880+00:00"
   },
   {
     "date": "2026-09-23",
