@@ -1,5 +1,45 @@
 # Phase 0 Data Spike Result
 
+## Latest decision — provider selection gate, 2026-09-28
+
+The role recommendation and full request/cost/evidence model are in [PROVIDER_STRATEGY.md](PROVIDER_STRATEGY.md), with dimension/field classifications in [DATA_SOURCE_MATRIX.md](DATA_SOURCE_MATRIX.md). This supersedes the older price-provider next-action recommendation below, while preserving every original security-master/calendar observation and measurement.
+
+- **Historical bootstrap:** EODHD All World EOD is the first candidate; execution remains BLOCKED pending IDX-specific semantics, samples, rights and historical identity/session evidence. No historical download occurred.
+- **Prospective EOD:** conditionally select EODHD JK bulk at US$19.99/month as the smallest full-universe target after validation. Invezgo Advance (Rp499,900/month) is the fallback test candidate after API rights clarification. No production provider is approved.
+- **IHSG:** discover an actual EODHD Composite price-index identifier before requesting it; none was verified here. Invezgo documents `COMPOSITE`, and licensed IDX Indices is the official fallback; neither has passed a response/retention test.
+- **Enrichment:** deferred, with Index Alpha Starter (currently Rp200,000/30 days) selected for bounded broker/foreign shortlist work after rights clarification; Invezgo for broader statements/ownership/events if required later.
+- **Reconciliation:** manual official IDX/issuer/KSEI sample observations first, independently licensed feed later. No web scraping or claim that similarly sourced vendors are independent.
+
+### What this gate established
+
+Provider-owned documentation/prices/terms were rechecked for EODHD, Invezgo, GOAPI, Index Alpha, Twelve Data and official IDX services. The exact IDX Edge PRO API offering could not be verified and is excluded pending a provider-owned URL/specification. Previously screened Alpha Vantage/marketstack/Stooq were checked for any reason to promote them; no validated IDX/IHSG route replaced the shortlist. Public documentation retrieval failures (including 403s for the IDX catalogue and OpenAPI specifications) are recorded as limitations, not bypassed.
+
+Rights findings materially constrain selection: EODHD permits entitled nonprofessional private storage/analysis, but post-cancellation use is not explicitly settled. Invezgo general bot restrictions conflict with its API integration/caching guidance. GOAPI discloses Yahoo/Google/MSN/MarketWatch upstream without a discovered applicable upstream grant. Index Alpha's durable archive/upstream rights are unresolved. Twelve Data requires deletion after termination/expiry. Therefore no unconditional paid bootstrap-and-cancel architecture is approved.
+
+Sizing estimates (not executed requests): 900–1,000 equities, approximately 1,185 sessions through 2026-09-28, or 1.07–1.19 million bars. EODHD prices need **904–1,004 HTTP requests/units** including one IHSG history and three discovery requests, plus additional delisted names if verified; adding per-symbol split/dividend history gives **2,704–3,004**, plus three per additional historical name. This is a symbol-range model, not stock×day. One daily stock bulk plus IHSG needs **2 HTTP / 101 units**; including split/dividend bulks needs **4 HTTP / 301 units**. Actual completeness, bytes, latency and JK entitlement remain unmeasured.
+
+Index Alpha's two datasets for 20/50/100 names need 2/2/4 HTTP batches but 40/100/200 quota units/day, or 880/2,200/4,400 over a 22-session month. Historical ranges aggregate rather than return daily observations. Invezgo regular plans stop at two rolling years; expensive per-date counts are documented only as a known-route model, not as proof that an efficient custom/history export cannot exist.
+
+The storage plan is modest: approximately 1–3 GB canonical/provenance/index capacity plus raw evidence, revisions and backups; reserve 5–10 GB initially and measure actual payloads. These are explicit bytes-per-row estimates, not benchmark results. No big-data infrastructure is needed.
+
+### Concrete cost decision
+
+| Scenario | Recommendation | Current limitation |
+|---|---|---|
+| Zero cost | EODHD free recent BBCA/ANTM/GOTO panel, optional verified IHSG; Rp0 recurring | One-year history / 20 units per day; no full-universe daily service, bulk, 2022 bootstrap or full shortlist enrichment |
+| Bootstrap-only payment | Conditional EODHD US$19.99 for one month, then free reduced panel or separately permitted paid daily source | Written post-cancellation retained-use grant required; no established free full-universe daily replacement |
+| Low-cost continuous target | Conditional EODHD US$19.99/month + optional Index Alpha Rp200,000/30 days | Rights/semantics/empirical gates still apply; broad enrichment deferred |
+
+Prices are provider billing currencies, before unverified taxes/FX/license additions. No subscription was bought or authorized automatically. Historical 2022-present inadequacy does not block the separately scoped prospective experiment.
+
+### Tiny empirical spike and architecture boundary
+
+**YES in design, not executable with current credentials:** use a legitimate free EODHD account/token supplied outside Git, verify ordinary free entitlements, and retrieve about 20–30 recent completed sessions for BBCA/ANTM/GOTO. IHSG and a recent delisted case are optional only after actual symbol discovery. Cap the experiment at 12 one-unit requests including bounded retries; no paid quota/upgrade or full history. No relevant token was present in the current environment; secret files/stores were not searched. No market-data response, new raw hash, empirical discrepancy or passed price gate exists from this task.
+
+Targeted inspection confirmed generic raw manifest, canonical bar/source fields and revision/as-of logic; no provider-named canonical fields. The helper does not redact credentials or automatically capture HTTP headers/status, so the next spike must use token-free manifest URIs/parameters and retain HTTP evidence separately. Missing turnover/adjustment/segment concepts must remain raw research evidence until a later approved semantic design. Historical data downloaded now cannot be assigned past system knowledge dates.
+
+**Exact next action:** supply `EODHD_API_TOKEN` through the process environment outside Git and execute only the free panel in the strategy document; first confirm account/JK entitlement, then preserve raw evidence and independently reconcile samples. Do not start bulk backfill. Draft provider clarification questions are recorded, but none were sent. Reasoning for the bounded next task: **MEDIUM**; later corporate-action/as-of implementation: **HIGH**.
+
 ## Status as of 2026-09-24
 
 - Overall foundation: **BLOCKED** for unattended canonical ingestion pending rights clarification and source/semantics repair.

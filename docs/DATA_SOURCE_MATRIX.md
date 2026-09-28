@@ -1,6 +1,6 @@
-# Data Source Matrix — security master and calendar spike
+# Data Source Matrix — Phase 0
 
-Review date: 2026-09-24. Status describes **automated personal/local use**, not ordinary browser viewing. `UNCLEAR` is not approval. `PARTIAL` records technical evidence only. No source is `PASS`.
+Latest provider review: 2026-09-28; original security-master/calendar evidence: 2026-09-24. Status describes **automated personal/local use**, not ordinary browser viewing. `UNCLEAR` is not approval. No dataset is approved for canonical production ingestion. Dimension-specific rights/quota PASS does not clear the other gates. The 2026-09-28 gate below supersedes the older price-provider screen; original spike evidence remains unchanged.
 
 | Dataset | Candidate Source | Official? | Access Method | Permission Status | Terms Evidence | Automation Feasibility | Historical Depth | Point-in-Time Suitability | Revision Semantics | Rate Limits | Known Limitations | Spike Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -50,3 +50,40 @@ Scope is a personal/local, prospective EOD system; no bulk retrieval or provider
 | [Stooq](https://stooq.com/) | UNKNOWN | UNKNOWN | UNKNOWN | BLOCKED until IDX coverage proven | UNKNOWN | UNKNOWN | BLOCKED | No provider-origin evidence of IDX stock/IHSG coverage or use rights found; no retrieval. |
 
 [IDX Daily IDX Indices](https://www.idx.co.id/id/data-pasar/laporan-statistik/digital-statistic/monthly/stock-price-index/daily-idx-indices) shows official daily Composite Index closes and can support **manual spot reconciliation**, not automated collection. [IDX index description](https://www.idx.co.id/id/produk/indeks) defines IHSG as a price-performance index; it is not a dividend-total-return series. Stock volume units, market segment, adjustments, correction policy, and IHSG identifier require source-specific proof. The existing security-master/calendar rights and historical-population statuses remain unchanged.
+
+## Provider selection gate — 2026-09-28
+
+Selected roles, source-specific rights, monthly prices, HTTP-versus-quota calculations, storage assumptions, three cost scenarios and the exact free experiment are in [PROVIDER_STRATEGY.md](PROVIDER_STRATEGY.md). Classifications below apply to the reviewed offering; BLOCKED means no established usable scoped route, not that every negotiated product is impossible. Cost categories are defined in that document; there is no overall score.
+
+| Provider | Rights | Historical OHLCV | Prospective EOD | IDX coverage | Delisted coverage | IHSG | Corporate actions | Request budget | Cost |
+|---|---|---|---|---|---|---|---|---|---|
+| EODHD paid All World EOD | PASS for entitled registered private use; post-cancel UNCLEAR | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PASS paid arithmetic; BLOCKED full-universe free | LOW |
+| Invezgo Advance API | UNCLEAR | PARTIAL, rolling two years; 2022 needs Enterprise | PARTIAL | PARTIAL | BLOCKED | PARTIAL | PARTIAL | PASS daily arithmetic; PARTIAL bootstrap | LOW |
+| GOAPI Stock IDX | UNCLEAR; canonical use BLOCKED pending upstream grant | PARTIAL | PARTIAL technically | PARTIAL | BLOCKED | PARTIAL | BLOCKED | PARTIAL | UNKNOWN |
+| Index Alpha | UNCLEAR for durable archive/upstream rights | BLOCKED | BLOCKED for OHLCV | PARTIAL enrichment only | BLOCKED | BLOCKED | BLOCKED | PASS paid shortlist; PARTIAL free | FREE / LOW paid |
+| IDX Edge PRO, exact named candidate unverified | UNCLEAR | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED | UNKNOWN |
+| Twelve Data Pro XIDX | UNCLEAR durable archive; BLOCKED retained use after cancel absent exception | PARTIAL | PARTIAL | PARTIAL | BLOCKED | PARTIAL | PARTIAL | PASS paid arithmetic | HIGH |
+| Official/licensed IDX services | UNCLEAR until individual contract | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | UNKNOWN, institutional fees HIGH |
+
+### Required price fields: documented, not empirically validated
+
+| Provider | Open/high/low/close | Adjusted close | Volume | Traded value | Trade frequency | Adjustment / correction qualification |
+|---|---|---|---|---|---|---|
+| [EODHD EOD](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes) | All four, described as unadjusted | Split/dividend-adjusted | Split-adjusted; JK units and [bulk wording](https://eodhd.com/financial-apis/bulk-api-eod-splits-dividends) need comparison | Absent from EOD row | Absent from EOD row | Adjusted history recalculated; rights issues and JK revision SLA unverified |
+| [Invezgo stock summary](https://docs.invezgo.com/api-usage/batch/) | All four in documented example; adjustment basis unknown | Not established | Present, units unverified | Present, currency/unit confirmation needed | Present, definition unverified | RG default selectable; event calendar is not an adjustment specification; final EOD/revisions unknown |
+| [GOAPI Swagger](https://goapi.io/swagger/) | History/price routes advertised; fresh detailed specification unavailable | Unknown | Price product advertises volume; units unknown | Unknown | Unknown | Upstream sources disclosed, but grant/adjustment/correction semantics unverified |
+| [Index Alpha](https://indexalpha.id/id/docs/endpoints) | No OHLCV route documented | No OHLCV route documented | Broker/foreign quantities only | Broker/foreign turnover only | Broker counts only | These are enrichment aggregates, not equity-session bars; no price adjustments established |
+| IDX Edge PRO | Unknown | Unknown | Unknown | Unknown | Unknown | No verified provider-owned API offering |
+| [Twelve Data](https://support.twelvedata.com/en/articles/5656039-how-to-get-historical-prices) | Daily OHLCV documented; [daily prices split-adjusted](https://support.twelvedata.com/en/articles/5179064-are-the-prices-adjusted) | Separate adjusted-close field not established | Present, IDX basis/units unverified | Not established | Not established | Dividend events available separately; raw daily/rights/revision policy unverified |
+| [IDX licensed products](https://www.idx.id/en/products/idx-data-services/) / [2026 catalogue](https://www.idx.id/media/auobyarx/idx-catalogue-pricelist-updated-2026.pdf) | Indexed Professional specification has H/L/C, omits O; Basic fewer fields | Not established | Present in listed products | Present | Present | Market scope advertised; contract/sample needed for open, all adjustment bases and corrections |
+
+### Changes from the earlier screen
+
+- EODHD is selected for a **free recent-panel test**, not adopted production. Its [terms](https://eodhd.com/financial-apis/terms-conditions) permit private storage but do not explicitly answer post-cancellation retained-use rights. Its [source disclosure](https://eodhd.com/financial-apis/our-data-sources-and-data-partners) does not establish JK exchange-tape provenance. These block an unconditional one-month download-and-cancel recommendation.
+- [Invezgo API rules](https://docs.invezgo.com/api-usage/) say two-year regular history; [general terms](https://invezgo.com/terms) prohibit bots while Developer/API documentation invites automation and local caching. Resolve that conflict and permanent retention before testing. [Advance pricing](https://docs.invezgo.com/getting-started/subscription/) starts at Rp499,900/month, not the cheaper consumer dashboard price.
+- [GOAPI's provider-origin indexed Swagger](https://goapi.io/swagger/) names Yahoo/Google/MSN/MarketWatch upstream. Its [marketing](https://goapi.io/api-data-saham-indonesia/) and Swagger differ on delay. An intermediary API is not an upstream rights clearance; no canonical experiment is selected.
+- [Index Alpha](https://indexalpha.id/id/docs/endpoints) is enrichment from 2025, not OHLCV. Date ranges aggregate. [Batch billing](https://indexalpha.id/id/docs/limits) remains one unit per ticker/dataset; [Starter](https://indexalpha.id/id/pricing) currently shows Rp200,000/30 days and 25,000 units. API availability alone does not prove permanent archival rights.
+- [Twelve Data XIDX](https://twelvedata.com/exchanges/xidx) has a named PGAS trial example, but not a demonstrated BBCA/ANTM/GOTO free entitlement. [Terms](https://twelvedata.com/terms) require deletion on expiry/termination; a durable one-month bootstrap is BLOCKED without an exception.
+- Fresh official IDX product discovery succeeded, while catalogue download returned 403; indexed catalogue prices/specification and earlier findings are explicitly qualified rather than presented as a fresh contractual quote. No verified IDX Edge PRO API specification or price was found.
+
+Decision: conditional target = **EODHD prices/history + optional Index Alpha shortlist enrichment + manual official sample reconciliation**. Invezgo is the broader enrichment/prospective fallback after rights/specification clearance. Benchmark remains gated on an actual authorized IHSG identifier/response. Complete historical all-IDX identity and session evidence remain BLOCKED/PARTIAL; prospective experimentation can proceed separately. No accounts, paid calls, market-data payloads or subscriptions were created in this gate.
