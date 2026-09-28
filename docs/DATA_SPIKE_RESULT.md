@@ -1,6 +1,108 @@
 # Phase 0 Data Spike Result
 
-## Latest decision — EODHD empirical validation, 2026-09-28
+## Latest decision — EODHD semantic follow-up, 2026-09-28
+
+**Historical gate: NO.** The genuine IHSG identifier and a repeatable holiday carry-forward pattern are now verified within the tested scope. BBCA/ANTM share-count scale is strongly corroborated by dated references with explicit units, but a JK-specific authoritative field/market-segment definition and confirmed independent upstream remain unresolved. The free account explicitly refused the old delisted price window with an entitlement warning. No 2022-present backfill, subscription purchase or upgrade occurred.
+
+### Additional request budget and evidence
+
+A separate runner/ledger enforced a **six-additional-unit ceiling** without modifying the original experiment ledger. The token was loaded only from ignored/untracked `.env`; no token was displayed, placed in request provenance or retained in payloads. Two zero-cost account checks bracketed five one-unit requests. The account remained Free / 20 units per day; `apiRequests` moved from **8 to 13** on September 28, matching **5 additional units**. Extra allowance stayed at 500. One additional unit was deliberately unused.
+
+| Request | API path (token omitted) | Units | HTTP | Body bytes | Seconds |
+|---|---|---:|---:|---:|---:|
+| usage-before | `user` | 0 | 200 | 292 | 0.864 |
+| index-catalogue | `exchange-symbol-list/INDX` | 1 | 200 | 229,104 | 4.123 |
+| ihsg-eod | `eod/JKSE.INDX` | 1 | 200 | 407 | 0.706 |
+| antm-holiday-repeat | `eod/ANTM.JK` | 1 | 200 | 326 | 0.836 |
+| antm-first-holiday-adjacent | `eod/ANTM.JK` | 1 | 200 | 324 | 0.801 |
+| scbd-historical-probe | `eod/SCBD.JK` | 1 | 200 | 73 | 0.799 |
+| usage-after | `user` | 0 | 200 | 293 | 0.813 |
+| **Total** | **7 HTTP requests** | **5** | | **230,819** | **8.942** |
+
+All responses were HTTP 200, but SCBD returned a warning, not prices. This demonstrates why HTTP success is not data success. Body bytes exclude HTTP/TLS overhead. The existing immutable archiver preserved **five unique artifacts / 230,234 bytes** in ignored `data/raw/eodhd-semantics-20260928/`; sanitized manifests, account-counter allowlists, ledger and semantic checks are in ignored `data/collector-output/eodhd-semantics-20260928/`. Each data manifest records parameters, UTC retrieval time, SHA-256, bytes and inspector version `eodhd-semantics-inspect-1`. No reference dataset was downloaded or committed. The original spike's artifacts/observations remain unchanged.
+
+| Response | SHA-256 | Bytes |
+|---|---|---:|
+| index-catalogue | `b1abc7f979507182d2454f781bc6dc24904d8e2072aa15569fd1242b28059b10` | 229,104 |
+| ihsg-eod | `8ba52f745972284c1a9f69de063d530238602a7cb82a8519cdc2627c5f739906` | 407 |
+| antm-holiday-repeat | `68bc404770d7db04dff8947ca08adf801c7aa5adb2a3d72252bf4d5cdb705154` | 326 |
+| antm-first-holiday-adjacent | `07980461b92c0565895ace562ecad691b1409e1d6894136dc903074d61f28c15` | 324 |
+| scbd-historical-probe | `e316262de66777c2c7991da0b55ac5c76da36cfb6b4479db1f1efc8aa0817ce8` | 73 |
+
+### 1. JK volume: explicit units, two dated comparisons
+
+Manually inspected dated [BBCA](https://chamid.org/saham-bbca/) and [ANTM](https://chamid.org/saham-antm/) reference pages, both marked **Friday, September 25, 2026**. They explicitly label volume **lot**, and the publisher's [volume explanation](https://chamid.org/topvolume/) explicitly defines **one lot as 100 shares**. This conversion is supported by stated units, not inferred from a 100× ratio. No IDX website scraping or automated reference API collection was performed.
+
+| 2026-09-25 | EODHD original volume | Dated reference, explicitly lots | Reference × documented 100 shares/lot | Difference |
+|---|---:|---:|---:|---:|
+| BBCA.JK | 89,447,400 | 894,474 | 89,447,400 shares | 0 |
+| ANTM.JK | 67,544,100 | 675,441 | 67,544,100 shares | 0 |
+
+The publisher's [disclaimer](https://chamid.org/disclaimer.html) identifies IDX-derived data, acknowledges possible processing errors/delay, and describes informational research use; this is a reference observation, not a grant to harvest the site. The reference publisher is separate from EODHD, but EODHD's actual JK upstream is still unidentified, so **independence of the underlying feeds cannot be certified**. Neither the matching numbers nor two different domains establish feed independence.
+
+Additional corroboration: dated Jalavest search-index observations label September 25 BBCA volume 89,447,400 **shares** and ANTM 67,544,100 **shares**; refreshed pages exposed a different date and were not mixed with these observations. Twelve Data's public dated historical tables also show the same raw numbers, but their displayed volume columns do not explicitly establish units and their JK upstream was not verified, so they are numerical corroboration rather than another independent unit proof. These were manual public-page observations, not authenticated requests or source adoption.
+
+EODHD's [general volume explanation](https://eodhd.com/financial-academy/technical-analysis-examples/how-to-use-average-trading-volume-and-average-trading-volume-by-price-on-technical-indicator-api-with-python) discusses stock share counts; its [daily endpoint](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes) specifies split-adjusted volume. Neither establishes the missing JK-specific segment/definition or raw pre-split historical quantity. Thus **shares are strongly corroborated for the sampled BBCA/ANTM rows**, while a universally approved JK volume convention remains **PARTIAL**. Do not scale EODHD volume by 100, infer regular-market-only, or replace an unknown definition with raw shares.
+
+The earlier IDNFinancials display reported the same lot-scale numbers but labelled them shares. That label conflict remains preserved; the newly found explicit-lot reference explains a plausible display-unit issue but does not prove IDNFinancials' internal conversion. No silent correction of the old observation occurred.
+
+### 2. Holiday rows: adjacent dates and reproducibility
+
+The prior independent Panin notices establish August 17 and August 25 as exchange closures. The new August 14–18 ANTM request and repeated August 24–26 window show:
+
+| ANTM date | Open | High | Low | Close | Volume | Observation |
+|---|---:|---:|---:|---:|---:|---|
+| 2026-08-14 | 3,000 | 3,090 | 2,970 | 3,070 | 83,223,900 | Prior open weekday |
+| 2026-08-17 | 3,070 | 3,070 | 3,070 | 3,070 | 0 | Known closure; all prices equal August 14 close |
+| 2026-08-18 | 3,150 | 3,160 | 3,080 | 3,100 | 90,263,100 | Following open weekday |
+| 2026-08-24 | 3,190 | 3,250 | 3,180 | 3,190 | 114,351,200 | Prior open weekday |
+| 2026-08-25 | 3,190 | 3,190 | 3,190 | 3,190 | 0 | Known closure; all prices equal August 24 close |
+| 2026-08-26 | 3,200 | 3,290 | 3,140 | 3,160 | 125,424,800 | Following open weekday |
+
+The three-row repeated ANTM window exactly matches the corresponding original rows, although whole-response hashes differ because the requested ranges differ. This supports **repeatable carry-forward padding on both tested holidays for ANTM**. It is not evidence of a trade on the closure, nor proof of which upstream component created the padding.
+
+Existing GOTO evidence is flat at 50 throughout August 24/25/26, but volumes are **7,613,300 / 0 / 4,339,200**; August 18 is also flat with positive volume 37,192,200. The two GOTO closure rows agree with the observed ANTM pattern; BBCA omits both closures. Therefore holiday inclusion is symbol-dependent in this sample, and a rule that discards every flat candle would destroy legitimate positive-volume observations. No claim is made that all JK holidays/symbols use the same padding policy, or that any zero-volume row outside a verified closure is holiday/suspension/no-trade.
+
+**Control for the tested scope:** retain provider bytes, mark these independently verified closed dates as non-session evidence, and prohibit their canonical session promotion. Unknown calendar/status dates remain UNKNOWN; do not infer them from OHLC shape or zero volume. No production filter or canonical ingestion was implemented.
+
+### 3. IHSG: actual catalogue identity and recent access verified
+
+EODHD's [index documentation](https://eodhd.com/financial-apis/stock-etfs-fundamental-data-feeds) identifies the INDX namespace. The one-unit `exchange-symbol-list/INDX?fmt=json` response contains 1,674 entries, including **Code=JKSE**, **Name=Jakarta Stock Exchange Composite Index**, **Country=Indonesia**, **Exchange=INDX**, **Currency=IDR**, **Type=INDEX**, null ISIN. The identifier **JKSE.INDX** was constructed from those actual fields. IDX30 was separately listed as IDX 30 Jakarta and was not confused with Composite. No Fundamentals call (10 units) was made.
+
+One ordinary daily EOD request used `from=2026-09-23`, `to=2026-09-25`, `period=d`, `order=a`, `fmt=json` and returned three valid ascending rows:
+
+| Date | Raw index close | Adjusted close |
+|---|---:|---:|
+| 2026-09-23 | 6,374.9121 | 6,374.9121 |
+| 2026-09-24 | 6,298.6069 | 6,298.6069 |
+| 2026-09-25 | 6,241.8921 | 6,241.8921 |
+
+All dates align with the three equity samples. The published [IDNFinancials September 25 benchmark observation](https://www.idnfinancials.com/news/69483/ihsg-falls-3-09-in-a-week-amid-idr3-15tn-outflows) identifies IHSG closing at 6,241.89. EODHD differs by **+0.0021 index points** before rounding and agrees to two decimals. This establishes the requested identifier/benchmark and recent close-access check, not long-term completeness or production approval. Index volume was not assigned the stock-volume convention.
+
+The earlier empty name searches demonstrate a discovery limitation, not absence of index coverage. **IHSG identity/recent access = VERIFIED**; this supersedes the prior NOT VERIFIED finding only in that dimension.
+
+### 4. One delisted probe and exact free entitlement
+
+Used the already-discovered **SCBD.JK** identifier for exactly **one one-unit request**, `from=2019-07-08`, `to=2019-07-12`, with daily/ascending JSON parameters. This was only a five-day availability probe of one inactive security, not a delisted-universe or 2022-present backfill.
+
+The response was HTTP 200 with a one-element warning array and **zero price rows**. Its message states that data is limited to one year because the subscription is free. The existing experimental parser rejects this warning array as missing required daily fields; the warning is not a bar or a missing/zero price. No retry, entitlement bypass or upgrade followed.
+
+[Current pricing](https://eodhd.com/pricing) distinguishes Free **past-year history / 20 daily units** from paid plans' advertised **30+ years / 100,000 daily units**. The dated account observation is still Free, and the old-date warning confirms the limitation empirically. The exact boundary algorithm (365 days versus calendar-year subtraction and inclusivity) was not probed and remains unspecified; do not invent it. Bonus quota is extra call capacity, not a deeper-history license. Paid capability is an advertised option, not this account's entitlement or proof of complete JK/delisted histories. SCBD historical-price availability remains **BLOCKED BY CURRENT ENTITLEMENT**, not proven absent at the provider.
+
+### Final answers and validation
+
+| Required answer | Result | Practical limit |
+|---|---|---|
+| A. Is JK volume semantics now understood? | **NO — PARTIAL** | Sampled BBCA/ANTM share-count scale reconciles using explicitly defined units; JK segment/raw history and independent upstream still unverified |
+| B. Is holiday-row behavior sufficiently understood? | **YES for the tested closures** | Repeatable ANTM carry-forward and GOTO padding observed; preserve evidence/exclude verified closures; no universal synthetic-row rule |
+| C. Is IHSG verified? | **YES for identifier and recent close access** | JKSE.INDX discovered in actual catalogue, tiny sample/reference close matched; no historical completeness claim |
+| D. Can we proceed to a 10-symbol 2022-present historical spike? | **NO** | Current Free plan explicitly limits history to one year; volume/segment/upstream gate remains partial |
+
+Next action is authoritative JK volume/market-segment and upstream clarification plus legitimate deeper-history entitlement, without making a purchase or starting history automatically. No further paid-unit request is required to document the current blocker. No messages were sent to any provider.
+
+Only empirical documentation and two small regression checks changed: HTTP-200 warning arrays must not parse as prices; flat zero/positive-volume provider rows must be preserved without inferring tradability. No parser/production implementation or architecture change. `python3.13 -m unittest discover -s collectors/python/tests -v`: **14 passed**. `dotnet run --project tests/IdxStockIntelligence.Tests/IdxStockIntelligence.Tests.csproj --no-restore`: **10 passed**, no failures/errors/skips; no .NET configuration changed. Local semantic checks verified adjacent-row carry-forward, exact overlap with the original sample, index date alignment/two-decimal reference close and warning rejection. Secret scans, ignored-artifact checks, local Markdown links and `git diff --check` are required before the focused local commit. No push.
+
+## Earlier EODHD empirical validation — 2026-09-28
 
 **CAN WE PROCEED TO A 10-SYMBOL 2022-PRESENT HISTORICAL SPIKE? NO.** Recent access works, but the observed account is free (documented past-year history), ANTM/GOTO include exchange-holiday rows, JK volume units/segment are unresolved, independent volume reconciliation is incomplete, and no IHSG identifier was verified. This is an experimental result, not canonical production approval. No historical backfill, purchase, plan change, scheduling, indicators or strategies were performed.
 

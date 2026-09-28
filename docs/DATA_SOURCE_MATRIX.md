@@ -90,7 +90,7 @@ Decision: conditional target = **EODHD prices/history + optional Index Alpha sho
 
 ## EODHD empirical update — 2026-09-28
 
-The authenticated free-account spike consumed **8 units / 10 HTTP requests**, returning 28 BBCA and 30 each ANTM/GOTO rows for August 17–September 25. Six immutable raw blobs and token-free manifests remain ignored. See [the full empirical report](DATA_SPIKE_RESULT.md#latest-decision--eodhd-empirical-validation-2026-09-28) for exact requests, hashes, reference discrepancies and tests. This section supersedes earlier NOT TESTED/credentials-missing statements only for the bounded recent experiment; no production dataset becomes PASS.
+The authenticated free-account spike consumed **8 units / 10 HTTP requests**, returning 28 BBCA and 30 each ANTM/GOTO rows for August 17–September 25. Six immutable raw blobs and token-free manifests remain ignored. See [the full empirical report](DATA_SPIKE_RESULT.md#earlier-eodhd-empirical-validation--2026-09-28) for exact requests, hashes, reference discrepancies and tests. This section supersedes earlier NOT TESTED/credentials-missing statements only for the bounded recent experiment; no production dataset becomes PASS.
 
 | Dimension | Experimental status | Observed limit |
 |---|---|---|
@@ -108,3 +108,17 @@ The authenticated free-account spike consumed **8 units / 10 HTTP requests**, re
 | Production/full-history suitability | BLOCKED | Free past-year entitlement plus unresolved session/volume/IHSG gates |
 
 **10-symbol 2022-present spike: NO.** Resolve the empirical blockers and legitimate deeper-history entitlement first; no upgrade, historical retrieval or full-universe authorization follows from this result.
+
+## EODHD semantic follow-up — 2026-09-28
+
+See [the latest semantic evidence](DATA_SPIKE_RESULT.md#latest-decision--eodhd-semantic-follow-up-2026-09-28). Exactly **5 additional units / 7 HTTP requests** were consumed, account counter 8→13 with bonus unchanged. This supersedes older unresolved-IHSG statements for recent identity/access only; no production approval.
+
+| Dimension | Updated evidence/status |
+|---|---|
+| JK volume | PARTIAL: September 25 BBCA 89,447,400 and ANTM 67,544,100 match dated explicitly labelled lot references after their published 100-share conversion; share-count scale strongly corroborated, not inferred from ratio. Reference declares IDX-derived data; EODHD JK upstream/segment and raw split-history semantics remain unverified |
+| Holiday rows | Tested behavior controlled: ANTM August 17/25 repeat the previous close with zero volume; adjacent positive-volume rows observed and August 25 overlap reproduced. GOTO pads same closures; BBCA omits them. No universal row-shape inference or canonical sessions |
+| IHSG | VERIFIED recent identity/access: actual INDX catalogue names JKSE.INDX as Jakarta Stock Exchange Composite Index; September 23–25 closes returned; September 25 agrees with dated IHSG reference to two decimals |
+| Delisted history | SCBD.JK five-day 2019 probe cost one unit and returned HTTP 200 with a one-year-limit warning, no prices. Current-entitlement BLOCKED; provider-wide absence not inferred |
+| Entitlement | Free remains 20 units/day and past-year history; warning confirms old-date limitation. Paid 30+ years/100,000 units are advertised capabilities, not current rights. Exact rolling cutoff not probed |
+
+**A: NO/PARTIAL. B: YES within tested closure scope. C: YES for verified recent benchmark identity/access. D: NO to the 10-symbol 2022-present spike.** No purchase, backfill, scheduler, strategy or canonical changes.

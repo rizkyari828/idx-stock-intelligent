@@ -50,6 +50,18 @@ class ExperimentalEodhdTests(unittest.TestCase):
         self.assertEqual(ordered, parse_daily(json.dumps([first, second]).encode()))
         self.assertEqual(["2026-01-05", "2026-01-07"], [row["date"] for row in ordered])
 
+    def test_entitlement_warning_is_not_a_price_row(self):
+        payload = b'[{"warning":"Data is limited by one year as you have free subscription"}]'
+        with self.assertRaisesRegex(ValueError, "missing required daily fields"):
+            parse_daily(payload)
+
+    def test_flat_rows_preserved_without_inferring_tradability(self):
+        flat = dict(self.row(), open=100, high=100, low=100, close=100, volume=0)
+        traded = dict(flat, date="2026-01-06", volume=123)
+        rows = parse_daily(json.dumps([flat, traded]).encode())
+        self.assertEqual([0, 123], [row["volume"] for row in rows])
+        self.assertEqual(2, len(rows))
+
 
 if __name__ == "__main__":
     unittest.main()
