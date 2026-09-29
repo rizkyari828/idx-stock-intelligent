@@ -2,6 +2,13 @@
 
 ## Current operational update — September 29
 
+Subsequent [zero-provider boundary hardening](INSTRUMENT_BOUNDARIES.md) adds a generic
+reference importer and as-of metadata history using the existing evidence table.
+RAJA/VKTR are VERIFIED; PTRO/LPIN remain PARTIAL with effective UNKNOWN boundaries.
+Tests now pass **26 Python, 20 .NET and 13 offline restore groups**. No price bars or
+session proofs were added; soak is **0/10** and FullIdx remains disabled. The listing
+table below preserves the earlier review, before these new knowledge revisions.
+
 The [bootstrap completion](ZERO_COST_PILOT.md#september-29-bootstrap-completion)
 used five ordinary units and completed the four equities and broad index response.
 All eleven request windows now cover August 17–September 25; canonical history

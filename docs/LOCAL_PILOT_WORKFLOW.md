@@ -2,6 +2,11 @@
 
 ## Subsequent bounded operational update
 
+Later [boundary hardening](INSTRUMENT_BOUNDARIES.md) used zero EODHD requests, added
+versioned reference import/as-of history and verified RAJA/VKTR. PTRO/LPIN remain
+PARTIAL/UNKNOWN. Current checks: **26 Python, 20 .NET, 13 offline restore groups**;
+soak **0/10**, FullIdx disabled. Earlier test counts below describe earlier runs.
+
 The earlier offline task below used zero provider calls. A subsequent authorized
 bootstrap resume used **five units** to finish VKTR, ENRG, PTRO, DSSA and the broad
 JKSE response, with six archives reused. Request coverage is COMPLETE for all
@@ -174,7 +179,7 @@ security-master adapter can supply the same normalized instrument contract; live
 count/identity guards, quota/runtime policy and rights gates must first be reviewed.
 No hundreds of entries or provider-specific domain fields were added.
 
-Remaining gates: five bootstrap requests, four unresolved listing boundaries,
+Remaining gates: two unresolved exact listing boundaries (PTRO/LPIN),
 10 actual prospective sessions, unresolved segment/adjustment/corporate-action
 and chronology/calendar evidence, production rights and sustainable full-universe
 operation. Historical 2022-present remains BLOCKED_BY_ENTITLEMENT.

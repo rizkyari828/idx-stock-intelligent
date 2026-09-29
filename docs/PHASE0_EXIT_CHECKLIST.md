@@ -14,7 +14,7 @@ Real observations remain **0/10** and FullIdx is **NOT ENABLED**.
 - [x] Session validation safe — independent proofs, exceptional closure support, unknown remains unknown.
 - [x] Canonical ingestion idempotent — repeated response/reprocessing adds no duplicate revision.
 - [x] Revisions append-only — database triggers, correction/reversion tests and stale-archive guard.
-- [x] Listing boundaries handled — six verified, four explicitly UNKNOWN; unknown older history does not block prospective collection.
+- [x] Listing boundaries handled — eight verified, PTRO/LPIN PARTIAL with effective UNKNOWN; versioned, append-only as-of reference import. See [boundary hardening](INSTRUMENT_BOUNDARIES.md).
 - [x] Feature warm-up correct — null/WARMUP, chronological confirmed-session windows, aligned benchmark.
 - [x] Failure behavior explicit — eight requested local scenarios, atomic rollback, durable FAILED/DEGRADED reports.
 - [x] Selected prior bar/provenance and warm-up result reproduced in a fresh database — temporal/full numeric restore limitations remain below.
