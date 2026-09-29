@@ -227,6 +227,8 @@ try
         && batch.RootElement.GetProperty("reserved_units").GetInt32()==11 && entries.All(e => !e.TryGetProperty("cached",out var cached) || !cached.GetBoolean())
         && entries.All(e => e.GetProperty("manifest").GetProperty("fetched_at_utc").GetDateTimeOffset()>=proofByDate[first].KnownAt)
         && PilotDatabase.DatabaseName=="idx_stock_intelligence";
+    var featureHistory = revisions.GroupBy(r => r.Bar.InstrumentId).ToDictionary(g => g.Key,g => g.ToArray());
+    var benchmarkHistory = featureHistory.GetValueOrDefault(benchmark,[]);
     var summary = new { operation_id=operationId, run_id = runId, started_at=operationStarted, completed_at=DateTimeOffset.UtcNow,
         known_at = now, mode = "ZERO_COST_PILOT", run_status=runStatus, market_date=first==last ? (DateOnly?)first : null, soak_eligible=soakEligible,
         database=PilotDatabase.DatabaseName,
@@ -239,7 +241,9 @@ try
         stale_evidence_ignored=staleEvidence,
         rejected_evidence=entries.Sum(e => e.GetProperty("rows").GetArrayLength())-bars.Count, unavailable_observations=expected-bars.Count,
         warnings=runStatus=="SUCCEEDED" ? new[] { "PILOT_SEMANTICS_DEGRADED" } : new[] { "INCOMPLETE_OR_UNCONFIRMED", "PILOT_SEMANTICS_DEGRADED" }, observations,
-        features = instruments.Select(i => new { symbol = i.Key, result = PilotFeatures.Calculate(revisions,
+        features = instruments.Select(i => new { symbol = i.Key, result = PilotFeatures.Calculate(
+            featureHistory.GetValueOrDefault(new InstrumentId(i.Value.GetProperty("id").GetGuid()),[])
+                .Concat(benchmarkHistory),
             new InstrumentId(i.Value.GetProperty("id").GetGuid()), benchmark, proofs, now) }) };
     File.WriteAllText(output, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
     Console.WriteLine(JsonSerializer.Serialize(new { summary_path=output }));

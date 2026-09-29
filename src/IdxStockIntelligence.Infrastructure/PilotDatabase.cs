@@ -78,8 +78,11 @@ public static class PilotDatabase
                 FROM pilot_input,jsonb_array_elements(data->'artifacts') a ON CONFLICT DO NOTHING;
             DO $block$
             DECLARE item jsonb; input jsonb; previous daily_bar_revision%ROWTYPE;
+                knowledge timestamptz; ingestion uuid;
             BEGIN
-                SELECT data INTO input FROM pilot_input;
+                -- Extract batch metadata once: repeated large-json extraction dominated the offline scale check.
+                SELECT data,(data->>'known_at')::timestamptz,(data->>'run_id')::uuid
+                    INTO input,knowledge,ingestion FROM pilot_input;
                 FOR item IN SELECT * FROM jsonb_array_elements(input->'bars') LOOP
                     SELECT * INTO previous FROM daily_bar_revision
                         WHERE instrument_id=(item->>'instrument_id')::uuid AND session_date=(item->>'date')::date
@@ -88,12 +91,12 @@ public static class PilotDatabase
                         IF (item->>'retrieved_at')::timestamptz < previous.retrieved_at THEN
                             CONTINUE; -- Reprocessing an older archive is not a new provider reversion.
                         END IF;
-                        IF (input->>'known_at')::timestamptz < previous.known_at THEN
+                        IF knowledge < previous.known_at THEN
                             RAISE EXCEPTION 'Revision knowledge cannot regress';
                         END IF;
                         INSERT INTO daily_bar_revision VALUES (
                             (item->>'instrument_id')::uuid,(item->>'date')::date,coalesce(previous.revision_number,0)+1,
-                            (input->>'known_at')::timestamptz,(input->>'run_id')::uuid,(item->>'artifact_id')::uuid,
+                            knowledge,ingestion,(item->>'artifact_id')::uuid,
                             item->>'hash',(item->>'open')::numeric,(item->>'high')::numeric,(item->>'low')::numeric,
                             (item->>'close')::numeric,(item->>'volume')::bigint,'DEGRADED',
                             (item->>'adjusted_close')::numeric,item->>'volume_unit',item->>'volume_basis',item->>'market_segment',
