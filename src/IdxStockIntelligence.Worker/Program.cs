@@ -5,6 +5,23 @@ using IdxStockIntelligence.Application;
 using IdxStockIntelligence.Domain;
 using IdxStockIntelligence.Infrastructure;
 
+if (args is ["pilot-state"])
+{
+    try
+    {
+        var latest = PilotDatabase.ReadRevisions().GroupBy(r => (r.Bar.InstrumentId, r.Bar.SessionDate)).Select(g => g.MaxBy(r => r.RevisionNumber)!);
+        Console.WriteLine(JsonSerializer.Serialize(new { status = "KNOWN", database = PilotDatabase.DatabaseName,
+            revisions = latest.Select(r => new { instrument_id = r.Bar.InstrumentId.Value, date = r.Bar.SessionDate,
+                content_sha256 = r.ContentSha256, retrieved_at = r.Bar.Source.FetchedAt }) }));
+    }
+    catch (Exception error) when (error is ArgumentException or InvalidOperationException or IOException or JsonException)
+    {
+        Console.WriteLine("{\"status\":\"UNKNOWN\",\"revisions\":[]}");
+        Environment.ExitCode = 1;
+    }
+    return;
+}
+
 if (args.Length != 2 || args[0] != "pilot")
 {
     Console.WriteLine("Manual pilot: dotnet run --project src/IdxStockIntelligence.Worker -- pilot <ignored-batch.json>");
@@ -172,6 +189,10 @@ try
         && PilotDatabase.DatabaseName=="idx_stock_intelligence";
     var summary = new { operation_id=operationId, run_id = runId, started_at=operationStarted, completed_at=DateTimeOffset.UtcNow,
         known_at = now, mode = "ZERO_COST_PILOT", run_status=runStatus, market_date=first==last ? (DateOnly?)first : null, soak_eligible=soakEligible,
+        database=PilotDatabase.DatabaseName,
+        canonical_state=revisions.GroupBy(r => (r.Bar.InstrumentId,r.Bar.SessionDate)).Select(g => g.MaxBy(r => r.RevisionNumber)!)
+            .Where(r => r.Bar.SessionDate>=first && r.Bar.SessionDate<=last).Select(r => new { instrument_id=r.Bar.InstrumentId.Value,
+                date=r.Bar.SessionDate,content_sha256=r.ContentSha256,retrieved_at=r.Bar.Source.FetchedAt }),
         session_evidence=sessions.RootElement,instrument_evidence=universe.RootElement,
         requested_instruments=entries.Select(e => e.GetProperty("symbol").GetString()), accepted_rows = bars.Count,
         canonical_additions=added.Count(r => r.RevisionNumber==1), corrections=added.Count(r => r.RevisionNumber>1), revisions_added = added.Length,

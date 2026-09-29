@@ -58,10 +58,27 @@ Requirements: .NET SDK 10, Python 3.12+, and optionally Docker Compose for Postg
 
 ```bash
 dotnet build IdxStockIntelligence.slnx
-dotnet run --project tests/IdxStockIntelligence.Tests
+dotnet test
 PYTHONPATH=collectors/python/src python3 -m unittest discover -s collectors/python/tests -v
 docker compose config
 ```
+
+The standard test command uses the .NET 10 Microsoft Testing Platform selected in
+`global.json`. The xUnit project explicitly enables its MTP runner; no test
+executable workaround or dependency upgrade is required. With RTK, use
+`rtk proxy dotnet test` to preserve the MTP invocation.
+
+Offline planning and run tracking require no provider token:
+
+```bash
+bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD --dry-run
+bash scripts/pilot-eod.sh --soak-report
+```
+
+Dates must be completed prior Jakarta dates, within the last 330 days. See
+[local workflow procedures and validation](docs/LOCAL_PILOT_WORKFLOW.md) for
+reuse/refresh rules, the prospective ledger, restore checks and current **0/10**
+soak status. FullIdx collection is **NOT ENABLED**.
 
 Copy `.env.example` to ignored, untracked `.env` and choose a local password before starting PostgreSQL. The manual Python pilot requires the locally loaded EODHD token; the .NET worker validates archived evidence and persists revisions without contacting a provider.
 

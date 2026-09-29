@@ -185,7 +185,7 @@ PYTHONPATH=collectors/python/src python3 -m idx_stock_collector.pilot \
 dotnet run --project src/IdxStockIntelligence.Worker -- pilot <emitted-batch-path>
 
 PYTHONPATH=collectors/python/src python3 -m unittest discover -s collectors/python/tests -v
-dotnet run --project tests/IdxStockIntelligence.Tests
+dotnet test
 ```
 
 The new resume batch preserves valid cached responses, fetches the four missing

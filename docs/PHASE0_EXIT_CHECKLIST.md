@@ -4,6 +4,10 @@ Reviewed 2026-09-28. Scope: the existing ten equities + JKSE.INDX, private Free-
 collection. **Phase 0 exit: NO.** Historical 2022-present remains
 **BLOCKED_BY_ENTITLEMENT**; no purchase or historical backfill is proposed.
 
+Offline workflow revalidated September 29: standard .NET discovery, local ledger,
+dry-run and stronger restore checks are documented in [LOCAL_PILOT_WORKFLOW.md](LOCAL_PILOT_WORKFLOW.md).
+Real observations remain **0/10** and FullIdx is **NOT ENABLED**.
+
 - [ ] All ten pilot equities bootstrap successfully — VKTR, ENRG, PTRO, DSSA pending quota reset.
 - [ ] JKSE benchmark bootstrap successfully — September 23–25 available; broader window pending.
 - [x] Raw evidence immutable — content addressing, exact bytes/hash and integrity tests.

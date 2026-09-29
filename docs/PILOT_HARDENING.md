@@ -1,5 +1,10 @@
 # Prospective pilot hardening — 2026-09-28
 
+The [September 29 local workflow update](LOCAL_PILOT_WORKFLOW.md) supplies standard
+.NET discovery, dry-run, conservative canonical reuse, an explicit local ledger and
+stronger offline reconstruction. Real soak remains **0/10**; no provider call was
+made by that update. The observations below describe the earlier hardening run.
+
 Scope remains BBCA, BBRI, ANTM, RAJA, VKTR, ENRG, PTRO, DSSA, GOTO, LPIN and
 JKSE.INDX. No strategy, universe expansion, subscription, scheduler, model call or
 2022-present retrieval was added. **Historical: BLOCKED_BY_ENTITLEMENT.**

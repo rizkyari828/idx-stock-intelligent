@@ -2,6 +2,12 @@
 
 Read this before coding.
 
+Canonical .NET test command: `dotnet test` from the repository root
+(with RTK: `rtk proxy dotnet test`). Python:
+`PYTHONPATH=collectors/python/src python3 -m unittest discover -s collectors/python/tests -v`.
+Offline pilot procedures: `docs/LOCAL_PILOT_WORKFLOW.md`. Never use an executable
+test runner as the primary substitute for standard discovery.
+
 ## Mission
 
 Build the smallest trustworthy personal IDX EOD decision-support system.

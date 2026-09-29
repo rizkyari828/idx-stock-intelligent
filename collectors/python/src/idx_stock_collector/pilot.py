@@ -68,8 +68,96 @@ def read_seed(manifest_path: Path, raw_root: Path, start: date, end: date) -> di
     return dict(entry,**read_seed_entry(entry,start,end),request_window_covered=covers(manifest,start,end))
 
 
+def configuration(path: str) -> dict:
+    config = json.loads(Path(path).read_text())
+    if config.get("universe_mode","Pilot") != "Pilot":
+        raise ValueError("FullIdx is not enabled.")
+    fixed = json.loads(Path(__file__).resolve().parents[4].joinpath("pilot/universe.json").read_text())
+    if (config.get("benchmark"), config.get("daily_unit_ceiling"), config.get("instruments")) != (
+            fixed["benchmark"], fixed["daily_unit_ceiling"], fixed["instruments"]):
+        raise ValueError("Live universe is fixed to Pilot; FullIdx is not enabled.")
+    return config
+
+
+def local_state() -> dict:
+    """Read canonical state through the .NET owner, using local Docker IPC only."""
+    try:
+        result = subprocess.run(["dotnet", "run", "--project", "src/IdxStockIntelligence.Worker",
+                                 "--no-build", "--no-restore", "--", "pilot-state"],
+                                env={k:v for k,v in os.environ.items() if k!="EODHD_API_TOKEN"},
+                                capture_output=True, text=True, timeout=90)
+        state = json.loads(result.stdout)
+        if result.returncode == 0 and state["status"] == "KNOWN":
+            return state
+    except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+        pass
+    return {"status":"UNKNOWN", "revisions":[]}
+
+
+def reusable_entries(root: Path, start: date, end: date, state: dict, refresh: bool = False) -> dict:
+    """Only clean, completed canonical sessions with intact evidence can skip fetch."""
+    if refresh or start != end or state.get("status") != "KNOWN":
+        return {}
+    sessions = json.loads(Path("pilot/sessions.json").read_text())
+    current = {(r["instrument_id"],r["date"]):r for r in state["revisions"]}
+    previous = {}
+    for path in sorted(root.glob("*.operation.json"), key=lambda p:p.stat().st_mtime):
+        try:
+            operation = json.loads(path.read_text())
+            batch = json.loads(Path(operation["batch_path"]).read_text())
+            if batch.get("from") != start.isoformat() or batch.get("to") != end.isoformat():
+                continue
+            # A later degraded/failed attempt must not revive older clean evidence.
+            for entry in batch["entries"]:
+                previous.pop(entry["symbol"],None)
+            worker = operation["worker"]
+            if (operation["status"] != "SUCCEEDED" or worker["run_status"] != "SUCCEEDED"
+                    or worker.get("database") != state.get("database") or worker.get("warnings")
+                    or worker["market_date"] != start.isoformat() or worker["session_evidence"] != sessions):
+                continue
+            recorded = {(r["instrument_id"],r["date"]):r for r in worker["canonical_state"]}
+            for entry in batch["entries"]:
+                key = (entry["instrument_id"],start.isoformat())
+                if (entry["status"] != "AVAILABLE" or not covers(entry["manifest"],start,end)
+                        or entry["manifest"].get("parser_version") != PARSER_VERSION
+                        or entry["manifest"].get("source_id") != "eodhd"
+                        or entry["manifest"].get("requested_uri") != "https://eodhd.com/api/eod/"+entry["symbol"]
+                        or key not in recorded or current.get(key) != recorded[key]):
+                    continue
+                verified = read_seed_entry(entry,start,end)
+                fetched = datetime.fromisoformat(entry["manifest"]["fetched_at_utc"].replace("Z","+00:00"))
+                canonical = datetime.fromisoformat(current[key]["retrieved_at"].replace("Z","+00:00"))
+                proof = next(p for p in sessions if p["date"] == start.isoformat())
+                known = datetime.fromisoformat(proof["known_at"].replace("Z","+00:00"))
+                if fetched < canonical or fetched < known or len(verified["rows"]) != 1:
+                    continue
+                previous[entry["symbol"]] = dict(entry, **verified, request_window_covered=True)
+        except (ValueError, OSError, KeyError, TypeError, StopIteration):
+            continue  # Uncertain evidence requires fetch, never implies a canonical session.
+    return previous
+
+
+def dry_run(args) -> dict:
+    config = configuration(args.universe)
+    start,end = window(args.start,args.end,datetime.now(ZoneInfo("Asia/Jakarta")).date())
+    state = local_state()
+    cached = reusable_entries(Path("data/collector-output/pilot"),start,end,state,getattr(args,"refresh",False))
+    sessions = json.loads(Path("pilot/sessions.json").read_text())
+    symbols = [i["symbol"] for i in config["instruments"]]
+    requested = [s for s in symbols if s not in cached]
+    return {"mode":"DRY_RUN", "universe_mode":"Pilot", "symbols_that_would_be_requested":requested,
+            "cached_symbols":list(cached), "benchmark":config["benchmark"], "from":str(start),"to":str(end),
+            "maximum_eod_units":len(requested), "account_ceiling":config["daily_unit_ceiling"],
+            "quota":"not queried in offline mode", "canonical_state":state["status"],
+            "canonical_bars":len(state["revisions"]),
+            "canonical_session_dates":sorted({r["date"] for r in state["revisions"]}),
+            "session_evidence":[p for p in sessions if start<=date.fromisoformat(p["date"])<=end],
+            "skipped_actions":["provider/account requests","archival","ingestion","ledger writes"],
+            "provider_requests":0}
+
+
 def collect(args) -> Path:
-    config = json.loads(Path(args.universe).read_text())
+    config = configuration(args.universe)
     instruments = config["instruments"]
     symbols = [item["symbol"] for item in instruments]
     if len(symbols) != 11 or len(set(symbols)) != 11 or config["benchmark"] != "JKSE.INDX":
@@ -130,7 +218,14 @@ def collect(args) -> Path:
             request["elapsed_seconds"] = round(time.monotonic() - started, 3)
             save()
 
-    previous = {}
+    state = local_state() if not args.offline else {"status":"UNKNOWN"}
+    if getattr(args,"ingest",False) and not args.offline and state["status"] != "KNOWN":
+        run.update(status="FAILED",error_code="CANONICAL_PREFLIGHT_FAILED",completed_at=datetime.now(timezone.utc).isoformat())
+        run["entries"]=[{"instrument_id":i["id"],"symbol":i["symbol"],"status":"SOURCE_ERROR",
+                         "reason":"CANONICAL_PREFLIGHT_FAILED","rows":[]} for i in instruments]
+        save()
+        return target
+    previous = reusable_entries(output,start,end,state,getattr(args,"refresh",False)) if not args.offline else {}
     if args.resume:
         prior = json.loads(Path(args.resume).read_text())
         if (prior["from"], prior["to"]) != (run["from"], run["to"]):
@@ -145,7 +240,7 @@ def collect(args) -> Path:
         if symbol not in symbols:
             raise ValueError("Seed outside fixed panel.")
         seeds[symbol] = read_seed(Path(manifest), Path(root), start, end)
-    halted = args.offline
+    halted = args.offline or all(symbol in previous for symbol in symbols)
     allowance = 0
     if not halted:
         try:
@@ -181,12 +276,13 @@ def collect(args) -> Path:
                     payload, manifest = fetch("eod/" + symbol, {"from": run["from"], "to": run["to"], "period": "d", "fmt": "json"}, 1)
                     entry.update(manifest=manifest, raw_root=str(raw_root))
                     entry.update(status="AVAILABLE", rows=normalized(payload, start, end), request_window_covered=True)
+                    run["requests"][-1]["payload_valid"] = True
             except ValueError:
                 entry.update(status="SOURCE_ERROR", reason="REQUEST_OR_SCHEMA_ERROR", rows=[])
                 halted = True
         run["entries"].append(entry)
         save()
-    if not args.offline:
+    if not args.offline and any(r["reserved_units"] for r in run["requests"]):
         try:
             usage = json.loads(fetch("user", {"fmt": "json"}, 0)[0])
             run["usage_after"] = {k: usage.get(k) for k in ("subscriptionType", "dailyRateLimit", "apiRequests", "apiRequestsDate")}
@@ -243,18 +339,43 @@ def ingest_and_summarize(batch_path: Path) -> Path:
         path=Path(json.loads(lines[-1])["summary_path"])
         report.update(worker_summary_path=str(path),worker=json.loads(path.read_text()),worker_exit_code=result.returncode)
         report["status"]=report["worker"]["run_status"]
-    except (OSError,ValueError,subprocess.TimeoutExpired):
+        expected_code = {"SUCCEEDED":0,"DEGRADED":2,"FAILED":1}.get(report["status"])
+        if result.returncode != expected_code:
+            raise ValueError("Worker exit code disagrees with summary.")
+    except (OSError,ValueError,KeyError,TypeError,subprocess.TimeoutExpired):
         report.update(status="FAILED",error_code="WORKER_EXECUTION_ERROR",worker_exit_code=1)
     report["completed_at"]=datetime.now(timezone.utc).isoformat()
-    report["soak"]=soak_progress(batch_path.parent)
+    worker=report.get("worker",{})
+    report["ledger"]={"run_id":batch["run_id"],"session_date":batch.get("from") if batch.get("from")==batch.get("to") else None,
+        "started_at":batch["started_at"],"completed_at":report["completed_at"],"mode":batch.get("mode","UNKNOWN"),
+        "requested_symbols":[e["symbol"] for e in batch["entries"]],
+        "successful_fetches":sum(r.get("payload_valid") is True for r in batch["requests"] if r["reserved_units"]),
+        "failed_fetches":sum(r.get("payload_valid") is not True for r in batch["requests"] if r["reserved_units"]),
+        "quota_units":batch["reserved_units"],"raw_artifacts":[e["manifest"]["artifact"]["content_sha256"] for e in batch["entries"] if "manifest" in e],
+        "canonical_bars_added":worker.get("canonical_additions"),"revisions_added":worker.get("revisions_added"),
+        "rejected_evidence":worker.get("rejected_evidence"),"feature_status":worker.get("features","UNKNOWN"),
+        "warnings":worker.get("warnings",[report.get("error_code","UNKNOWN")]),
+        "final_status":"SUCCESS" if report["status"]=="SUCCEEDED" else report["status"],
+        "soak_eligible":report["status"]=="SUCCEEDED" and worker.get("soak_eligible",False)}
+    report["soak"]=soak_progress(batch_path.parent,report.get("worker_summary_path") if report["status"]!="SUCCEEDED" else None)
     output.write_text(json.dumps(report,indent=2))
     return output
 
 
-def soak_progress(root: Path) -> dict:
+def soak_progress(root: Path, rejected_summary: str | None = None) -> dict:
     config=json.loads(Path("pilot/soak.json").read_text())
     dates=set()
+    rejected_summaries={Path(rejected_summary).resolve()} if rejected_summary else set()
+    for path in root.glob("*.operation.json"):
+        try:
+            operation=json.loads(path.read_text())
+            if operation.get("status") != "SUCCEEDED" and operation.get("worker_summary_path"):
+                rejected_summaries.add(Path(operation["worker_summary_path"]).resolve())
+        except (ValueError,OSError,TypeError):
+            continue
     for path in root.glob("*.summary.json"):
+        if path.resolve() in rejected_summaries:
+            continue
         try:
             summary=json.loads(path.read_text())
             day=summary.get("market_date")
@@ -266,25 +387,63 @@ def soak_progress(root: Path) -> dict:
             "market_dates":sorted(dates),"gate_complete":len(dates)>=config["required_completed_runs"]}
 
 
+def soak_report(root: Path) -> dict:
+    ledger=[]
+    for path in root.glob("*.operation.json"):
+        operation=json.loads(path.read_text())
+        if "ledger" in operation:
+            ledger.append(operation["ledger"])
+    ledger.sort(key=lambda row:(row["started_at"],row["run_id"],row["completed_at"]))
+    for number,row in enumerate(ledger,1):
+        row["run_number"]=number
+    return {"title":"Phase 0 prospective soak","soak":soak_progress(root),"last_run":ledger[-1] if ledger else None,
+            "quota":"not queried in offline mode","universe":"10 equities + JKSE.INDX",
+            "universe_mode":"Pilot","FullIdx":"NOT ENABLED","ledger":ledger,
+            "remaining_gates":["bootstrap incomplete","listing boundaries incomplete","10-run soak incomplete"]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--from", dest="start", required=True)
-    parser.add_argument("--to", dest="end", required=True)
+    parser.add_argument("--from", dest="start")
+    parser.add_argument("--to", dest="end")
     parser.add_argument("--universe", default="pilot/universe.json")
     parser.add_argument("--resume")
     parser.add_argument("--seed", action="append", default=[], help="SYMBOL=manifest.json=raw-root")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--soak-report", action="store_true")
+    parser.add_argument("--refresh", action="store_true", help="Bypass automatic canonical reuse; never automatic retry.")
     parser.add_argument("--ingest", action="store_true", help="Run validation, ingestion, features and durable operation report after collection.")
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except SystemExit as error:
+        raise SystemExit(1 if error.code else 0) from None
+    try:
+        if args.soak_report:
+            print(json.dumps(soak_report(Path("data/collector-output/pilot")),indent=2))
+            return
+        if not args.start or not args.end:
+            raise ValueError("Explicit --from and --to required.")
+        if args.refresh and (args.resume or args.seed):
+            raise ValueError("Refresh cannot reuse resume/seed evidence.")
+        if args.dry_run:
+            if args.resume or args.seed:
+                raise ValueError("Dry-run currently plans automatic reuse only; omit resume/seed.")
+            print(json.dumps(dry_run(args),indent=2))
+            return
+    except (ValueError,OSError,KeyError):
+        raise SystemExit("STOP: invalid local planning configuration.") from None
     Path("data/collector-output/pilot").mkdir(parents=True, exist_ok=True)
     # ponytail: one local collector; use account-wide coordination if multiple machines collect.
     with Path("data/collector-output/pilot/collector.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             path=collect(args)
             if args.ingest:
                 path=ingest_and_summarize(path)
-                print(path)
+                report=json.loads(path.read_text())
+                print(json.dumps({"report":str(path),"status":report["status"],"quota_units":report["reserved_units"],
+                    "canonical_bars_added":report.get("worker",{}).get("canonical_additions"),"soak":report["soak"]}))
                 status=json.loads(path.read_text())["status"]
                 raise SystemExit(0 if status=="SUCCEEDED" else 2 if status=="DEGRADED" else 1)
             print(path)

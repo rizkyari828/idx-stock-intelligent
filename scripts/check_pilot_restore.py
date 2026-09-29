@@ -2,6 +2,7 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -79,6 +80,26 @@ def signature(db):
     return json.loads(sql("SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY instrument_id,session_date,revision_number),'[]') FROM (SELECT instrument_id,session_date,revision_number,raw_artifact_id,canonical_content_sha256,open,high,low,close,volume,adjusted_close,retrieved_at,volume_unit,volume_basis,market_segment FROM daily_bar_revision"+selected+") s;",db))
 
 
+def verify_provenance_and_order():
+    records=json.loads(sql("""SELECT jsonb_agg(to_jsonb(s) ORDER BY instrument_id,session_date,revision_number)
+        FROM (SELECT r.instrument_id,r.session_date,r.revision_number,r.known_at,r.retrieved_at,
+              r.session_reference,r.session_known_at,a.local_uri,a.content_sha256,a.byte_length
+              FROM daily_bar_revision r JOIN raw_artifact a USING(raw_artifact_id)) s;"""))
+    grouped={}
+    for record in records:
+        payload=Path(record["local_uri"]).read_bytes()
+        assert hashlib.sha256(payload).hexdigest()==record["content_sha256"]
+        assert len(payload)==record["byte_length"]
+        assert record["session_reference"].startswith("https://")
+        known=datetime.fromisoformat(record["known_at"])
+        assert datetime.fromisoformat(record["retrieved_at"])<=known
+        assert datetime.fromisoformat(record["session_known_at"])<=known
+        grouped.setdefault((record["instrument_id"],record["session_date"]),[]).append(record)
+    for revisions in grouped.values():
+        assert [r["revision_number"] for r in revisions]==list(range(1,len(revisions)+1))
+        assert [r["known_at"] for r in revisions]==sorted(r["known_at"] for r in revisions)
+
+
 created=False
 try:
     base=json.loads(batch_path.read_text())
@@ -88,6 +109,7 @@ try:
     code, restored=invoke(base)
     assert code==2 and restored["run_status"]=="DEGRADED"
     assert count()==21 and signature(database)==reference
+    verify_provenance_and_order()
     report["cases"]["restore_canonical_and_provenance"]="PASS"
     previous=json.loads(Path("data/collector-output/pilot/1f7cc972-68ee-41cd-9bce-eded7efda103.summary.json").read_text())
     assert restored["features"]==previous["features"]
@@ -136,6 +158,21 @@ try:
     _,outcome=invoke(transaction)
     assert outcome["revisions_added"]==0
     report["cases"]["transaction_rollback_and_safe_rerun"]="PASS"
+    verify_provenance_and_order()
+    expected=signature(database)
+    # Recreate the same correction sequence in a second clean database, entirely offline.
+    second=database+"_r"
+    sql("CREATE DATABASE "+second+";","idx_stock_intelligence")
+    try:
+        env["IDX_PILOT_DATABASE"]=second
+        invoke(base)
+        invoke(correction)
+        invoke(transaction)
+        assert signature(second)==expected
+        report["cases"]["clean_restore_revision_sequence_and_raw_provenance"]="PASS"
+    finally:
+        env["IDX_PILOT_DATABASE"]=database
+        sql("DROP DATABASE "+second+";","idx_stock_intelligence")
     report["status"]="PASS"
     report["restored_rows"]=21
     report["limitation"]="Warmup features reproduced; original canonical knowledge times require a database backup, not re-ingestion."

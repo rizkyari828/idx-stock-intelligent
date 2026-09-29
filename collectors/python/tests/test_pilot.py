@@ -68,7 +68,7 @@ class PilotTests(unittest.TestCase):
                     os.chdir(directory)
                     Path("universe.json").write_text(json.dumps(configuration))
                     args = SimpleNamespace(universe="universe.json",start="2026-08-17",end="2026-09-25",resume=None,seed=[],offline=False)
-                    with patch.dict(os.environ,{"EODHD_API_TOKEN":"test-only-credential-sentinel"}), patch("urllib.request.build_opener") as opener, patch("idx_stock_collector.pilot.datetime") as clock:
+                    with patch.dict(os.environ,{"EODHD_API_TOKEN":"test-only-credential-sentinel"}), patch("urllib.request.build_opener") as opener, patch("idx_stock_collector.pilot.datetime") as clock, patch("idx_stock_collector.pilot.local_state",return_value={"status":"UNKNOWN","revisions":[]}):
                         clock.now.return_value = datetime(2026,9,28,tzinfo=timezone.utc)
                         opener.return_value.open.side_effect = open_request
                         result = collect(args)
