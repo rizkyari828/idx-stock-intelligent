@@ -1,5 +1,24 @@
 # Phase 0 Data Spike Result
 
+## Latest review — semantics and rights closure, 2026-09-29
+
+[The closure report](EODHD_SEMANTICS_RIGHTS.md) and [current dimension matrix](DATA_SOURCE_MATRIX.md#semantics-and-rights-closure--2026-09-29)
+supersede older unresolved *documentation* findings without inventing new empirical
+results. OHLC and adjusted-close contracts are documented; broader JK volume,
+corporate-action safety and universe discovery remain PARTIAL. Current entitled
+private-personal storage/manipulation/analysis is supported by published terms;
+post-cancellation retention and JK source chain remain UNKNOWN. Extra-call buffer
+semantics are documented, but account overflow consumption remains UNKNOWN.
+
+This task used **zero EODHD API requests/units**, changed documentation only and
+changed no canonical data. Fifteen existing offline parser/workflow/policy tests
+passed; five existing semantic artifacts passed SHA-256/length verification
+(230,234 bytes). Local dry-run confirms 55 canonical bars, before-cutoff refusal
+and UNKNOWN_SESSION for September 29. Soak is **0/10**, FullIdx disabled, and
+2022-present remains BLOCKED_BY_ENTITLEMENT. Same-day collection requires the
+configured 19:00 WIB cutoff and reviewed completed/open evidence; this review did
+not add it or perform a live run. Older run counts below are dated observations.
+
 ## Latest scope — prospective hardening, 2026-09-28
 
 [Hardening report](PILOT_HARDENING.md): zero additional EOD units, one zero-unit

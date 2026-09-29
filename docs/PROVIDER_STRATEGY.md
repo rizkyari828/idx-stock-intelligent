@@ -1,5 +1,30 @@
 # Phase 0 provider selection gate
 
+## Current semantic and rights decision — 2026-09-29
+
+The [closure review](EODHD_SEMANTICS_RIGHTS.md) and [dimension matrix](DATA_SOURCE_MATRIX.md#semantics-and-rights-closure--2026-09-29)
+keep EODHD as the primary fixed-panel private screening provider/candidate for a
+later broad screen, not an unquestioned exchange source or approved FullIdx feed.
+Documented raw OHLC and split/dividend-adjusted close semantics do not establish
+JK corporate-action accuracy, market segment, upstream identity or full universe.
+Persist provider volume unchanged; sampled BBCA/ANTM share scale is corroborated,
+while complete JK semantics remain PARTIAL. Reconcile anomalies/action-like changes
+through independently sourced evidence and retain revisions; no silent fallback.
+
+Published terms support current entitled private-personal storage/manipulation/
+analysis, not public/commercial reuse or a verified post-cancellation archive grant.
+Extra calls are documented overflow capacity, not upgraded feature/history access;
+empirical overflow consumption is still UNKNOWN. Free includes documented EOD,
+splits/dividends, lists and news within respective restrictions; disabled paid APIs
+remain disabled. No account check, market call, purchase or canonical change occurred.
+
+All eleven bootstrap responses exist; 55 bars on five independently proved sessions
+remain DEGRADED, eight listing boundaries are verified and two remain PARTIAL.
+Soak is **0/10** and FullIdx is **NOT ENABLED**. Same-day operation is supported
+after cutoff and completed/open proof, but September 29 currently lacks that proof.
+Historical 2022-present stays BLOCKED_BY_ENTITLEMENT. Earlier selections, prices
+and observations below retain their original review dates and narrower scope.
+
 ## Current decision — ZERO-COST PILOT MODE, 2026-09-28
 
 Use EODHD **Free per-symbol EOD** for the fixed ten-equity private prospective pilot

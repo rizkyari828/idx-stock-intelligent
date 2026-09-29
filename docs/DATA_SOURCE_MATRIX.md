@@ -1,17 +1,50 @@
 # Data Source Matrix — Phase 0
 
-## Current scope — ZERO-COST PILOT MODE, 2026-09-28
+## Semantics and rights closure — 2026-09-29
+
+This is the current dimension matrix; earlier dated assessments below remain
+historical evidence. [Detailed review and quality policy](EODHD_SEMANTICS_RIGHTS.md)
+used zero EODHD API requests/units. VERIFIED is always limited to the stated
+documented contract or tested sample; implementation alone does not verify a feed.
+
+| Dimension | Status | Evidence | Limitation | Action required |
+|---|---|---|---|---|
+| Ordinary EOD schema | VERIFIED | Existing responses: date/OHLC/adjusted_close/volume | Small panel/window | Continue strict validation |
+| OHLC contract | VERIFIED | [Official EOD field/adjustment specification](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes): raw OHLC | Actual JK tape/segment/action behavior remains PARTIAL | Independent dated action/price reconciliation |
+| Adjusted-close contract | VERIFIED | EOD specification: split/dividend-adjusted, retrospective recalculation | JK event factors not tested | Preserve raw close, vintages and knowledge time |
+| JK volume semantics | PARTIAL | BBCA/ANTM dated lots reconcile; [IDX lot definition](https://rdis.idx.co.id/en/events/mengenai-satuan-lot-apa-itu-lot); EOD split basis | Segment/upstream/pre-split quantities UNKNOWN | Keep exact provider integer; no ×100/÷100 conversion |
+| Session/holiday behavior | VERIFIED | ANTM/GOTO closure padding; BBCA omission; adjacent/repeat evidence | Only sampled symbols/closures; full calendar PARTIAL | Independent proofs; no calendar inference from rows |
+| IHSG identity/recent access | VERIFIED | Actual INDX catalogue and JKSE.INDX close reconciliation | Historical completeness/finalization UNKNOWN | Validate each requested session |
+| Splits | PARTIAL | [Official event schema/ex-date/ratio and Free inclusion](https://eodhd.com/financial-apis/api-splits-dividends) | JK event completeness/reconciliation untested | Authorized reference/action sample later |
+| Dividends | PARTIAL | Official event JSON: ex-date, amounts, currency, optional event dates | JK accuracy/extended-date coverage untested | Reconcile adjusted/unadjusted amounts and currency |
+| Exchange discovery | PARTIAL | [Ticker-list fields/type filter](https://eodhd.com/financial-apis/covered-tickers-eodhd); existing JK sample | Current/recent-active vendor list is not canonical ordinary-share universe | Independent class/identity/boundary reconciliation |
+| Delisted discovery | PARTIAL | Existing inactive list; [specific inactive-only guide](https://eodhd.com/financial-apis/delisted-stock-companies-data-2) | No legal date/point-in-time completeness; general guide wording differs | Preserve parameters; reconcile active/inactive populations |
+| Historical Free entitlement | VERIFIED | [EOD Free past-year limit](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes), old SCBD warning | Exact rolling boundary unspecified | Keep conservative 330-day bound |
+| 2022-present / old SCBD access | BLOCKED | Current Free history restriction | Paid capability not this account's entitlement | No historical spike or automatic purchase |
+| Extra-call documented buffer | VERIFIED | [Official limits](https://eodhd.com/financial-apis/api-limits): overflow, accumulation, no expiry | No feature/history upgrade grant | Keep plan/feature checks independent |
+| Extra-call runtime consumption | UNKNOWN | Prior bounded test ineligible; no overflow probes | Balance existence does not prove consumption | Separately authorized eligible test only |
+| Private personal use | VERIFIED | [Terms](https://eodhd.com/financial-apis/terms-conditions): current entitled nonprofessional storage/manipulation/analysis | Does not establish perpetual or public/commercial rights | Stay private/noncommercial; derived analyses are scoped interpretation |
+| Post-cancellation retention | UNKNOWN | No explicit retained-use grant found | Raw/normalized/derived retention after termination unresolved | Written clarification before a buy-and-cancel design |
+| JK source chain / segment | UNKNOWN | [Source disclosure](https://eodhd.com/financial-apis/our-data-sources-and-data-partners) does not identify JK | Feed independence/exchange tape unestablished | Provider clarification plus lawful independent evidence |
+| Corporate-action safety | PARTIAL | Documented events and price bases | Full JK rights/reorganization/as-of coverage not demonstrated | Event reconciliation; older Free windows BLOCKED |
+
+Public/commercial use is OUT OF SCOPE under this review and is not licensed by the
+personal grant. Overall production-source promotion remains uncleared.
+
+## Current scope — ZERO-COST PILOT MODE, 2026-09-29
 
 The fixed 10-equity + verified `JKSE.INDX` Free-plan pilot is now implemented for
 private recent-window/prospective collection. [Measured results and commands](ZERO_COST_PILOT.md)
-supersede earlier dated statements that no collector exists. Seven instruments have
-archived evidence; four equities and the wider initial IHSG window await quota reset.
-Five independently confirmed sessions now support 33 DEGRADED bars, with idempotent
-replay and explicit unresolved volume/segment semantics. Six listing boundaries are
-verified and four remain UNKNOWN. [Hardening and exit evidence](PILOT_HARDENING.md)
+supersede earlier dated statements that no collector exists. All eleven instruments
+have complete bootstrap response coverage; canonical history remains PARTIAL.
+Five independently confirmed sessions now support 55 DEGRADED bars, with idempotent
+replay and explicit unresolved volume/segment semantics. Eight listing boundaries are
+verified; PTRO/LPIN are PARTIAL with effective UNKNOWN. [Hardening and exit evidence](PILOT_HARDENING.md)
 retain the initial three-session/21-bar result and the **0/10** real prospective soak.
 There is no production-feed PASS, full IDX screener or historical backtest.
-**2022-present remains BLOCKED_BY_ENTITLEMENT; prospective pilot collection is ready.**
+**2022-present remains BLOCKED_BY_ENTITLEMENT.** Same-day prospective collection is
+implemented but not currently eligible; [cutoff and completed proof](SAME_DAY_EOD.md)
+remain mandatory. No September 29 proof was added by this review.
 
 Latest empirical review: 2026-09-28; provider selection review: 2026-09-28; original security-master/calendar evidence: 2026-09-24. Status describes **automated personal/local use**, not ordinary browser viewing. `UNCLEAR` is not approval. No dataset is approved for canonical production ingestion. Dimension-specific rights/quota PASS does not clear the other gates. The 2026-09-28 gate below supersedes the older price-provider screen; original spike evidence remains unchanged.
 
