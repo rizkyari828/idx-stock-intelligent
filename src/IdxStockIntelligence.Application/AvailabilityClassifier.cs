@@ -12,12 +12,13 @@ public static class AvailabilityClassifier
         ArgumentNullException.ThrowIfNull(instrument);
         ArgumentNullException.ThrowIfNull(session);
 
-        if (session.Date < instrument.ListedOn)
+        var boundary = InstrumentBoundaries.Classify(instrument,session.Date);
+        if (boundary == InstrumentBoundaryState.PreListing)
         {
             return DataAvailabilityStatus.PreListing;
         }
 
-        if (instrument.DelistedOn is not null && session.Date > instrument.DelistedOn)
+        if (boundary == InstrumentBoundaryState.PostDelisting)
         {
             return DataAvailabilityStatus.PostDelisting;
         }

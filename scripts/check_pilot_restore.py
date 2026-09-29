@@ -119,6 +119,28 @@ try:
     _, rerun=invoke(base)
     assert rerun["revisions_added"]==0 and count()==21
     report["cases"]["identical_replay"]="PASS"
+    # Metadata corrections append; identical imports must not change earlier knowledge.
+    boundary=json.loads(Path("pilot/instrument-boundaries.json").read_text())[0]
+    boundary.update(instrument_id=str(uuid.uuid4()),symbol="SYNTHETIC",issuer_name="Synthetic issuer",
+                    listed_from="2001-01-02",retrieved_at="2026-01-01T00:00:00Z",known_at="2026-01-01T00:00:00Z")
+    boundary_path=work/"boundaries.json"
+    def import_boundary(record):
+        boundary_path.write_text(json.dumps([record]))
+        return subprocess.run(["dotnet","run","--project","src/IdxStockIntelligence.Worker","--no-build","--no-restore","--",
+            "import-boundaries",str(boundary_path)],capture_output=True,text=True,env=env,timeout=120).returncode
+    assert import_boundary(boundary)==0 and import_boundary(boundary)==0
+    predicate="instrument_id='"+boundary["instrument_id"]+"'::uuid"
+    assert sql("SELECT count(*) FROM instrument_listing_evidence WHERE "+predicate+";")=="1"
+    changed=deepcopy(boundary);changed["listed_from"]="2001-01-03"
+    assert import_boundary(changed)==1
+    changed.update(retrieved_at="2026-01-02T00:00:00Z",known_at="2026-01-02T00:00:00Z")
+    assert import_boundary(changed)==0
+    assert sql("SELECT count(*) FROM instrument_listing_evidence WHERE "+predicate+";")=="2"
+    for cutoff,expected_date in (("2026-01-01","2001-01-02"),("2026-01-02","2001-01-03")):
+        assert sql("SELECT evidence->>'listed_from' FROM instrument_listing_evidence WHERE "+predicate+
+                   " AND known_at<='"+cutoff+"' ORDER BY known_at DESC LIMIT 1;")==expected_date
+    assert count()==21
+    report["cases"]["boundary_import_idempotence_conflict_and_asof_correction"]="PASS"
     statuses=[o["Status"] for o in restored["observations"]]
     assert "SESSION_UNCONFIRMED" in statuses and "CLOSED" in statuses
     assert sql("SELECT count(*) FROM daily_bar_revision WHERE session_date IN ('2026-08-17','2026-08-25');")=="0"

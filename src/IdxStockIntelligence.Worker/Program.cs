@@ -5,6 +5,22 @@ using IdxStockIntelligence.Application;
 using IdxStockIntelligence.Domain;
 using IdxStockIntelligence.Infrastructure;
 
+if (args is ["import-boundaries", var referencePath])
+{
+    try
+    {
+        var records=BoundaryReference.ReadFile(referencePath);
+        BoundaryReference.Import(records);
+        Console.WriteLine(JsonSerializer.Serialize(new { status="SUCCESS",reference_records=records.Length,provider_requests=0 }));
+    }
+    catch (Exception error) when (error is ArgumentException or InvalidOperationException or IOException or JsonException or FormatException)
+    {
+        Console.Error.WriteLine("STOP: invalid boundary reference import; no overwrite.");
+        Environment.ExitCode=1;
+    }
+    return;
+}
+
 if (args is ["pilot-state"])
 {
     try
@@ -70,6 +86,10 @@ try
     }
     var instrumentByDate = instrumentProofs.ToDictionary(p => (p.Instrument,p.Date));
     var instruments = universe.RootElement.GetProperty("instruments").EnumerateArray().ToDictionary(i => i.GetProperty("symbol").GetString()!);
+    PilotDatabase.EnsureSchema();
+    var boundaryHistory=BoundaryReference.ReadHistory().ToList();
+    var boundaryPath=Environment.GetEnvironmentVariable("IDX_PILOT_BOUNDARIES") ?? "pilot/instrument-boundaries.json";
+    if (File.Exists(boundaryPath)) boundaryHistory.AddRange(BoundaryReference.ReadFile(boundaryPath));
     if (instruments.Count != 11 || !instruments.TryGetValue("JKSE.INDX", out var benchmarkConfig)) throw new ArgumentException("Fixed pilot panel required.");
     var entries = batch.RootElement.GetProperty("entries").EnumerateArray().ToArray();
     if (entries.Length != 11 || entries.Select(e => e.GetProperty("symbol").GetString()).Distinct().Count() != 11)
@@ -89,8 +109,14 @@ try
         if (listing.GetProperty("known_at").GetDateTimeOffset() > now || listing.GetProperty("listed_on").GetRawText() != config.GetProperty("listed_on").GetRawText()
             || listing.GetProperty("symbol").GetString() != symbol)
             throw new ArgumentException("Invalid listing evidence chronology/identity.");
-        var instrument = new Instrument(id, config.GetProperty("name").GetString()!,
+        var fallback = new Instrument(id, config.GetProperty("name").GetString()!,
             listing.GetProperty("status").GetString() != "VERIFIED" ? null : DateOnly.Parse(config.GetProperty("listed_on").GetString()!, CultureInfo.InvariantCulture));
+        // Fresh databases retain the committed legacy baseline without backdating new evidence.
+        var baseline=new InstrumentBoundaryEvidence(id.Value,symbol,fallback.IssuerName,fallback.ListedOn,null,null,
+            fallback.ListedOn is null ? "UNKNOWN" : "VERIFIED","legacy-reference-register",listing.GetProperty("reference").GetString()!,
+            "legacy listing register",null,listing.GetProperty("known_at").GetDateTimeOffset(),listing.GetProperty("confidence").GetString()!,
+            "legacy-1","Original retrieval timestamp was not recorded.");
+        var instrument=InstrumentBoundaries.Resolve(fallback,boundaryHistory.Append(baseline),now);
         SourceReference? source = null;
         var rows = new Dictionary<DateOnly, DailyBar>();
         if (entry.TryGetProperty("manifest", out var manifest))
@@ -152,7 +178,8 @@ try
                 _ => "UNKNOWN"
             };
             var instrumentState = result.Status switch { "AVAILABLE" => "TRADED", "SUSPENDED" => "SUSPENDED", "NO_TRADE" => "NO_TRADE", "MISSING" => "MISSING_DATA", _ => "UNKNOWN" };
-            observations.Add(new { symbol, date, result.Status, result.Reason, exchange_state=exchangeState, instrument_state=instrumentState });
+            observations.Add(new { symbol, date, result.Status, result.Reason, exchange_state=exchangeState, instrument_state=instrumentState,
+                boundary_state=JsonNamingPolicy.SnakeCaseUpper.ConvertName(InstrumentBoundaries.Classify(instrument,date).ToString()) });
             if (result.Status is "AVAILABLE" or "NO_TRADE" or "SUSPENDED") accountedOutcomes++;
             if (result.Bar is not { } bar) continue;
             accepted.Add(bar);
@@ -164,6 +191,7 @@ try
         }
     }
     PilotDatabase.EnsureSchema();
+    BoundaryReference.Import(boundaryHistory.Where(e => e.RetrievedAt is not null).Distinct().ToArray());
     var before = PilotDatabase.ReadRevisions();
     var latest = before.GroupBy(r => (r.Bar.InstrumentId,r.Bar.SessionDate)).ToDictionary(g => g.Key,g => g.MaxBy(r => r.RevisionNumber)!);
     var staleEvidence = accepted.Count(b => latest.TryGetValue((b.InstrumentId,b.SessionDate),out var old)
@@ -193,7 +221,7 @@ try
         canonical_state=revisions.GroupBy(r => (r.Bar.InstrumentId,r.Bar.SessionDate)).Select(g => g.MaxBy(r => r.RevisionNumber)!)
             .Where(r => r.Bar.SessionDate>=first && r.Bar.SessionDate<=last).Select(r => new { instrument_id=r.Bar.InstrumentId.Value,
                 date=r.Bar.SessionDate,content_sha256=r.ContentSha256,retrieved_at=r.Bar.Source.FetchedAt }),
-        session_evidence=sessions.RootElement,instrument_evidence=universe.RootElement,
+        session_evidence=sessions.RootElement,instrument_evidence=universe.RootElement,boundary_evidence=boundaryHistory,
         requested_instruments=entries.Select(e => e.GetProperty("symbol").GetString()), accepted_rows = bars.Count,
         canonical_additions=added.Count(r => r.RevisionNumber==1), corrections=added.Count(r => r.RevisionNumber>1), revisions_added = added.Length,
         stale_evidence_ignored=staleEvidence,

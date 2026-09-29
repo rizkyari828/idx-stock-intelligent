@@ -16,9 +16,10 @@ public static class PilotValidation
     public static PilotObservation Validate(Instrument instrument, DateOnly date, DailyBar? row,
         SessionProof? proof, DateTimeOffset knownAt, bool sourceError = false, InstrumentSessionProof? instrumentProof = null)
     {
-        if (instrument.ListedOn is not null && date < instrument.ListedOn)
+        var boundary = InstrumentBoundaries.Classify(instrument,date);
+        if (boundary == InstrumentBoundaryState.PreListing)
             return new("PRE_LISTING", null);
-        if (instrument.DelistedOn is not null && date > instrument.DelistedOn)
+        if (boundary == InstrumentBoundaryState.PostDelisting)
             return new("POST_DELISTING", null);
         if (proof is null || proof.KnownAt > knownAt || string.IsNullOrWhiteSpace(proof.Reference))
             return new("SESSION_UNCONFIRMED", null);
