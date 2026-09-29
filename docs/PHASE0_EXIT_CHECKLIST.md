@@ -55,3 +55,11 @@ LPIN exact listing remains a COMPLETENESS LIMITATION, effective UNKNOWN; primary
 FUTURE ITEM for current entitled private use and blocks a cancellation-based archive.
 No evidence requirement relaxed. Ten prospective runs remain **0/10**; FullIdx
 remains disabled. Zero provider API calls/units in this follow-up. Phase 0 exit: NO.
+
+## September 29 prospective execution — actual result
+
+Full-day session proof recorded; one live DAILY attempt returned **DEGRADED**:
+eleven successful fetches / eleven units, ten equity revisions added, JKSE zero-volume
+observation rejected as UNKNOWN. **Soak remains 0/10**, Phase 0 exit NO, FullIdx
+disabled. Entitlement probe blocked by pilot completion gate; extra balance 500
+unchanged. See [execution evidence](LOCAL_PILOT_WORKFLOW.md#september-29-prospective-execution--actual-result).

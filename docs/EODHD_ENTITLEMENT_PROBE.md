@@ -77,3 +77,12 @@ or persisted. The probe supplies no deeper-history entitlement or production app
 Offline validation: **42 Python tests and 21 .NET tests passed**; shell syntax
 passed. Implementation dry-run matched 4 + 3 = 7 and expected 497. Zero provider
 requests, no token loaded and no live account/payload saved during implementation.
+
+## September 29 runtime status
+
+The real pilot returned DEGRADED, so its completion gate blocked probe eligibility.
+No probe preflight or live probe was executed. Fresh post-pilot Free counters were
+16/20 on September 29, extra balance 500; arithmetic would require 4 ordinary +
+3 extra = 7 requests, but does not clear the failed pilot gate. Extra balance remains
+500; buffer functionality remains unproven. **EXTRA CALL BUFFER TEST NOT ELIGIBLE**.
+See [actual pilot result](LOCAL_PILOT_WORKFLOW.md#september-29-prospective-execution--actual-result).

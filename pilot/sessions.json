@@ -40,5 +40,15 @@
     "status": "ObservedTrading",
     "reference": "https://www.idnfinancials.com/news/69483/ihsg-falls-3-09-in-a-week-amid-idr3-15tn-outflows",
     "known_at": "2026-09-28T08:24:22.282236+00:00"
+  },
+  {
+    "date": "2026-09-29",
+    "status": "ObservedTrading",
+    "reference": "https://www.idxchannel.com/market-news/ihsg-seharian-di-zona-merah-sesi-ii-parkir-ke-6121",
+    "published_at": "2026-09-29T16:06:00+07:00",
+    "completed_at": "2026-09-29T16:06:00+07:00",
+    "known_at": "2026-09-29T14:39:11.599944+00:00",
+    "evidence_type": "Independent full-day session II closing report",
+    "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp."
   }
 ]

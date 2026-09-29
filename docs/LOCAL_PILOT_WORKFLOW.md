@@ -195,3 +195,46 @@ operation. Historical 2022-present remains BLOCKED_BY_ENTITLEMENT.
 Operational readiness is conditional on independent proof for a completed date,
 healthy local database and sufficient normal quota; this offline task does not
 establish those live prerequisites or clear Phase 0.
+
+## September 29 prospective execution — actual result
+
+Independent full-day proof: [IDXChannel session II closing report](https://www.idxchannel.com/market-news/ihsg-seharian-di-zona-merah-sesi-ii-parkir-ke-6121), published
+2026-09-29 16:06 WIB. Exactly one ObservedTrading record was appended to
+`pilot/sessions.json`. `completed_at` uses that publication-time upper bound,
+not a fabricated exchange timestamp; `known_at` is 14:39:11.599944 UTC.
+Collection began 14:40:32.432057 UTC, after proof knowledge and the 19:00 WIB cutoff.
+
+Docker Desktop was initially stopped; starting the existing app restored the healthy
+local PostgreSQL container. The database had 55 canonical revisions before collection.
+The local collector lock was free and no matching local consumer process was observed.
+Panel remained ten equities + JKSE.INDX; FullIdx stayed disabled.
+Dry-run was ELIGIBLE, with no provider requests and maximum 11 billable units.
+
+Exactly one DAILY run `26031b57-1f3f-4c8d-8102-5fa93a94c93e` completed
+**DEGRADED** (exit 2), operation `f3b53354-1059-4207-a4f7-7b153f3664a0`.
+All eleven symbols were requested, none skipped; eleven successful fetches, zero
+failed fetches, eleven immutable raw artifacts. Account usage reconciled 5/20 →
+16/20, exactly **11 billable units**, extra balance unchanged at **500**.
+The collector made 24 HTTP requests: eleven one-unit EOD and thirteen zero-unit
+account checks; separate before/after reconciliation added two zero-unit account
+checks. No retries or expensive endpoints were used. Response bytes: 5,020 total
+collector bytes; runtime 31.291381 seconds including canonical worker.
+
+Ten equity bars/revisions were added, zero corrections, one rejected observation:
+JKSE.INDX had zero volume and the existing validator returned UNKNOWN because it
+cannot establish traded/no-trade/suspension status from zero volume alone. No
+benchmark bar was fabricated or promoted. Ten equity feature results were WARMUP
+with one consecutive session; benchmark STALE retained September 25. Warnings:
+INCOMPLETE_OR_UNCONFIRMED and PILOT_SEMANTICS_DEGRADED.
+**Soak remains 0/10**; the partial run does not count as successful prospective proof.
+
+The entitlement probe was **not eligible** because the pilot completion gate failed.
+No probe preflight or live probe was executed. Current counter arithmetic would be
+four ordinary + three extra = seven requests, but arithmetic does not clear that gate.
+**EXTRA CALL BUFFER TEST NOT ELIGIBLE**. No extra calls were consumed or purchased;
+buffer operation remains unproven. Raw/runtime data remain ignored; only independent
+session evidence and empirical documentation are committed.
+
+Validation: standard Python discovery **42 passed**; standard .NET root discovery
+**21 passed**. Tests consumed zero provider units. Total task usage: **11 EODHD
+billable units**. Phase 0 exit remains NO; buying 100K extra calls is NOT YET PROVEN.
