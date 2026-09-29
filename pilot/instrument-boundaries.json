@@ -66,5 +66,39 @@
     "confidence": "INCOMPLETE_PRIMARY_REVIEW",
     "source_version": "boundary-reference-1",
     "notes": "Indexed issuer text establishes listing year 1990 only. Secondary sources suggest 1990-02-05; exact date not promoted without reviewed primary support. Direct PDF unavailable. First trading date and delisting unestablished."
+  },
+  {
+    "instrument_id": "f7d72ea1-d05d-5c5b-ace9-0435bb3e52eb",
+    "symbol": "PTRO",
+    "issuer_name": "Petrosea Tbk",
+    "listed_from": "1990-05-21",
+    "delisted_at": null,
+    "first_trading_date": null,
+    "status": "VERIFIED",
+    "source": "issuer reference publication",
+    "reference": "https://petrosea.com/wp-content/uploads/2025/03/PTRO_Annual-Report-2024.pdf",
+    "publication_reference": "2024 Annual Report, printed p.110 (PDF page 56), Share Listing Chronology; financial note 1b p.8 (PDF page 174)",
+    "retrieved_at": "2026-09-29T04:39:49.352803+00:00",
+    "known_at": "2026-09-29T04:39:49.352803+00:00",
+    "confidence": "PRIMARY_SOURCE",
+    "source_version": "boundary-reference-2",
+    "notes": "CONFIRMED listing on 1990-05-21 in directly downloaded and visually reviewed issuer report. Note 1b separately dates IPO effective statement 1990-05-21; offering-period dates and first trading date remain unestablished. No inference of event equivalence. Appends improved evidence without replacing prior PARTIAL knowledge."
+  },
+  {
+    "instrument_id": "bd4c12c4-7523-5dc1-99eb-68e4f701edf3",
+    "symbol": "LPIN",
+    "issuer_name": "Multi Prima Sejahtera Tbk",
+    "listed_from": null,
+    "delisted_at": null,
+    "first_trading_date": null,
+    "status": "PARTIAL",
+    "source": "issuer reference publication",
+    "reference": "https://www.multiprimasejahtera.net/upload/PDF_INV_ENG_714713373_1747031276.pdf",
+    "publication_reference": "2024 Annual Report, printed pp.27-29 (PDF pages 14-15); financial note 1b p.9 (PDF page 82)",
+    "retrieved_at": "2026-09-29T04:39:49.352803+00:00",
+    "known_at": "2026-09-29T04:39:49.352803+00:00",
+    "confidence": "PRIMARY_SOURCE_YEAR_ONLY",
+    "source_version": "boundary-reference-2",
+    "notes": "INSUFFICIENT exact-day evidence: directly reviewed issuer report confirms listing year 1990 only. Secondary candidate 1990-02-05 remains unaccepted and listed_from stays null. Scripless trading began 2002-05-30 (note 1b p.10, PDF page 83), a distinct event, not initial first trading. First trading date and delisting remain unestablished."
   }
 ]

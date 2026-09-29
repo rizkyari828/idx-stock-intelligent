@@ -25,6 +25,11 @@ New imports require an actual retrieval timestamp and cannot claim future knowle
 
 ## Reviewed pilot references
 
+The table below records the earlier 03:09Z evidence. The later
+[closure follow-up](EODHD_SEMANTICS_RIGHTS.md#reference--retention-closure-follow-up--2026-09-29)
+appends PTRO VERIFIED listing and LPIN PARTIAL primary-review provenance at 04:39Z;
+nine equity listings are now verified. Initial first-trading dates remain unknown.
+
 | Sample | Status | Retained evidence | Effective boundary | Source |
 |---|---|---|---|---|
 | RAJA | VERIFIED | 2003-01-22 listing on Surabaya Stock Exchange | 2003-01-22 | [Issuer 2024 sustainability report, pp.32–33](https://cms.raja.co.id/uploads/SR_2024_13a2b61733.pdf) |
@@ -36,7 +41,8 @@ LPIN's secondary exact-date claim is retained only in notes, not a canonical fie
 No distinct first-trading or delisting date was established for these samples.
 The JSON records contain their actual September 29 UTC review/knowledge timestamps;
 publication year is not a backdated knowledge time. Two previously unknown boundaries
-are now verified; PTRO and LPIN remain unresolved. The older `pilot/universe.json`
+were verified at that earlier cutoff; PTRO and LPIN were unresolved. The later
+review verifies PTRO listing only; LPIN exact listing remains unresolved. The older `pilot/universe.json`
 register is preserved as earlier evidence, not rewritten to imply earlier knowledge.
 
 ## Reference input and import
@@ -126,7 +132,7 @@ metadata corrections with earlier/later cutoff queries; canonical bars are uncha
 Build has zero warnings/errors. No raw market data, secrets or runtime evidence
 are tracked by this change.
 
-Remaining gates include PTRO/LPIN primary exact-date review, independent completed
+Remaining gates include LPIN exact-date and PTRO/LPIN initial first-trading review, independent completed
 future sessions and ten actual eligible soak dates, calendar/identity chronology,
 market-segment/adjustment/corporate-action semantics, rights and any separately
 authorized full-universe operating budget. Historical 2022-present remains

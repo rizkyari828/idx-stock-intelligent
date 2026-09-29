@@ -7,6 +7,79 @@ no purchase made and no canonical bar changed. FullIdx remains disabled; soak is
 **0/10**. The [current matrix](DATA_SOURCE_MATRIX.md#semantics-and-rights-closure--2026-09-29)
 separates documented contracts from sampled empirical behavior.
 
+## Reference / retention closure follow-up — 2026-09-29
+
+Research used **zero EODHD API endpoints / zero billable units**. No token or account
+response was loaded. Public issuer reports and provider documentation only were
+reviewed. No price history, soak count or FullIdx setting changed.
+
+### Evidence register and distinct events
+
+New reference observations have actual `retrieved_at` and `known_at`
+**2026-09-29T04:39:49.352803+00:00**, not the historical event/publication dates.
+The earlier 03:09:27.403168Z observations remain unchanged.
+
+| Ticker / issuer | Event | Effective date | Status / assessment | Source and reviewed location | Notes |
+|---|---|---|---|---|---|
+| PTRO / Petrosea Tbk | Initial exchange listing | 1990-05-21 | VERIFIED / CONFIRMED | [Issuer Annual Report 2024](https://petrosea.com/wp-content/uploads/2025/03/PTRO_Annual-Report-2024.pdf), printed p.110, PDF page 56, Share Listing Chronology | Direct public download succeeded (14,066,172 bytes); PDFKit extraction and rendered table reviewed after browser size-limit rejection. Explicit initial Jakarta/Surabaya listing, not merely an indexed snippet. |
+| PTRO / Petrosea Tbk | IPO effective statement | 1990-05-21 | VERIFIED / CONFIRMED for this event only | Same report, financial note 1b, printed financial p.8, PDF page 174 | Separate offering authorization. Offering subscription-period dates not established. Equal reported dates do not establish first trading. |
+| PTRO / Petrosea Tbk | Initial first trading | UNKNOWN | UNKNOWN / INSUFFICIENT | No separately verified first-trading document | `first_trading_date` remains null. |
+| LPIN / Multi Prima Sejahtera Tbk | Initial exchange listing | 1990; exact day UNKNOWN | PARTIAL / INSUFFICIENT for exact day | [Issuer Annual Report 2024](https://www.multiprimasejahtera.net/upload/PDF_INV_ENG_714713373_1747031276.pdf), printed pp.27–29, PDF pages 14–15; financial note 1b p.9, PDF page 82 | Direct report text reviewed. Listing-year evidence strengthened; no invented January 1 boundary. Exact candidate 1990-02-05 remains secondary only. |
+| LPIN / Multi Prima Sejahtera Tbk | Initial IPO / first trading | 1990 IPO year; exact day / initial trading UNKNOWN | PARTIAL / INSUFFICIENT | Same chronology / note 1b | The documented 2002-05-30 start of scripless trading (financial p.10, PDF page 83) is a later conversion event, not the initial first-trading date. |
+
+LPIN's 1990-02-05 claim remains recorded but unaccepted: examples include
+[Ajaib's asset page](https://ajaib.co.id/saham/aset/LPIN) and
+[a 2025 PNJ thesis table](https://repository.pnj.ac.id/31499/1/Halaman%20Identitas%20Skripsi.pdf)
+attributing its processed table to IDX without the underlying dated exchange record.
+Generic portal IPO/listing labels are not proof of event equivalence. The issuer's
+year-only statement neither confirms nor contradicts that day: **INSUFFICIENT**,
+not CONFLICTING. PTRO's old candidate agrees with the directly reviewed chronology:
+**CONFIRMED** for listing only. No incompatible same-event dates were established.
+All candidate histories survive; a later authoritative contradiction must append
+new knowledge and preserve prior as-of results.
+
+### Post-cancellation retention: UNKNOWN
+
+Official public pages reviewed September 29: [Terms and Conditions](https://eodhd.com/financial-apis/terms-conditions),
+PERSONAL AND COMMERCIAL USE OF INFORMATION, ACCESS TO THE SERVICES §4 and
+TERMINATION; [Commercial vs Personal licensing](https://eodhd.com/financial-apis/commercial-vs-personal-license-use),
+Commercial Usage Terms / FAQ; [Pricing](https://eodhd.com/pricing), cancellation FAQ.
+Current private storage/analysis is allowed; cancellation and contract termination
+are described. These pages contain neither an explicit continuing right to retain
+previously downloaded ordinary EOD data after cancellation nor an explicit deletion
+requirement for that data. The licensing guidance distinguishes personal/business
+use, and the pricing FAQ explains unsubscribe controls, not stored-data survival.
+
+Classification: **C — no clear statement; UNKNOWN**, not VERIFIED or PROHIBITED.
+Vendor-specific Marketplace terms cannot be applied to the ordinary EOD feed.
+Written provider clarification must distinguish cancellation/downgrade from breach
+termination, duration, raw/normalized/derived storage and continued private use.
+No provider message was sent. Current private-use permission remains scoped; it
+cannot justify a one-month download-and-cancel archive.
+
+### Phase 0 impact and validation
+
+- PTRO listing: **CLOSED**; separate first-trading enrichment remains **FUTURE ITEM**.
+- LPIN exact listing: **COMPLETENESS LIMITATION**, remains open. Existing
+  `UNKNOWN_BOUNDARY` behavior continues; separate first-trading evidence is a future item.
+- Post-cancellation retention: **FUTURE ITEM** for the continuing Free pilot; a rights
+  blocker for any cancellation-based permanent archive. It is not a newly found
+  canonical-price correctness defect or approval to retain data after termination.
+
+Local validation: first import grew reference history **16 → 18**; identical
+repeat kept **18**; canonical price revisions stayed **55**. Read-only as-of queries
+at 03:09:27.403168Z and 04:39:49.352803Z confirmed earlier effective boundaries
+remain null for both, then PTRO becomes 1990-05-21 and LPIN remains null. Existing
+offline tests additionally verified correction append, same-time overwrite
+rejection, idempotence and replay in owned disposable databases.
+
+Only two reference observations were appended using the existing generic importer:
+PTRO VERIFIED listing and LPIN PARTIAL reviewed-year provenance. No source code or
+migration change. First-trading/delisting dates remain null. Normal local database
+validation and complete offline suites are recorded below; references improve
+listing coverage to nine verified equities plus one PARTIAL (LPIN). The prior
+knowledge cutoff still yields PTRO PARTIAL and LPIN PARTIAL.
+
 ## Price and adjustment contract
 
 The [official EOD specification](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes)
@@ -169,7 +242,12 @@ with DEGRADED quality; this document does not claim a new production quarantine 
 
 ## Offline validation and readiness
 
-Documentation-only changes. Existing parser, workflow and completed-session tests:
+Latest reference follow-up: **21 .NET tests, 28 Python tests and all 14 offline
+restore/replay check groups passed**; zero provider requests. Restore evidence is
+ignored at `data/collector-output/pilot/idx_pilot_check_5313f6458cb84a4fa6631aadc601dbc0/result.json`.
+No source code, price revision or completed-session proof changed; soak **0/10**.
+
+Earlier semantics-only review (before the reference follow-up): documentation-only changes. Existing parser, workflow and completed-session tests:
 **15 passed**. Five existing semantic artifacts passed exact SHA-256/byte-length
 verification (230,234 bytes total); no raw data or account response was printed.
 Local dry-run still reports 55 canonical bars and NOT_ELIGIBLE before cutoff with

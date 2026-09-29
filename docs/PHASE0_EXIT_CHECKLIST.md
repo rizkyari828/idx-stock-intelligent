@@ -18,7 +18,7 @@ made zero provider calls and did not advance the soak.
 - [x] Session validation safe — independent proofs, exceptional closure support, unknown remains unknown.
 - [x] Canonical ingestion idempotent — repeated response/reprocessing adds no duplicate revision.
 - [x] Revisions append-only — database triggers, correction/reversion tests and stale-archive guard.
-- [x] Listing boundaries handled — eight verified, PTRO/LPIN PARTIAL with effective UNKNOWN; versioned, append-only as-of reference import. See [boundary hardening](INSTRUMENT_BOUNDARIES.md).
+- [x] Listing boundaries handled — nine verified, LPIN PARTIAL with effective UNKNOWN; PTRO listing verified from directly reviewed 2024 issuer chronology; versioned, append-only as-of reference import. See [boundary hardening](INSTRUMENT_BOUNDARIES.md).
 - [x] Feature warm-up correct — null/WARMUP, chronological confirmed-session windows, aligned benchmark.
 - [x] Failure behavior explicit — eight requested local scenarios, atomic rollback, durable FAILED/DEGRADED reports.
 - [x] Selected prior bar/provenance and warm-up result reproduced in a fresh database — temporal/full numeric restore limitations remain below.
@@ -45,3 +45,13 @@ observe ten actual eligible future sessions; bootstrap responses are now complet
 resolve remaining semantics before any strategy implementation. Use MEDIUM reasoning.
 
 See [hardening evidence and commands](PILOT_HARDENING.md).
+
+## Reference closure follow-up — September 29
+
+[Evidence register](EODHD_SEMANTICS_RIGHTS.md#reference--retention-closure-follow-up--2026-09-29):
+PTRO listing 1990-05-21 CLOSED; initial first-trading date remains a FUTURE ITEM.
+LPIN exact listing remains a COMPLETENESS LIMITATION, effective UNKNOWN; primary
+2024 report establishes only 1990. Post-cancellation retention remains UNKNOWN /
+FUTURE ITEM for current entitled private use and blocks a cancellation-based archive.
+No evidence requirement relaxed. Ten prospective runs remain **0/10**; FullIdx
+remains disabled. Zero provider API calls/units in this follow-up. Phase 0 exit: NO.

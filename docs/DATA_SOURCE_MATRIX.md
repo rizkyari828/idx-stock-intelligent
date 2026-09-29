@@ -24,7 +24,7 @@ documented contract or tested sample; implementation alone does not verify a fee
 | Extra-call documented buffer | VERIFIED | [Official limits](https://eodhd.com/financial-apis/api-limits): overflow, accumulation, no expiry | No feature/history upgrade grant | Keep plan/feature checks independent |
 | Extra-call runtime consumption | UNKNOWN | Prior bounded test ineligible; no overflow probes | Balance existence does not prove consumption | Separately authorized eligible test only |
 | Private personal use | VERIFIED | [Terms](https://eodhd.com/financial-apis/terms-conditions): current entitled nonprofessional storage/manipulation/analysis | Does not establish perpetual or public/commercial rights | Stay private/noncommercial; derived analyses are scoped interpretation |
-| Post-cancellation retention | UNKNOWN | No explicit retained-use grant found | Raw/normalized/derived retention after termination unresolved | Written clarification before a buy-and-cancel design |
+| Post-cancellation retention | UNKNOWN | Terms, licensing guidance and cancellation FAQ reviewed September 29: no explicit retained-use grant or deletion requirement for ordinary EOD data | Raw/normalized/derived retention after termination unresolved | Written clarification before a buy-and-cancel design |
 | JK source chain / segment | UNKNOWN | [Source disclosure](https://eodhd.com/financial-apis/our-data-sources-and-data-partners) does not identify JK | Feed independence/exchange tape unestablished | Provider clarification plus lawful independent evidence |
 | Corporate-action safety | PARTIAL | Documented events and price bases | Full JK rights/reorganization/as-of coverage not demonstrated | Event reconciliation; older Free windows BLOCKED |
 
@@ -38,8 +38,10 @@ private recent-window/prospective collection. [Measured results and commands](ZE
 supersede earlier dated statements that no collector exists. All eleven instruments
 have complete bootstrap response coverage; canonical history remains PARTIAL.
 Five independently confirmed sessions now support 55 DEGRADED bars, with idempotent
-replay and explicit unresolved volume/segment semantics. Eight listing boundaries are
-verified; PTRO/LPIN are PARTIAL with effective UNKNOWN. [Hardening and exit evidence](PILOT_HARDENING.md)
+replay and explicit unresolved volume/segment semantics. Nine equity listing boundaries are
+verified; PTRO listing 1990-05-21 is directly issuer-verified, first trading UNKNOWN.
+LPIN remains PARTIAL with effective UNKNOWN; directly reviewed issuer report
+establishes only 1990. See the [closure evidence register](EODHD_SEMANTICS_RIGHTS.md#reference--retention-closure-follow-up--2026-09-29). [Hardening and exit evidence](PILOT_HARDENING.md)
 retain the initial three-session/21-bar result and the **0/10** real prospective soak.
 There is no production-feed PASS, full IDX screener or historical backtest.
 **2022-present remains BLOCKED_BY_ENTITLEMENT.** Same-day prospective collection is
