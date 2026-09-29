@@ -24,6 +24,7 @@ class WorkflowTests(unittest.TestCase):
         Path("pilot").mkdir()
         self.config = json.loads((Path(__file__).resolve().parents[3] / "pilot/universe.json").read_text())
         Path("pilot/universe.json").write_text(json.dumps(self.config))
+        Path("pilot/collection-policy.json").write_text(json.dumps({"SAFE_EOD_CUTOFF":"19:00"}))
         Path("pilot/soak.json").write_text(json.dumps({"after_market_date":"2026-09-28","required_completed_runs":10}))
         self.proof = {"date":"2026-09-29","status":"ObservedTrading","reference":"https://example.org/close",
                       "known_at":"2026-09-29T10:00:00+00:00"}
@@ -133,11 +134,12 @@ class WorkflowTests(unittest.TestCase):
              patch("idx_stock_collector.pilot.datetime") as clock, \
              patch("urllib.request.OpenerDirector.open",side_effect=AssertionError("Provider I/O forbidden")):
             clock.now.return_value=datetime(2026,9,30,tzinfo=timezone.utc)
+            clock.fromisoformat.side_effect=datetime.fromisoformat
             plan=dry_run(args)
             self.assertEqual(11,plan["maximum_eod_units"])
             self.assertEqual(0,plan["provider_requests"])
             self.assertEqual("JKSE.INDX",plan["benchmark"])
-        for start,end in (("2026-09-30","2026-09-29"),("2026-10-01","2026-10-01"),("2026-09-30","2026-09-30")):
+        for start,end in (("2026-09-30","2026-09-29"),("2026-10-01","2026-10-01")):
             with self.assertRaises(ValueError):
                 window(start,end,date(2026,9,30))
         altered=deepcopy(self.config)
@@ -171,6 +173,7 @@ class WorkflowTests(unittest.TestCase):
              patch("idx_stock_collector.pilot.datetime") as clock, \
              patch("urllib.request.OpenerDirector.open",side_effect=AssertionError("Provider I/O forbidden")):
             clock.now.return_value=datetime(2026,9,30,tzinfo=timezone.utc)
+            clock.fromisoformat.side_effect=datetime.fromisoformat
             batch=json.loads(collect(args).read_text())
         self.assertEqual("FAILED",batch["status"])
         self.assertEqual([],batch["requests"])

@@ -119,6 +119,27 @@ try:
     _, rerun=invoke(base)
     assert rerun["revisions_added"]==0 and count()==21
     report["cases"]["identical_replay"]="PASS"
+    # Ingestion time must not legitimize an artifact fetched before same-day eligibility.
+    same_day=deepcopy(base)
+    selected=next(e for e in same_day["entries"] if e["symbol"]=="BBCA.JK")
+    proof_snapshot=json.loads(snapshot)
+    proof=next(p for p in proof_snapshot if p["date"]=="2026-09-25")
+    proof.update(reference="https://reference.example/synthetic-completed-session",known_at="2026-09-25T10:00:00Z",
+                 completed_at="2026-09-25T09:15:00Z")
+    synthetic_sessions=work/"synthetic-sessions.json"
+    synthetic_sessions.write_text(json.dumps(proof_snapshot))
+    original_sessions=env["IDX_PILOT_SESSIONS"]
+    try:
+        env["IDX_PILOT_SESSIONS"]=str(synthetic_sessions)
+        selected["manifest"]["fetched_at_utc"]="2026-09-25T11:59:00Z"
+        code,outcome=invoke(same_day)
+        assert code==1 and outcome["run_status"]=="FAILED" and count()==21
+        selected["manifest"]["fetched_at_utc"]="2026-09-25T12:00:00Z"
+        code,outcome=invoke(same_day)
+        assert code==2 and outcome["run_status"]=="DEGRADED" and count()==21
+    finally:
+        env["IDX_PILOT_SESSIONS"]=original_sessions
+    report["cases"]["same_day_artifact_clock_guard_and_safe_replay"]="PASS"
     # Metadata corrections append; identical imports must not change earlier knowledge.
     boundary=json.loads(Path("pilot/instrument-boundaries.json").read_text())[0]
     boundary.update(instrument_id=str(uuid.uuid4()),symbol="SYNTHETIC",issuer_name="Synthetic issuer",

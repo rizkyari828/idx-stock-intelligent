@@ -6,7 +6,8 @@ using IdxStockIntelligence.Domain;
 
 namespace IdxStockIntelligence.Application;
 
-public sealed record SessionProof(DateOnly Date, ExchangeDayStatus Status, string Reference, DateTimeOffset KnownAt);
+public sealed record SessionProof(DateOnly Date, ExchangeDayStatus Status, string Reference, DateTimeOffset KnownAt,
+    DateTimeOffset? CompletedAt = null);
 public sealed record PilotObservation(string Status, DailyBar? Bar, string? Reason = null);
 public sealed record InstrumentSessionProof(InstrumentId Instrument, DateOnly Date,
     MarketSessionStatus Status, string Reference, DateTimeOffset KnownAt);

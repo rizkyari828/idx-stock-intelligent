@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time as local_time, timedelta, timezone
 from decimal import Decimal
 import fcntl
 import hashlib
@@ -29,9 +29,72 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def window(start: str, end: str, today: date) -> tuple[date, date]:
     first, last = date.fromisoformat(start), date.fromisoformat(end)
     # Conservative subset of the approximately one-year Free entitlement.
-    if first > last or first < today - timedelta(days=330) or last >= today:
-        raise ValueError("Use completed dates within the last 330 days.")
+    if first > last or first < today - timedelta(days=330) or last > today:
+        raise ValueError("Use non-future dates within the last 330 days; completion proof is required.")
     return first, last
+
+
+def safe_cutoff() -> local_time:
+    value = json.loads(Path("pilot/collection-policy.json").read_text())["SAFE_EOD_CUTOFF"]
+    if not isinstance(value,str) or len(value)!=5 or value[2]!=":":
+        raise ValueError("SAFE_EOD_CUTOFF must be HH:mm.")
+    return local_time.fromisoformat(value)
+
+
+def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutoff: local_time) -> dict:
+    """Explicit clock input; provider rows cannot establish completion."""
+    if now.tzinfo is None:
+        raise ValueError("Timezone-aware collection clock required.")
+    jakarta=now.astimezone(ZoneInfo("Asia/Jakarta"))
+    result={"date":str(day),"jakarta_time":jakarta.isoformat(),"safe_eod_cutoff":cutoff.isoformat(timespec="minutes"),
+            "session_proof":"UNKNOWN_SESSION","eligible":False}
+    proofs=[p for p in sessions if p["date"]==str(day)]
+    independent=False
+    if len(proofs)==1:
+        proof=proofs[0]
+        reference=urllib.parse.urlsplit(proof.get("reference",""))
+        known=datetime.fromisoformat(proof["known_at"].replace("Z","+00:00"))
+        independent=(reference.scheme=="https" and bool(reference.hostname) and reference.hostname.lower()!="eodhd.com"
+            and not reference.hostname.lower().endswith(".eodhd.com") and not reference.username and not reference.password
+            and known.tzinfo is not None and known<=now)
+        if independent:
+            result["session_proof"]={"ObservedTrading":"KNOWN_OPEN","AnnouncedClosed":"KNOWN_CLOSED",
+                "ExceptionalClosure":"KNOWN_CLOSED"}.get(proof["status"],"UNKNOWN_SESSION")
+    reason="SESSION_PROOF_REQUIRED"
+    if day>jakarta.date():
+        reason="FUTURE_DATE"
+    elif day==jakarta.date() and jakarta.time()<cutoff:
+        reason="SAFE_EOD_CUTOFF_NOT_REACHED"
+    elif len(proofs)!=1:
+        reason="SESSION_PROOF_REQUIRED" if not proofs else "CONFLICTING_SESSION_PROOF"
+    else:
+        if not independent:
+            reason="INDEPENDENT_ALREADY_KNOWN_PROOF_REQUIRED"
+        elif proof["status"] in ("AnnouncedClosed","ExceptionalClosure"):
+            result["session_proof"]="KNOWN_CLOSED"
+            reason="KNOWN_CLOSED"
+        elif proof["status"]!="ObservedTrading" or day.weekday()>=5:
+            reason="SESSION_PROOF_REQUIRED"
+        else:
+            result["session_proof"]="KNOWN_OPEN"
+            reason="ELIGIBLE_PRIOR_COMPLETED_SESSION"
+            if day==jakarta.date():
+                completed=proof.get("completed_at")
+                completed=datetime.fromisoformat(completed.replace("Z","+00:00")) if completed else None
+                if (completed is None or completed.tzinfo is None or completed>known
+                        or completed.astimezone(ZoneInfo("Asia/Jakarta")).date()!=day):
+                    reason="COMPLETED_SESSION_EVIDENCE_REQUIRED"
+                else:
+                    reason="ELIGIBLE_SAME_DAY_COMPLETED_SESSION"
+            result["eligible"]=reason.startswith("ELIGIBLE_")
+    result["reason"]=reason
+    return result
+
+
+def collection_plan(start: date, end: date, now: datetime) -> list[dict]:
+    sessions=json.loads(Path(os.environ.get("IDX_PILOT_SESSIONS","pilot/sessions.json")).read_text())
+    cutoff=safe_cutoff()
+    return [collection_eligibility(start+timedelta(days=i),now,sessions,cutoff) for i in range((end-start).days+1)]
 
 
 def remaining(usage: dict, ceiling: int, quota_day: date | None = None) -> int:
@@ -98,7 +161,7 @@ def reusable_entries(root: Path, start: date, end: date, state: dict, refresh: b
     """Only clean, completed canonical sessions with intact evidence can skip fetch."""
     if refresh or start != end or state.get("status") != "KNOWN":
         return {}
-    sessions = json.loads(Path("pilot/sessions.json").read_text())
+    sessions = json.loads(Path(os.environ.get("IDX_PILOT_SESSIONS","pilot/sessions.json")).read_text())
     current = {(r["instrument_id"],r["date"]):r for r in state["revisions"]}
     previous = {}
     for path in sorted(root.glob("*.operation.json"), key=lambda p:p.stat().st_mtime):
@@ -139,12 +202,15 @@ def reusable_entries(root: Path, start: date, end: date, state: dict, refresh: b
 
 def dry_run(args) -> dict:
     config = configuration(args.universe)
-    start,end = window(args.start,args.end,datetime.now(ZoneInfo("Asia/Jakarta")).date())
+    now=datetime.now(timezone.utc)
+    start,end = window(args.start,args.end,now.astimezone(ZoneInfo("Asia/Jakarta")).date())
+    eligibility=collection_plan(start,end,now)
+    eligible=all(p["eligible"] for p in eligibility)
     state = local_state()
     cached = reusable_entries(Path("data/collector-output/pilot"),start,end,state,getattr(args,"refresh",False))
-    sessions = json.loads(Path("pilot/sessions.json").read_text())
+    sessions = json.loads(Path(os.environ.get("IDX_PILOT_SESSIONS","pilot/sessions.json")).read_text())
     symbols = [i["symbol"] for i in config["instruments"]]
-    requested = [s for s in symbols if s not in cached]
+    requested = [s for s in symbols if s not in cached] if eligible else []
     return {"mode":"DRY_RUN", "universe_mode":"Pilot", "symbols_that_would_be_requested":requested,
             "cached_symbols":list(cached), "benchmark":config["benchmark"], "from":str(start),"to":str(end),
             "maximum_eod_units":len(requested), "account_ceiling":config["daily_unit_ceiling"],
@@ -153,6 +219,7 @@ def dry_run(args) -> dict:
             "canonical_session_dates":sorted({r["date"] for r in state["revisions"]}),
             "session_evidence":[p for p in sessions if start<=date.fromisoformat(p["date"])<=end],
             "skipped_actions":["provider/account requests","archival","ingestion","ledger writes"],
+            "collection":"ELIGIBLE" if eligible else "NOT_ELIGIBLE", "collection_eligibility":eligibility,
             "provider_requests":0}
 
 
@@ -162,12 +229,16 @@ def collect(args) -> Path:
     symbols = [item["symbol"] for item in instruments]
     if len(symbols) != 11 or len(set(symbols)) != 11 or config["benchmark"] != "JKSE.INDX":
         raise ValueError("Expected fixed 10-equity + IHSG panel.")
-    today = datetime.now(ZoneInfo("Asia/Jakarta")).date()
+    collection_started=datetime.now(timezone.utc)
+    today = collection_started.astimezone(ZoneInfo("Asia/Jakarta")).date()
     start, end = window(args.start, args.end, today)
+    eligibility=collection_plan(start,end,collection_started) if not args.offline else []
+    if any(not p["eligible"] for p in eligibility):
+        raise ValueError("Collection not eligible: "+next(p["reason"] for p in eligibility if not p["eligible"]))
     output = Path("data/collector-output/pilot")
     raw_root = Path("data/raw/pilot")
     output.mkdir(parents=True, exist_ok=True)
-    run = {"run_id": str(uuid.uuid4()), "started_at": datetime.now(timezone.utc).isoformat(),
+    run = {"run_id": str(uuid.uuid4()), "started_at": collection_started.isoformat(),"collection_eligibility":eligibility,
            "from": start.isoformat(), "to": end.isoformat(), "entries": [], "requests": [], "reserved_units": 0,
            "mode": "OFFLINE_REPLAY" if args.offline else "DAILY" if start==end and not args.resume and not args.seed else "BOOTSTRAP"}
     target = output / (run["run_id"] + ".json")

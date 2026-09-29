@@ -21,8 +21,7 @@ class PilotTests(unittest.TestCase):
             remaining(dict(subscriptionType="paid", dailyRateLimit=100, apiRequests=0), 16)
         with self.assertRaises(ValueError):
             window("2022-01-01", "2026-09-25", date(2026,9,28))
-        with self.assertRaises(ValueError):
-            window("2026-09-28", "2026-09-28", date(2026,9,28))
+        self.assertEqual((date(2026,9,28),date(2026,9,28)),window("2026-09-28", "2026-09-28", date(2026,9,28)))
 
     def test_raw_exact_volume_adjusted_close_and_seed_integrity(self):
         payload = b'[{"date":"2026-09-25","open":100,"high":101,"low":99,"close":100,"adjusted_close":50,"volume":12345}]'
@@ -67,9 +66,14 @@ class PilotTests(unittest.TestCase):
                 try:
                     os.chdir(directory)
                     Path("universe.json").write_text(json.dumps(configuration))
-                    args = SimpleNamespace(universe="universe.json",start="2026-08-17",end="2026-09-25",resume=None,seed=[],offline=False)
+                    Path("pilot").mkdir()
+                    Path("pilot/collection-policy.json").write_text(json.dumps({"SAFE_EOD_CUTOFF":"19:00"}))
+                    Path("pilot/sessions.json").write_text(json.dumps([{"date":"2026-09-25","status":"ObservedTrading",
+                        "reference":"https://example.org/close","known_at":"2026-09-25T12:00:00Z"}]))
+                    args = SimpleNamespace(universe="universe.json",start="2026-09-25",end="2026-09-25",resume=None,seed=[],offline=False)
                     with patch.dict(os.environ,{"EODHD_API_TOKEN":"test-only-credential-sentinel"}), patch("urllib.request.build_opener") as opener, patch("idx_stock_collector.pilot.datetime") as clock, patch("idx_stock_collector.pilot.local_state",return_value={"status":"UNKNOWN","revisions":[]}):
                         clock.now.return_value = datetime(2026,9,28,tzinfo=timezone.utc)
+                        clock.fromisoformat.side_effect=datetime.fromisoformat
                         opener.return_value.open.side_effect = open_request
                         result = collect(args)
                     report = json.loads(result.read_text())

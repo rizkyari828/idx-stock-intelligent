@@ -58,10 +58,13 @@ try
     var first = DateOnly.Parse(batch.RootElement.GetProperty("from").GetString()!, CultureInfo.InvariantCulture);
     var last = DateOnly.Parse(batch.RootElement.GetProperty("to").GetString()!, CultureInfo.InvariantCulture);
     var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(now, "Asia/Jakarta").DateTime);
-    if (first > last || last >= today || first < today.AddDays(-330)) throw new ArgumentException("Invalid completed-date window.");
+    if (first > last || last > today || first < today.AddDays(-330)) throw new ArgumentException("Invalid completed-date window.");
+    using var collectionPolicy=JsonDocument.Parse(File.ReadAllText("pilot/collection-policy.json"));
+    var cutoff=TimeOnly.ParseExact(collectionPolicy.RootElement.GetProperty("SAFE_EOD_CUTOFF").GetString()!,"HH:mm",CultureInfo.InvariantCulture);
     var proofs = sessions.RootElement.EnumerateArray().Select(p => new SessionProof(
         DateOnly.Parse(p.GetProperty("date").GetString()!, CultureInfo.InvariantCulture), Enum.Parse<ExchangeDayStatus>(p.GetProperty("status").GetString()!),
-        p.GetProperty("reference").GetString()!, p.GetProperty("known_at").GetDateTimeOffset())).ToArray();
+        p.GetProperty("reference").GetString()!, p.GetProperty("known_at").GetDateTimeOffset(),
+        p.TryGetProperty("completed_at",out var completion) ? completion.GetDateTimeOffset() : null)).ToArray();
     var calendar = new ExchangeCalendarEvidence();
     foreach (var proof in proofs)
     {
@@ -73,6 +76,12 @@ try
         calendar.Record(new(proof.Date, proof.Status, proof.Reference));
     }
     var proofByDate = proofs.ToDictionary(p => p.Date);
+    var collectionStarted=batch.RootElement.GetProperty("started_at").GetDateTimeOffset();
+    if (collectionStarted>now) throw new ArgumentException("Future collection clock.");
+    if (batch.RootElement.TryGetProperty("mode",out var collectionMode) && collectionMode.GetString()!="OFFLINE_REPLAY")
+        for (var date=first;date<=last;date=date.AddDays(1))
+            if (!CompletedSessionPolicy.Reason(date,collectionStarted,cutoff,proofByDate.GetValueOrDefault(date)).StartsWith("ELIGIBLE_",StringComparison.Ordinal))
+                throw new ArgumentException("Collection began before independent completed-session eligibility.");
     using var instrumentSessions = JsonDocument.Parse(File.ReadAllText("pilot/instrument-sessions.json"));
     var instrumentProofs = instrumentSessions.RootElement.EnumerateArray().Select(p => new InstrumentSessionProof(
         new(p.GetProperty("instrument_id").GetGuid()), DateOnly.Parse(p.GetProperty("date").GetString()!, CultureInfo.InvariantCulture),
@@ -149,6 +158,9 @@ try
                 {
                     var date = DateOnly.Parse(row.GetProperty("date").GetString()!, CultureInfo.InvariantCulture);
                     if (date < first || date > last) throw new ArgumentException("Row outside window.");
+                    if (date>=DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(fetched,"Asia/Jakarta").DateTime)
+                        && !CompletedSessionPolicy.Reason(date,fetched,cutoff,proofByDate.GetValueOrDefault(date)).StartsWith("ELIGIBLE_",StringComparison.Ordinal))
+                        throw new ArgumentException("Same-day artifact predates safe cutoff/completed proof.");
                     var original = rawRows[date];
                     decimal Number(string key)
                     {
@@ -221,7 +233,7 @@ try
         canonical_state=revisions.GroupBy(r => (r.Bar.InstrumentId,r.Bar.SessionDate)).Select(g => g.MaxBy(r => r.RevisionNumber)!)
             .Where(r => r.Bar.SessionDate>=first && r.Bar.SessionDate<=last).Select(r => new { instrument_id=r.Bar.InstrumentId.Value,
                 date=r.Bar.SessionDate,content_sha256=r.ContentSha256,retrieved_at=r.Bar.Source.FetchedAt }),
-        session_evidence=sessions.RootElement,instrument_evidence=universe.RootElement,boundary_evidence=boundaryHistory,
+        session_evidence=sessions.RootElement,collection_policy=collectionPolicy.RootElement,instrument_evidence=universe.RootElement,boundary_evidence=boundaryHistory,
         requested_instruments=entries.Select(e => e.GetProperty("symbol").GetString()), accepted_rows = bars.Count,
         canonical_additions=added.Count(r => r.RevisionNumber==1), corrections=added.Count(r => r.RevisionNumber>1), revisions_added = added.Length,
         stale_evidence_ignored=staleEvidence,
