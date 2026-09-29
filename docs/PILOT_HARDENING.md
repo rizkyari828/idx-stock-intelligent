@@ -1,5 +1,25 @@
 # Prospective pilot hardening — 2026-09-28
 
+## Current operational update — September 29
+
+The [bootstrap completion](ZERO_COST_PILOT.md#september-29-bootstrap-completion)
+used five ordinary units and completed the four equities and broad index response.
+All eleven request windows now cover August 17–September 25; canonical history
+remains PARTIAL: 55 admitted bars on five proved sessions, 22 additions today,
+271 excluded evidence rows and all features WARMUP. Operation DEGRADED is explicit.
+There is no eligible prospective session yet under the unchanged after-September-28
+boundary and prior-Jakarta-date rule. **Soak remains 0/10**.
+
+The extra-call test was ineligible and made no probes. No purchase, strategy,
+universe expansion or 2022-present request occurred. Standard tests pass:
+**26 Python, 16 .NET, 12 offline restore groups**. The old-result restore reference
+now selects only instruments present in that original result, so later bootstrap
+growth cannot invalidate its comparison. Both owned temporary databases were
+removed. The offline soak report derives bootstrap request completeness from
+validated full-window artifacts rather than hardcoding a pending bootstrap gate.
+
+The sections below preserve the earlier September 28 observations.
+
 The [September 29 local workflow update](LOCAL_PILOT_WORKFLOW.md) supplies standard
 .NET discovery, dry-run, conservative canonical reuse, an explicit local ledger and
 stronger offline reconstruction. Real soak remains **0/10**; no provider call was

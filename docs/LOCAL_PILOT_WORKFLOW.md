@@ -1,5 +1,34 @@
 # Local pilot workflow — 2026-09-29
 
+## Subsequent bounded operational update
+
+The earlier offline task below used zero provider calls. A subsequent authorized
+bootstrap resume used **five units** to finish VKTR, ENRG, PTRO, DSSA and the broad
+JKSE response, with six archives reused. Request coverage is COMPLETE for all
+eleven; canonical history remains PARTIAL (55 bars on five independent sessions),
+and all features remain WARMUP. See [bootstrap results](ZERO_COST_PILOT.md#september-29-bootstrap-completion).
+
+Real prospective soak is still **0/10**. September 28 has independent closing
+evidence but is not strictly after the soak baseline; September 29 was not yet
+completed and is refused as today's Jakarta date. No operational prospective
+dry-run or real soak collection occurred. No extra-call probes were eligible.
+The first possible session is September 29, subject to actual completion/proof,
+with collection on a later Jakarta date and sufficient normal quota.
+
+The offline report now derives bootstrap request completeness from a complete
+fixed-panel batch, window/provenance/parser checks and verified raw hashes.
+Legacy raw archives are reparsed with the current strict parser while their
+immutable manifests retain the original archival version. The report no longer
+lists a hardcoded pending bootstrap gate. Remaining reported gates are
+listing boundaries and the ten-run soak; broader Phase 0 gates remain uncleared.
+The last ledger attempt is an actual DEGRADED BOOTSTRAP attempt, not a soak session.
+The restore comparison now scopes the original 21-bar result to its original
+available instruments, excluding newly bootstrapped instruments from that old
+reference. **26 Python, 16 .NET and 12 offline restore groups pass**; no live
+provider requests were used by tests. FullIdx remains NOT ENABLED.
+
+The remaining sections preserve the earlier offline workflow validation.
+
 This task made **zero EODHD HTTP requests and zero billable requests**. The live
 panel remains ten equities + JKSE.INDX. No strategy, purchase, backfill, scheduler
 or universe expansion was enabled. Real prospective observations remain **0/10**.

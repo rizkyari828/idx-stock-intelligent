@@ -3,7 +3,46 @@
 Latest update: [prospective hardening](PILOT_HARDENING.md) and [Phase 0 exit checklist](PHASE0_EXIT_CHECKLIST.md).
 The one-command operator, durable failure reports, stale-archive correction guard,
 listing evidence and additional confirmed sessions supersede initial implementation
-details below. Bootstrap remains partial; the real soak count is **0/10**.
+details below. **Bootstrap request coverage is complete as of September 29;
+canonical history remains partial and the real soak count is 0/10.**
+
+## September 29 bootstrap completion
+
+The existing August 17–September 25 window was resumed with exactly five EOD
+requests: VKTR, ENRG, PTRO, DSSA and JKSE.INDX. Each returned 30 valid normalized
+rows. The six full-window equity archives were verified and reused without fetch.
+All eleven instruments now have preserved full-window responses: BBCA/BBRI have
+28 rows each; the other eight equities and benchmark have 30 each. COMPLETE here
+means validated request/response coverage, not a fully admitted canonical series.
+
+Five new immutable artifacts were archived with token-free manifests. Collection
+SUCCEEDED, while canonical operation remained DEGRADED/exit 2. It added **22 bars
+and revisions, zero corrections**, for **55 canonical bars/revisions**: eleven
+instruments × the five independently confirmed dates (August 24/26, September
+23/24/25). The expanded index response added two dates; the four equities added
+five dates each. No other dates were promoted.
+
+The full batch contains 326 rows: 55 admitted, 271 rejected/unconfirmed evidence
+rows (18 holiday rows and 253 rows without confirmed sessions). Observation counts
+are 55 AVAILABLE, 22 CLOSED and 363 SESSION_UNCONFIRMED; closed outcomes include
+instruments with no provider holiday row. Zero holiday bars were stored. No
+SOURCE_ERROR, malformed OHLC, duplicate provider dates or fabricated bars were
+observed. All eleven feature states are WARMUP with three consecutive sessions.
+Canonical completeness therefore remains PARTIAL for every instrument.
+
+Accounting: **5 units**, matched by the effective account counter delta; 12
+collector HTTP requests, 19,084 response bytes, 10.594 seconds summed HTTP elapsed.
+Two separate zero-unit usage checks bracketed the work. No prospective collection
+or entitlement probes were made. The buffer test was not eligible under its
+current-day usage/budget requirements; no extra calls were consumed.
+
+At execution time, September 29 was not a completed prior Jakarta date.
+[September 28 has independent closing evidence](https://periskop.id/pasar-modal/20260928/ihsg-hari-ini-ditutup-melemah-6147),
+but does not satisfy the soak boundary strictly after September 28. No eligible
+date, operational soak dry-run or real soak run was asserted. **Real soak: 0/10**.
+The first possible date is September 29, only after actual completion/proof and
+with collection on a later Jakarta date; this is a future prerequisite, not an
+invented observation. FullIdx and 2022-present collection remain disabled/blocked.
 
 Implemented and exercised 2026-09-28. This is private, fixed-panel prospective
 collection with conservative canonical admission, not a full IDX screener or

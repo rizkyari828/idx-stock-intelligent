@@ -8,8 +8,8 @@ Offline workflow revalidated September 29: standard .NET discovery, local ledger
 dry-run and stronger restore checks are documented in [LOCAL_PILOT_WORKFLOW.md](LOCAL_PILOT_WORKFLOW.md).
 Real observations remain **0/10** and FullIdx is **NOT ENABLED**.
 
-- [ ] All ten pilot equities bootstrap successfully — VKTR, ENRG, PTRO, DSSA pending quota reset.
-- [ ] JKSE benchmark bootstrap successfully — September 23–25 available; broader window pending.
+- [x] All ten pilot equities bootstrap response coverage complete — five-unit September 29 resume; full-window raw evidence verified. Canonical calendar/history remains PARTIAL.
+- [x] JKSE benchmark bootstrap response coverage complete — broad August 17–September 25 response verified September 29; five independently confirmed canonical sessions.
 - [x] Raw evidence immutable — content addressing, exact bytes/hash and integrity tests.
 - [x] Session validation safe — independent proofs, exceptional closure support, unknown remains unknown.
 - [x] Canonical ingestion idempotent — repeated response/reprocessing adds no duplicate revision.
@@ -37,7 +37,7 @@ date count once. Fixtures/restore databases and partial/failed runs do not count
 
 **Ready to begin the manual ten-run soak: YES**, after quota reset and independent
 proof for the chosen completed date. **Ready to exit Phase 0: NO.** Next bounded work:
-resume five pending bootstrap requests, then observe ten actual future sessions;
+observe ten actual eligible future sessions; bootstrap responses are now complete;
 resolve remaining semantics before any strategy implementation. Use MEDIUM reasoning.
 
 See [hardening evidence and commands](PILOT_HARDENING.md).
