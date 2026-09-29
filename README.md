@@ -75,7 +75,9 @@ bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD --dry-run
 bash scripts/pilot-eod.sh --soak-report
 ```
 
-Dates must be completed prior Jakarta dates, within the last 330 days. See
+Dates must be independently confirmed completed sessions within the last 330 days.
+Same-day collection requires the configurable **19:00 Asia/Jakarta** cutoff and
+explicit independent completion evidence; see [same-day policy](docs/SAME_DAY_EOD.md). See
 [local workflow procedures and validation](docs/LOCAL_PILOT_WORKFLOW.md) for
 reuse/refresh rules, the prospective ledger, restore checks and current **0/10**
 soak status. FullIdx collection is **NOT ENABLED**.

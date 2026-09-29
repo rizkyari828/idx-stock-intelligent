@@ -8,6 +8,10 @@ Offline workflow revalidated September 29: standard .NET discovery, local ledger
 dry-run and stronger restore checks are documented in [LOCAL_PILOT_WORKFLOW.md](LOCAL_PILOT_WORKFLOW.md).
 Real observations remain **0/10** and FullIdx is **NOT ENABLED**.
 
+[Safe same-day collection](SAME_DAY_EOD.md) is supported after the configured
+19:00 WIB cutoff with independent completed/open proof. This implementation/tests
+made zero provider calls and did not advance the soak.
+
 - [x] All ten pilot equities bootstrap response coverage complete — five-unit September 29 resume; full-window raw evidence verified. Canonical calendar/history remains PARTIAL.
 - [x] JKSE benchmark bootstrap response coverage complete — broad August 17–September 25 response verified September 29; five independently confirmed canonical sessions.
 - [x] Raw evidence immutable — content addressing, exact bytes/hash and integrity tests.

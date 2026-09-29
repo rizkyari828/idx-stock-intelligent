@@ -1,5 +1,14 @@
 # Local pilot workflow — 2026-09-29
 
+## Current same-day policy
+
+The [same-day hardening](SAME_DAY_EOD.md) supersedes the earlier H+1-only guard:
+prior completed sessions or same-day after configured 19:00 WIB with independent
+completed/open proof. Dry-run explains blocked/eligible outcomes without provider
+calls. The shared cutoff is in `pilot/collection-policy.json`. Current checks:
+28 Python, 21 .NET, 14 offline restore groups; soak **0/10**, FullIdx disabled.
+Earlier refusal observations below remain historical evidence.
+
 ## Subsequent bounded operational update
 
 Later [boundary hardening](INSTRUMENT_BOUNDARIES.md) used zero EODHD requests, added
@@ -69,16 +78,16 @@ added or upgraded.
 # No account/market requests, token loading, archival, ingestion or ledger write.
 bash scripts/pilot-eod.sh --from 2026-09-28 --to 2026-09-28 --dry-run
 bash scripts/pilot-eod.sh --soak-report
-# After independent completed-session proof is recorded, on the following day:
+# After independent completed-session proof; same-day also requires the safe cutoff:
 bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD
 # Explicit re-fetch, still subject to the normal 16/20 account ceiling:
 bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD --refresh
 ```
 
 Explicit start/end dates are mandatory for collection/planning. Dates must be
-ordered, prior to today's Jakarta date and no older than 330 days. Today's date is
-conservatively refused even after market close; the example September 29 dry-run
-was refused with exit 1 on September 29. This preserves the completed-date rule.
+ordered, non-future and no older than 330 days. Live dates require reviewed open
+session proof; same-day also requires the configured cutoff and completed_at.
+The earlier September 29 refusal described above predates this policy change.
 CLI/configuration failures return 1; operations return 0 success, 2 degraded,
 1 failed. Help/report/planning return 0 when valid.
 

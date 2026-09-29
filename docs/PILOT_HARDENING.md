@@ -2,6 +2,12 @@
 
 ## Current operational update — September 29
 
+The subsequent [same-day EOD policy](SAME_DAY_EOD.md) replaces the H+1-only guard
+with shared configured cutoff plus independent completed/open evidence. No live
+run or provider request occurred; soak remains **0/10**. Current validation is
+28 Python tests, 21 .NET tests and 14 offline restore groups. Earlier prior-date
+observations below describe the policy before this change.
+
 Subsequent [zero-provider boundary hardening](INSTRUMENT_BOUNDARIES.md) adds a generic
 reference importer and as-of metadata history using the existing evidence table.
 RAJA/VKTR are VERIFIED; PTRO/LPIN remain PARTIAL with effective UNKNOWN boundaries.
@@ -193,7 +199,7 @@ bash scripts/pilot-eod.sh --from 2026-08-17 --to 2026-09-25 \
   --resume data/collector-output/pilot/1f7cc972-68ee-41cd-9bce-eded7efda103.json
 
 # For a future completed date, first record independent completed-session proof.
-# The conservative collector accepts prior Jakarta dates; invoke on the following day.
+# Same-day requires the configured safe cutoff and explicit independent completion proof.
 bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD
 
 # Zero-network replay/reprocessing; never counts as a prospective run.

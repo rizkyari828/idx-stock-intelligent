@@ -91,8 +91,9 @@ with listing or used to manufacture no-trade/session proof.
 The existing versioned `pilot/sessions.json` and instrument-session register remain
 the generic proof mechanism: sourced completed-session evidence, actual known_at,
 then local dry-run, then authorized collection. No September 29 proof was added.
-The collector rejects today's Jakarta date even after close; September 29 collection
-requires a later Jakarta date and reviewed independent completion evidence.
+The [same-day policy](SAME_DAY_EOD.md) now permits today's Jakarta date after the
+configured safe cutoff with explicit independent completion evidence. No price
+bar can establish that proof.
 
 ## Narrow future collector contract and AI role
 
@@ -129,6 +130,7 @@ Remaining gates include PTRO/LPIN primary exact-date review, independent complet
 future sessions and ten actual eligible soak dates, calendar/identity chronology,
 market-segment/adjustment/corporate-action semantics, rights and any separately
 authorized full-universe operating budget. Historical 2022-present remains
-BLOCKED_BY_ENTITLEMENT. Tonight's September 29 live collection is **NO** under
-the existing prior-date rule; prepare evidence after completion and collect no
-earlier than September 30 after reviewing proof and normal quota headroom.
+BLOCKED_BY_ENTITLEMENT. September 29 evening collection is now supported under
+the subsequent same-day policy: configured cutoff, independent completed/open
+proof and normal database/quota prerequisites. It is not presently eligible;
+no September 29 proof or live run was added.
