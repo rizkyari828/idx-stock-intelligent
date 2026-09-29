@@ -194,6 +194,25 @@ class WorkflowTests(unittest.TestCase):
             main()
             self.assertIn("not queried in offline mode",output.getvalue())
 
+    def test_bootstrap_report_requires_complete_verified_raw_evidence(self):
+        entry,_,operation,path=self.evidence()
+        entries=[]
+        for instrument in self.config["instruments"]:
+            copied=deepcopy(entry)
+            copied.update(symbol=instrument["symbol"],instrument_id=instrument["id"])
+            copied["manifest"]["requested_uri"]="https://eodhd.com/api/eod/"+instrument["symbol"]
+            copied["manifest"]["parser_version"]="legacy-archive-parser"
+            entries.append(copied)
+        batch=Path(operation["batch_path"])
+        batch.write_text(json.dumps({"mode":"BOOTSTRAP","started_at":"2026-09-30T00:00:00Z",
+            "status":"SUCCEEDED","from":"2026-09-29","to":"2026-09-29","entries":entries}))
+        report=soak_report(self.root)
+        self.assertEqual("COMPLETE",report["bootstrap_request_coverage"])
+        self.assertEqual(0,report["soak"]["completed_unique_sessions"])
+        self.assertNotIn("bootstrap request coverage incomplete",report["remaining_gates"])
+        (Path(entry["raw_root"])/entry["manifest"]["artifact"]["relative_uri"]).write_bytes(b"corrupt")
+        self.assertEqual("INCOMPLETE_OR_UNKNOWN",soak_report(self.root)["bootstrap_request_coverage"])
+
 
 if __name__ == "__main__":
     unittest.main()

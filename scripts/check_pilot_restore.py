@@ -75,8 +75,10 @@ def count():
     return int(sql("SELECT count(*) FROM daily_bar_revision;"))
 
 
-def signature(db):
+def signature(db, reference_instruments=None):
     selected=" WHERE session_date BETWEEN '2026-09-23' AND '2026-09-25' AND revision_number=1" if db=="idx_stock_intelligence" else ""
+    if reference_instruments is not None:
+        selected+=" AND instrument_id IN ("+",".join("'"+str(uuid.UUID(i))+"'::uuid" for i in reference_instruments)+")"
     return json.loads(sql("SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY instrument_id,session_date,revision_number),'[]') FROM (SELECT instrument_id,session_date,revision_number,raw_artifact_id,canonical_content_sha256,open,high,low,close,volume,adjusted_close,retrieved_at,volume_unit,volume_basis,market_segment FROM daily_bar_revision"+selected+") s;",db))
 
 
@@ -103,7 +105,7 @@ def verify_provenance_and_order():
 created=False
 try:
     base=json.loads(batch_path.read_text())
-    reference=signature("idx_stock_intelligence")
+    reference=signature("idx_stock_intelligence",[e["instrument_id"] for e in base["entries"] if e["status"]=="AVAILABLE"])
     sql("CREATE DATABASE "+database+";","idx_stock_intelligence")
     created=True
     code, restored=invoke(base)

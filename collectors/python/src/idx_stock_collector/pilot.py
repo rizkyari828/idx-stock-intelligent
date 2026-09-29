@@ -389,17 +389,47 @@ def soak_progress(root: Path, rejected_summary: str | None = None) -> dict:
 
 def soak_report(root: Path) -> dict:
     ledger=[]
+    bootstrap=[]
     for path in root.glob("*.operation.json"):
         operation=json.loads(path.read_text())
         if "ledger" in operation:
             ledger.append(operation["ledger"])
+        batch=json.loads(Path(operation["batch_path"]).read_text())
+        if batch.get("mode")=="BOOTSTRAP":
+            complete=False
+            try:
+                first,last=date.fromisoformat(batch["from"]),date.fromisoformat(batch["to"])
+                symbols={i["symbol"] for i in configuration("pilot/universe.json")["instruments"]}
+                complete=(batch["status"]=="SUCCEEDED" and len(batch["entries"])==len(symbols)
+                          and {e["symbol"] for e in batch["entries"]}==symbols
+                          and all(e["status"]=="AVAILABLE" and covers(e["manifest"],first,last)
+                                  and e["manifest"].get("source_id")=="eodhd"
+                                  and e["manifest"].get("requested_uri")=="https://eodhd.com/api/eod/"+e["symbol"]
+                                  and isinstance(e["manifest"].get("parser_version"),str)
+                                  and e["manifest"]["parser_version"].strip() for e in batch["entries"]))
+                if complete:
+                    for entry in batch["entries"]:
+                        read_seed_entry(entry,first,last)
+            except (ValueError,OSError,KeyError,TypeError):
+                complete=False
+            bootstrap.append((batch["started_at"],complete))
     ledger.sort(key=lambda row:(row["started_at"],row["run_id"],row["completed_at"]))
     for number,row in enumerate(ledger,1):
         row["run_number"]=number
-    return {"title":"Phase 0 prospective soak","soak":soak_progress(root),"last_run":ledger[-1] if ledger else None,
+    progress=soak_progress(root)
+    bootstrap_complete=bool(bootstrap and max(bootstrap)[1])
+    remaining=[]
+    if not bootstrap_complete:
+        remaining.append("bootstrap request coverage incomplete")
+    if any(i["listing_evidence"]["status"]=="UNKNOWN" for i in configuration("pilot/universe.json")["instruments"]):
+        remaining.append("listing boundaries incomplete")
+    if not progress["gate_complete"]:
+        remaining.append("10-run soak incomplete")
+    return {"title":"Phase 0 prospective soak","soak":progress,"last_run":ledger[-1] if ledger else None,
+            "bootstrap_request_coverage":"COMPLETE" if bootstrap_complete else "INCOMPLETE_OR_UNKNOWN",
             "quota":"not queried in offline mode","universe":"10 equities + JKSE.INDX",
             "universe_mode":"Pilot","FullIdx":"NOT ENABLED","ledger":ledger,
-            "remaining_gates":["bootstrap incomplete","listing boundaries incomplete","10-run soak incomplete"]}
+            "remaining_gates":remaining}
 
 
 def main():
