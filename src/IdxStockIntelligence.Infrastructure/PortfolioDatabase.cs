@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using IdxStockIntelligence.Application;
 using IdxStockIntelligence.Domain;
 using Npgsql;
@@ -213,6 +214,245 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         }
         await transaction.CommitAsync(ct);
         return ProductValuation.Assemble(portfolio, projection, markets, theses, through, cutoff);
+    }
+
+    public async Task<PortfolioDocument> ExportAsync(Guid id, CancellationToken ct)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        var document = await ExportCoreAsync(connection, id, ct);
+        PortfolioExchange.Serialize(document); // enforce portable file-size bound before sending anything
+        await transaction.CommitAsync(ct);
+        return document;
+    }
+
+    private static async Task<List<ThesisVersion>> AllThesesAsync(NpgsqlConnection connection, Guid id, CancellationToken ct)
+    {
+        await using var command = Command(connection, $"SELECT {ThesisColumns} FROM thesis_version WHERE portfolio_id=$1 ORDER BY instrument_id,version LIMIT 2001", id);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var rows = new List<ThesisVersion>();
+        while (await reader.ReadAsync(ct)) rows.Add(ReadThesis(reader));
+        if (rows.Count > PortfolioExchange.MaxTheses) throw new ArgumentException("Export exceeds 2,000 thesis versions.");
+        return rows;
+    }
+
+    private static async Task<List<InstrumentReference>> ReferencesAsync(NpgsqlConnection connection, Guid[]? ids, CancellationToken ct)
+    {
+        await using var command = Command(connection, """
+            SELECT instrument_id,issuer_name,instrument_type,listed_on,delisted_on FROM instrument
+            WHERE ($1::uuid[] IS NULL OR instrument_id=ANY($1)) ORDER BY instrument_id LIMIT 1001
+            """, ids);
+        var rows = new Dictionary<Guid, InstrumentReference>();
+        await using (var reader = await command.ExecuteReaderAsync(ct))
+            while (await reader.ReadAsync(ct))
+                rows.Add(reader.GetGuid(0), new(reader.GetGuid(0), reader.GetString(1), reader.GetString(2),
+                    reader.IsDBNull(3) ? null : reader.GetFieldValue<DateOnly>(3),
+                    reader.IsDBNull(4) ? null : reader.GetFieldValue<DateOnly>(4), []));
+        if (rows.Count > PortfolioExchange.MaxInstruments) throw new ArgumentException("Registry/export exceeds 1,000 instruments.");
+        await using var symbolsCommand = Command(connection, "SELECT instrument_id,symbol,valid_from,valid_to FROM instrument_history WHERE instrument_id=ANY($1) ORDER BY instrument_id,valid_from LIMIT 10001", rows.Keys.ToArray());
+        var histories = rows.Keys.ToDictionary(id => id, _ => new List<SymbolReference>());
+        var count = 0;
+        await using (var reader = await symbolsCommand.ExecuteReaderAsync(ct))
+            while (await reader.ReadAsync(ct))
+            {
+                if (++count > PortfolioExchange.MaxSymbols) throw new ArgumentException("Symbol history exceeds 10,000 rows.");
+                histories[reader.GetGuid(0)].Add(new(reader.GetString(1), reader.GetFieldValue<DateOnly>(2), reader.IsDBNull(3) ? null : reader.GetFieldValue<DateOnly>(3)));
+            }
+        return rows.Values.Select(i => i with { Symbols = histories[i.Id] }).ToList();
+    }
+
+    private static async Task<PortfolioDocument> ExportCoreAsync(NpgsqlConnection connection, Guid id, CancellationToken ct)
+    {
+        var portfolio = await ReadPortfolioAsync(connection, id, false, ct);
+        var history = await HistoryAsync(connection, id, DateTimeOffset.MaxValue, ct);
+        var theses = await AllThesesAsync(connection, id, ct);
+        var ids = history.Where(e => e.InstrumentId is not null).Select(e => e.InstrumentId!.Value).Distinct().ToArray();
+        var references = await ReferencesAsync(connection, ids, ct);
+        return PortfolioExchange.Ordered(new(1, portfolio, history, theses, references));
+    }
+
+    public async Task<ImportPreview> PreviewImportAsync(ImportRequest request, CancellationToken ct) =>
+        (await ProcessImportAsync(request, false, ct)).Preview;
+    public async Task<ImportResult> ImportAsync(ImportRequest request, CancellationToken ct)
+    {
+        var result = await ProcessImportAsync(request, true, ct);
+        return new(result.Preview.Status, result.Preview.PortfolioId, result.EventsAdded, result.ThesesAdded, result.Preview.Errors);
+    }
+
+    private async Task<(ImportPreview Preview, int EventsAdded, int ThesesAdded)> ProcessImportAsync(ImportRequest request, bool commit, CancellationToken ct)
+    {
+        Guid? id = request.PortfolioId;
+        try
+        {
+            PortfolioExchange.CheckSize(request.Content);
+            if (!Enum.IsDefined(request.Mode)) throw new ArgumentException("Unknown import mode.");
+            PortfolioDocument? document = null;
+            if (request.Format == "JSON")
+            {
+                document = PortfolioExchange.Parse(request.Content);
+                PortfolioExchange.Validate(document, DateTimeOffset.UtcNow, ct);
+                if (id is not null && id != document.Portfolio.Id) throw new ArgumentException("Restore cannot remap portfolio identity.");
+                id = document.Portfolio.Id;
+            }
+            else if (request.Format != "CSV" || id is null || id == Guid.Empty || request.Mode != ImportMode.CREATE_NEW)
+                throw new ArgumentException("Format must be JSON, or CSV with CREATE_NEW and an existing portfolio ID.");
+            await using var connection = await dataSource.OpenConnectionAsync(ct);
+            await using var transaction = await connection.BeginTransactionAsync(commit ? IsolationLevel.ReadCommitted : IsolationLevel.RepeatableRead, ct);
+            if (commit)
+            {
+                await using var gate = Command(connection, "SELECT pg_advisory_xact_lock(hashtextextended($1,0))", "portfolio-import:" + id);
+                await gate.ExecuteNonQueryAsync(ct);
+            }
+            await using var existsCommand = Command(connection, "SELECT EXISTS(SELECT 1 FROM portfolio WHERE portfolio_id=$1)", id);
+            var exists = (bool)(await existsCommand.ExecuteScalarAsync(ct))!;
+            var portfolio = exists ? await ReadPortfolioAsync(connection, id!.Value, commit, ct) : document?.Portfolio;
+            var history = exists ? await HistoryAsync(connection, id!.Value, DateTimeOffset.MaxValue, ct) : [];
+            var theses = exists ? await AllThesesAsync(connection, id!.Value, ct) : [];
+            List<PortfolioEvent> added;
+            IReadOnlyList<ImportRow> rows;
+            if (document is not null)
+            {
+                if (commit)
+                    foreach (var symbol in document.Instruments.SelectMany(i => i.Symbols).Select(s => s.Symbol).Distinct().Order(StringComparer.Ordinal))
+                    {
+                        await using var gate = Command(connection, "SELECT pg_advisory_xact_lock(hashtext($1))", "instrument:" + symbol);
+                        await gate.ExecuteNonQueryAsync(ct);
+                    }
+                var conflicts = await ReferenceConflictsAsync(connection, document.Instruments, ct);
+                if (conflicts.Count > 0) return (Failure(ImportStatus.CONFLICT, id, conflicts), 0, 0);
+                if (exists && PortfolioExchange.Serialize(await ExportCoreAsync(connection, id!.Value, ct)) == PortfolioExchange.Serialize(document))
+                    return (new(ImportStatus.ALREADY_PRESENT, id, document.Events.Count, document.Events.Count, 0, document.Events.Count,
+                        history.Count, [], [], []), 0, 0);
+                if (exists && (request.Mode != ImportMode.RESTORE_EXISTING_EMPTY || history.Count != 0 || theses.Count != 0 || portfolio != document.Portfolio))
+                    return (Failure(ImportStatus.CONFLICT, id, ["Target exists and is nonempty or its identity/settings/creation timestamp differ."]), 0, 0);
+                if (!exists && request.Mode == ImportMode.RESTORE_EXISTING_EMPTY)
+                    return (Failure(ImportStatus.CONFLICT, id, ["RESTORE_EXISTING_EMPTY requires the original empty portfolio header."]), 0, 0);
+                added = document.Events.OrderBy(e => e.Order).ToList();
+                rows = added.Select((e, index) => new ImportRow(index + 1, e, null)).ToArray();
+            }
+            else
+            {
+                if (!exists) return (Failure(ImportStatus.CONFLICT, id, ["CSV requires an existing portfolio."]), 0, 0);
+                var references = await ReferencesAsync(connection, null, ct);
+                var now = DateTimeOffset.UtcNow;
+                if (history.LastOrDefault()?.KnownAt >= now) now = history[^1].KnownAt.AddTicks(10);
+                rows = PortfolioExchange.ParseCsv(request.Content, id!.Value, references, now, history.LastOrDefault()?.Order ?? 0, ct);
+                added = [];
+                var classified = new List<ImportRow>();
+                foreach (var row in rows)
+                {
+                    var e = row.Event;
+                    if (e is null) { classified.Add(row); continue; }
+                    var existing = history.Concat(added).FirstOrDefault(prior => prior.Id == e.Id
+                        || prior.Source == e.Source && prior.ExternalReference == e.ExternalReference);
+                    classified.Add(existing is null ? row : PortfolioLedger.SameFact(e, existing)
+                        ? row with { Duplicate = true } : row with { Error = "Import reference conflicts with existing content." });
+                    if (existing is null) added.Add(e);
+                }
+                rows = classified;
+                var invalid = rows.Where(r => r.Error is not null).ToArray();
+                if (invalid.Length > 0)
+                {
+                    var unknown = invalid.Where(r => r.Error!.StartsWith("UNKNOWN_INSTRUMENT:", StringComparison.Ordinal)).Select(r => r.Error!).ToArray();
+                    var status = invalid.Any(r => r.Error!.Contains("conflicts with existing", StringComparison.Ordinal)) ? ImportStatus.CONFLICT : ImportStatus.INVALID;
+                    return (new(status, id, rows.Count, rows.Count - invalid.Length, invalid.Length, rows.Count(r => r.Duplicate),
+                        history.Count + added.Count, unknown, invalid.Select(r => "Row " + r.Row + ": " + r.Error).ToArray(), rows), 0, 0);
+                }
+                if (history.Count + added.Count > PortfolioLedger.MaximumEvents) throw new ArgumentException("Import would exceed 10,000 ledger events.");
+                try { PortfolioLedger.Project(history.Concat(added), now, ProductQuery.Today, portfolio!.AllowNegativeCash); }
+                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or OverflowException)
+                {
+                    return (new(ImportStatus.INVALID, id, rows.Count, 0, rows.Count, rows.Count(r => r.Duplicate),
+                        history.Count + added.Count, [], [ex.Message], rows.Select(r => r with { Error = ex.Message }).ToArray()), 0, 0);
+                }
+            }
+            // Global event/thesis identities cannot be reused in a different portfolio.
+            await using (var collision = Command(connection, "SELECT EXISTS(SELECT 1 FROM portfolio_event WHERE event_id=ANY($1)) OR EXISTS(SELECT 1 FROM thesis_version WHERE thesis_id=ANY($2))",
+                added.Select(e => e.Id).ToArray(), document?.Theses.Select(t => t.Id).ToArray() ?? []))
+                if ((bool)(await collision.ExecuteScalarAsync(ct))!) return (Failure(ImportStatus.CONFLICT, id, ["Event/thesis identity already belongs to stored data."]), 0, 0);
+            var disposition = added.Count == 0 && document is null ? ImportStatus.ALREADY_PRESENT : commit ? ImportStatus.IMPORTED : ImportStatus.READY;
+            var preview = new ImportPreview(disposition, id, rows.Count, rows.Count, 0, rows.Count(r => r.Duplicate),
+                history.Count + added.Count, [], [], rows);
+            if (!commit || disposition == ImportStatus.ALREADY_PRESENT) return (preview, 0, 0);
+            if (!exists)
+            {
+                await using var insert = Command(connection, "INSERT INTO portfolio(portfolio_id,name,allow_negative_cash,created_at) VALUES ($1,$2,$3,$4)",
+                    portfolio!.Id, portfolio.Name, portfolio.AllowNegativeCash, portfolio.CreatedAt);
+                await insert.ExecuteNonQueryAsync(ct);
+            }
+            if (document is not null)
+            {
+                await RestoreReferencesAsync(connection, document.Instruments, ct);
+                var concurrentConflicts = await ReferenceConflictsAsync(connection, document.Instruments, ct);
+                if (concurrentConflicts.Count > 0) return (Failure(ImportStatus.CONFLICT, id, concurrentConflicts), 0, 0);
+            }
+            foreach (var e in added)
+            {
+                ct.ThrowIfCancellationRequested();
+                await using var insert = Command(connection, """
+                    INSERT INTO portfolio_event(event_id,portfolio_id,event_type,instrument_id,trade_date,known_at,quantity,quantity_unit,
+                        price,fees,cash_amount,external_reference,source,note,supersedes)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,'SHARES',$8,$9,$10,$11,$12,$13,$14)
+                    """, e.Id, id, e.Type.ToString(), e.InstrumentId, e.TradeDate, e.KnownAt, e.Quantity, e.Price, e.Fees,
+                    e.CashAmount, e.ExternalReference, e.Source, e.Note, e.Supersedes);
+                await insert.ExecuteNonQueryAsync(ct);
+            }
+            if (document is not null)
+                foreach (var t in document.Theses.OrderBy(t => t.InstrumentId).ThenBy(t => t.Version))
+                {
+                    await using var insert = Command(connection, """
+                        INSERT INTO thesis_version(thesis_id,portfolio_id,instrument_id,version,mandate,thesis_text,known_at,supersedes,invalidation_note,active)
+                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                        """, t.Id, id, t.InstrumentId, t.Version, t.Mandate.ToString(), t.Text, t.KnownAt, t.Supersedes, t.InvalidationNote, t.Active);
+                    await insert.ExecuteNonQueryAsync(ct);
+                }
+            await transaction.CommitAsync(ct);
+            return (preview, added.Count, document?.Theses.Count ?? 0);
+        }
+        catch (PostgresException ex) when (ex.SqlState is "23505" or "23503" or "23514" or "40001")
+        { return (Failure(ImportStatus.CONFLICT, id, ["Database identity/constraint conflict; transaction rolled back."]), 0, 0); }
+        catch (Exception ex) when (ex is ArgumentException or JsonException or FormatException or InvalidOperationException or OverflowException)
+        { return (Failure(ImportStatus.INVALID, id, [ex is JsonException ? "Invalid or incomplete JSON document." : ex.Message]), 0, 0); }
+    }
+
+    private static ImportPreview Failure(ImportStatus status, Guid? id, IReadOnlyList<string> errors) => new(status, id, 0, 0, 1, 0, 0, [], errors, []);
+
+    private static async Task<List<string>> ReferenceConflictsAsync(NpgsqlConnection connection, IReadOnlyList<InstrumentReference> references, CancellationToken ct)
+    {
+        var existing = (await ReferencesAsync(connection, references.Select(i => i.Id).ToArray(), ct)).ToDictionary(i => i.Id);
+        var errors = new List<string>();
+        foreach (var i in references)
+            if (existing.TryGetValue(i.Id, out var prior) && (prior.Id != i.Id || prior.IssuerName != i.IssuerName || prior.Type != i.Type
+                || prior.ListedOn != i.ListedOn || prior.DelistedOn != i.DelistedOn || !prior.Symbols.SequenceEqual(i.Symbols.OrderBy(s => s.ValidFrom))))
+                errors.Add("Instrument metadata conflict: " + i.Id);
+        var symbols = references.SelectMany(i => i.Symbols).Select(s => s.Symbol).Distinct().ToArray();
+        await using var command = Command(connection, "SELECT instrument_id,symbol,valid_from,valid_to FROM instrument_history WHERE symbol=ANY($1) ORDER BY instrument_id,valid_from LIMIT 10001", (object)symbols);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var count = 0;
+        while (await reader.ReadAsync(ct))
+        {
+            if (++count > PortfolioExchange.MaxSymbols) throw new ArgumentException("Referenced symbol lookup exceeds bound.");
+            var id = reader.GetGuid(0); var symbol = reader.GetString(1); var from = reader.GetFieldValue<DateOnly>(2);
+            var to = reader.IsDBNull(3) ? DateOnly.MaxValue : reader.GetFieldValue<DateOnly>(3);
+            if (references.Any(i => i.Id != id && i.Symbols.Any(s => s.Symbol == symbol && s.ValidFrom <= to && (s.ValidTo ?? DateOnly.MaxValue) >= from)))
+                errors.Add("Symbol identity conflict: " + symbol);
+        }
+        return errors;
+    }
+    private static async Task RestoreReferencesAsync(NpgsqlConnection connection, IReadOnlyList<InstrumentReference> references, CancellationToken ct)
+    {
+        foreach (var i in references)
+        {
+            await using var insert = Command(connection, "INSERT INTO instrument(instrument_id,issuer_name,instrument_type,listed_on,delisted_on) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING",
+                i.Id, i.IssuerName, i.Type, i.ListedOn, i.DelistedOn);
+            var created = await insert.ExecuteNonQueryAsync(ct);
+            if (created == 0) continue;
+            foreach (var s in i.Symbols)
+            {
+                await using var symbol = Command(connection, "INSERT INTO instrument_history(instrument_id,symbol,valid_from,valid_to) VALUES ($1,$2,$3,$4)", i.Id, s.Symbol, s.ValidFrom, s.ValidTo);
+                await symbol.ExecuteNonQueryAsync(ct);
+            }
+        }
     }
 
     public async Task<IReadOnlyList<object>> InstrumentsAsync(int offset, int limit, CancellationToken ct)

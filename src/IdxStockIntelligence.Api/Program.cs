@@ -14,7 +14,7 @@ var address = builder.Configuration["urls"] ?? "http://127.0.0.1:5080";
 if (!Uri.TryCreate(address, UriKind.Absolute, out var listenUri) || !listenUri.IsLoopback || listenUri.Scheme != "http")
     throw new ArgumentException("API requires one loopback HTTP address.");
 builder.WebHost.UseUrls(address);
-builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 65536);
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 24 * 1024 * 1024);
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
@@ -27,6 +27,12 @@ builder.Services.AddSingleton<PortfolioDatabase>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
+    // Existing writes retain their smaller limit; only bounded exchange content needs more room.
+    if (!context.Request.Path.StartsWithSegments("/api/portfolio-imports"))
+    {
+        var bodyLimit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+        if (bodyLimit is { IsReadOnly: false }) bodyLimit.MaxRequestBodySize = 65536;
+    }
     // Local writes require same-origin JSON. Vite proxies /api; no permissive CORS.
     if (HttpMethods.IsPost(context.Request.Method)
         && (!context.Request.HasJsonContentType() || context.Request.Headers["Sec-Fetch-Site"] == "cross-site"))
@@ -76,6 +82,20 @@ app.MapPost("/api/instruments", async (RegisterInstrument input, PortfolioDataba
 });
 app.MapGet("/api/instruments", async (int? offset, int? limit, PortfolioDatabase db, CancellationToken ct) =>
     Results.Ok(await db.InstrumentsAsync(offset ?? 0, limit ?? 100, ct)));
+app.MapGet("/api/portfolios/{id:guid}/export", async (Guid id, string? format, PortfolioDatabase db, CancellationToken ct) =>
+{
+    var document = await db.ExportAsync(id, ct);
+    return format switch
+    {
+        null or "JSON" => Results.Text(PortfolioExchange.Serialize(document), "application/json", System.Text.Encoding.UTF8),
+        "CSV" => Results.Text(PortfolioExchange.CsvExport(document), "text/csv", System.Text.Encoding.UTF8),
+        _ => Results.BadRequest(new { error = "format must be JSON or CSV." })
+    };
+});
+app.MapPost("/api/portfolio-imports/preview", async (ImportRequest input, PortfolioDatabase db, CancellationToken ct) =>
+    Results.Ok(await db.PreviewImportAsync(input, ct)));
+app.MapPost("/api/portfolio-imports", async (ImportRequest input, PortfolioDatabase db, CancellationToken ct) =>
+    Results.Ok(await db.ImportAsync(input, ct)));
 app.UseDefaultFiles();
 app.UseStaticFiles();
 await app.RunAsync();
