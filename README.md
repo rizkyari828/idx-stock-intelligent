@@ -29,8 +29,8 @@ The stock system must still work when AI is unavailable.
 > [Ledger contract](docs/PORTFOLIO_LEDGER.md) · [Cost policy](docs/COST_BASIS_V01.md) ·
 > [Product data states](docs/PRODUCT_DATA_STATE.md)
 >
-> Verification: **34 .NET tests, 61 Python tests, frontend test/build, 2 synthetic
-> HTTP/PostgreSQL/React acceptance tests and 14 offline restore groups pass.**
+> Verification: **50 .NET tests, 61 Python tests, 3 frontend tests/build, 7 disposable
+> HTTP/PostgreSQL/React acceptance tests (including real-browser QA) and 14 offline restore groups pass.**
 >
 > This milestone uses **zero EODHD billable units**. No live panel expansion,
 > screener, composite score, trading recommendation or AI accounting is implemented.

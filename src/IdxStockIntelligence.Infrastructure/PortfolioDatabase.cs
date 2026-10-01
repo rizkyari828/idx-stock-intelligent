@@ -104,15 +104,26 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         return (persisted, false);
     }
 
-    public async Task<IReadOnlyList<PortfolioEvent>> EventsAsync(Guid id, DateTimeOffset cutoff, int offset, int limit, CancellationToken ct)
+    public async Task<IReadOnlyList<object>> EventsAsync(Guid id, DateTimeOffset cutoff, int offset, int limit, CancellationToken ct)
     {
         ValidatePage(offset, limit);
         await using var connection = await dataSource.OpenConnectionAsync(ct);
         await ReadPortfolioAsync(connection, id, false, ct);
-        await using var command = Command(connection, $"SELECT {EventColumns} FROM portfolio_event WHERE portfolio_id=$1 AND known_at<=$2 ORDER BY trade_date,event_order,event_id OFFSET $3 LIMIT $4", id, cutoff, offset, limit);
+        await using var command = Command(connection, $"""
+            SELECT {EventColumns},(SELECT c.event_id FROM portfolio_event c
+                WHERE c.supersedes=portfolio_event.event_id AND c.known_at<=$2) AS corrected_by
+            FROM portfolio_event WHERE portfolio_id=$1 AND known_at<=$2
+            ORDER BY trade_date,event_order,event_id OFFSET $3 LIMIT $4
+            """, id, cutoff, offset, limit);
         await using var reader = await command.ExecuteReaderAsync(ct);
-        var rows = new List<PortfolioEvent>();
-        while (await reader.ReadAsync(ct)) rows.Add(ReadEvent(reader));
+        var rows = new List<object>();
+        while (await reader.ReadAsync(ct))
+        {
+            var e = ReadEvent(reader);
+            rows.Add(new { e.Id, e.PortfolioId, e.Type, e.InstrumentId, e.TradeDate, e.KnownAt, e.Order,
+                e.Quantity, e.Unit, e.Price, e.Fees, e.CashAmount, e.ExternalReference, e.Source, e.Note,
+                e.Supersedes, correctedBy = reader.IsDBNull(15) ? (Guid?)null : reader.GetGuid(15) });
+        }
         return rows;
     }
 
@@ -214,6 +225,34 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         }
         await transaction.CommitAsync(ct);
         return ProductValuation.Assemble(portfolio, projection, markets, theses, through, cutoff);
+    }
+
+    public async Task<ReconciliationPreview> ReconcileAsync(Guid id, ReconciliationInput input, CancellationToken ct)
+    {
+        PortfolioReconciliation.Validate(input);
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        await using (var readOnly = Command(connection, "SET TRANSACTION READ ONLY"))
+            await readOnly.ExecuteNonQueryAsync(ct);
+        var portfolio = await ReadPortfolioAsync(connection, id, false, ct);
+        if (portfolio.CreatedAt > input.Cutoff) throw new KeyNotFoundException("Portfolio did not exist at cutoff.");
+        var projection = PortfolioLedger.Project(await HistoryAsync(connection, id, input.Cutoff, ct),
+            input.Cutoff, input.Through, portfolio.AllowNegativeCash);
+        var ids = projection.Positions.Where(p => p.Shares > 0).Select(p => p.InstrumentId)
+            .Concat(input.Holdings.Where(h => h.InstrumentId is not null).Select(h => h.InstrumentId!.Value)).ToHashSet();
+        var symbols = input.Holdings.Where(h => !string.IsNullOrWhiteSpace(h.Symbol))
+            .Select(h => h.Symbol!.Trim().ToUpperInvariant()).Distinct().ToArray();
+        await using (var lookup = Command(connection, """
+            SELECT DISTINCT instrument_id FROM instrument_history
+            WHERE symbol=ANY($1) AND valid_from<=$2 AND (valid_to IS NULL OR valid_to>=$2) LIMIT 1001
+            """, symbols, input.Through))
+        await using (var reader = await lookup.ExecuteReaderAsync(ct))
+            while (await reader.ReadAsync(ct))
+                if (ids.Add(reader.GetGuid(0)) && ids.Count > PortfolioExchange.MaxInstruments)
+                    throw new ArgumentException("Instrument lookup exceeds supported bound.");
+        var result = PortfolioReconciliation.Compare(projection, input, await ReferencesAsync(connection, ids.ToArray(), ct), ct);
+        await transaction.CommitAsync(ct);
+        return result;
     }
 
     public async Task<PortfolioDocument> ExportAsync(Guid id, CancellationToken ct)
@@ -455,21 +494,21 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         }
     }
 
-    public async Task<IReadOnlyList<object>> InstrumentsAsync(int offset, int limit, CancellationToken ct)
+    public async Task<IReadOnlyList<object>> InstrumentsAsync(int offset, int limit, CancellationToken ct, DateOnly? through = null)
     {
         ValidatePage(offset, limit);
         await using var connection = await dataSource.OpenConnectionAsync(ct);
         await using var command = Command(connection, """
-            SELECT i.instrument_id,i.issuer_name,i.instrument_type,coalesce(h.symbol,i.issuer_name)
+            SELECT i.instrument_id,i.issuer_name,i.instrument_type,coalesce(h.symbol,i.issuer_name),h.symbol
             FROM instrument i LEFT JOIN LATERAL (SELECT symbol FROM instrument_history
                 WHERE instrument_id=i.instrument_id AND valid_from <= $1 AND (valid_to IS NULL OR valid_to >= $1)
                 ORDER BY valid_from DESC LIMIT 1) h ON true
             ORDER BY coalesce(h.symbol,i.issuer_name) COLLATE "C",i.instrument_id OFFSET $2 LIMIT $3
-            """, ProductQuery.Today, offset, limit);
+            """, ProductQuery.Date(through), offset, limit);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var rows = new List<object>();
         while (await reader.ReadAsync(ct)) rows.Add(new { id = reader.GetGuid(0), name = reader.GetString(1),
-            type = reader.GetString(2), symbol = reader.GetString(3) });
+            type = reader.GetString(2), symbol = reader.GetString(3), hasEffectiveSymbol = !reader.IsDBNull(4) });
         return rows;
     }
 
@@ -483,7 +522,7 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         symbol = symbol.Trim().ToUpperInvariant();
         await using (var command = Command(connection, "SELECT pg_advisory_xact_lock(hashtext($1))", "instrument:" + symbol))
             await command.ExecuteNonQueryAsync(ct);
-        await using (var command = Command(connection, "SELECT instrument_id FROM instrument_history WHERE symbol=$1 AND valid_to IS NULL LIMIT 1", symbol))
+        await using (var command = Command(connection, "SELECT instrument_id FROM instrument_history WHERE symbol=$1 AND (valid_to IS NULL OR valid_to >= $2) AND instrument_id <> $3 LIMIT 1", symbol, validFrom, id))
         {
             var owner = await command.ExecuteScalarAsync(ct);
             if (owner is Guid existing && existing != id) throw new ArgumentException("Symbol already has a stable instrument ID; use that identity.");

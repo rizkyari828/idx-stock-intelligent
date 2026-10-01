@@ -14,12 +14,20 @@ public sealed record MarketState(Guid InstrumentId, string DisplaySymbol, string
     string? Source, string PriceBasis, decimal? Price, IReadOnlyDictionary<string, FeatureState> Features,
     string? UnavailableReason);
 public sealed record Valuation(DateOnly? Date, decimal? Price, int? PriceAgeDays, decimal? MarketValue,
-    decimal? UnrealizedPnl, Availability Availability, MarketQuality Quality, string? UnavailableReason);
+    decimal? UnrealizedPnl, Availability Availability, MarketQuality Quality, string? UnavailableReason)
+{
+    public decimal? UnrealizedPercent { get; init; }
+}
 public sealed record Holding(Position Position, MarketState Market, Valuation Valuation, ThesisVersion? ActiveThesis);
 public sealed record PortfolioView(Portfolio Portfolio, decimal Cash, bool NegativeCash, IReadOnlyList<Holding> Holdings,
     int PricedHoldings, int HoldingCount, Completeness ValuationCoverage, decimal PricedMarketValue,
     decimal? TotalMarketValue, decimal? TotalEquity, DateOnly Through, DateTimeOffset KnowledgeCutoff,
-    OperationStatus Operation = OperationStatus.SUCCESS);
+    OperationStatus Operation = OperationStatus.SUCCESS)
+{
+    public decimal InvestedCost { get; init; }
+    public decimal RealizedPnl { get; init; }
+    public decimal? UnrealizedPnl { get; init; }
+}
 
 public static class ProductValuation
 {
@@ -33,7 +41,15 @@ public static class ProductValuation
         if (reason is not null) return new(market.MarketDate, null, null, null, null, Availability.UNAVAILABLE, market.Quality, reason);
         var value = position.Shares * market.Price!.Value;
         return new(market.MarketDate, market.Price, through.DayNumber - market.MarketDate!.Value.DayNumber,
-            value, value - position.InvestedCost, Availability.AVAILABLE, market.Quality, null);
+            value, value - position.InvestedCost, Availability.AVAILABLE, market.Quality, null)
+        { UnrealizedPercent = Percent(value - position.InvestedCost, position.InvestedCost) };
+    }
+
+    private static decimal? Percent(decimal pnl, decimal cost)
+    {
+        if (cost == 0) return null;
+        try { return pnl / cost * 100; }
+        catch (OverflowException) { return null; } // An unavailable display ratio must not break ledger valuation.
     }
 
     public static PortfolioView Assemble(Portfolio portfolio, LedgerProjection projection,
@@ -51,7 +67,12 @@ public static class ProductValuation
         var complete = priced == holdings.Length;
         return new(portfolio, projection.Cash, projection.Cash < 0, holdings, priced, holdings.Length,
             complete ? Completeness.COMPLETE : Completeness.PARTIAL, subtotal, complete ? subtotal : null,
-            complete ? projection.Cash + subtotal : null, through, cutoff);
+            complete ? projection.Cash + subtotal : null, through, cutoff)
+        {
+            InvestedCost = holdings.Sum(h => h.Position.InvestedCost),
+            RealizedPnl = projection.Positions.Sum(p => p.RealizedPnl),
+            UnrealizedPnl = complete ? holdings.Sum(h => h.Valuation.UnrealizedPnl ?? 0) : null
+        };
     }
 
     private static readonly string[] FeatureNames = ["EMA20", "EMA50", "ATR14", "PRIOR_HIGH20", "PRIOR_LOW20", "VOLUME_RATIO20", "RELATIVE_PERFORMANCE20"];

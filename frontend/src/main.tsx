@@ -1,99 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { coverageLabel, jakartaToday, money, valuationLabel, type Holding, type PortfolioView, type Thesis } from './view';
-import './style.css';
+import { api, errorMessage } from './api';
+import { readDraft } from './reconciliationDraft';
+import { loadInstruments as readInstruments } from './instrumentRegistration';
+import { coverageLabel, cutoffIso, jakartaToday, money, recorded, valuationLabel, type Holding, type Instrument, type PortfolioView } from './view';
 import { ImportPanel } from './ImportPanel';
 import { PortfolioTable } from './PortfolioTable';
-
-type Instrument = { id: string; symbol: string; type: string; name: string };
-type Event = { id: string; type: string; instrumentId: string | null; quantity: number; unit: string; price: number; fees: number; cashAmount: number; tradeDate: string; knownAt: string; supersedes: string | null; externalReference: string | null };
-async function api<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`/api${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error ?? data.title ?? `Request failed (${response.status})`);
-  return data as T;
-}
+import { ReconciliationPanel } from './ReconciliationPanel';
+import { Transactions } from './Transactions';
+import { ThesisJournal } from './ThesisJournal';
+import { Badge, Dialog, Empty, Icon, LoadingSkeleton, Metric, Notice, PageHeader } from './ui';
+import './style.css';
+const pages=[['overview','Overview','grid'],['portfolio','Portfolio','portfolio'],['transactions','Transactions','transactions'],['thesis','Thesis','journal'],['reconcile','Reconcile','reconcile'],['import','Import / Export','transfer']];
 function App() {
-  const [id, setId] = useState(localStorage.getItem('idx-portfolio-id') ?? '');
-  const [openId, setOpenId] = useState(id);
-  const [view, setView] = useState<PortfolioView | null>(null);
-  const [instruments, setInstruments] = useState<Instrument[]>([]);
-  const [selected, setSelected] = useState<Holding | null>(null);
-  const [theses, setTheses] = useState<Thesis[]>([]);
-  const [thesisOffset, setThesisOffset] = useState(0);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [eventOffset, setEventOffset] = useState(0);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState('');
-  async function load(portfolioId = id) {
-    if (!portfolioId) return;
-    const next = await api<PortfolioView>(`/portfolios/${portfolioId}`);
-    const changed = view?.portfolio.id !== portfolioId;
-    setView(next); setId(portfolioId); setOpenId(portfolioId); localStorage.setItem('idx-portfolio-id', portfolioId);
-    if (changed) { setSelected(null); setTheses([]); setThesisOffset(0); setEventOffset(0); }
-    setEvents(await api<Event[]>(`/portfolios/${portfolioId}/events?limit=100&offset=${changed ? 0 : eventOffset}`));
-    if (!changed && selected) setSelected(next.holdings.find(h => h.position.instrumentId === selected.position.instrumentId) ?? null);
-  }
-  async function act(work: () => Promise<void>) {
-    setBusy(true); setError(''); setNotice('');
-    try { await work(); setNotice(previous => previous || 'Operation SUCCESS'); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
-    finally { setBusy(false); }
-  }
-  async function loadInstruments() {
-    const all: Instrument[] = [];
-    for (let offset = 0; offset < 10000; offset += 200) {
-      const page = await api<Instrument[]>(`/instruments?limit=200&offset=${offset}`); all.push(...page);
-      if (page.length < 200) break;
-    }
-    setInstruments(all);
-  }
-  useEffect(() => { void act(async () => { await loadInstruments(); await load(); }); }, []);
-  useEffect(() => {
-    if (selected && id) void act(async () => setTheses(await api<Thesis[]>(`/portfolios/${id}/holdings/${selected.position.instrumentId}/theses?limit=100&offset=${thesisOffset}`)));
-  }, [id, selected?.position.instrumentId, thesisOffset]);
-  const fields = (form: HTMLFormElement) => Object.fromEntries(new FormData(form));
-  return <main>
-    <header><p>IDX Stock Intelligence · local portfolio accounting · IDR</p><h1>Portfolio ledger</h1></header>
-    <p role="status">{busy ? 'Working…' : notice}</p>{error && <p role="alert" className="error">Operation FAILED · {error}</p>}
-    <section aria-label="Open or create portfolio">
-      <form onSubmit={e => { e.preventDefault(); void act(() => load(openId)); }}><label>Portfolio ID<input value={openId} onChange={e => setOpenId(e.target.value)} required /></label><button disabled={busy}>Open</button></form>
-      <form onSubmit={e => { e.preventDefault(); const form = e.currentTarget; void act(async () => { const p = await api<{ id: string }>('/portfolios', { name: fields(form).name }); setId(p.id); await load(p.id); }); }}><label>New portfolio name<input name="name" required maxLength={200} /></label><button disabled={busy}>Create</button></form>
-    </section>
-    <ImportPanel key={view?.portfolio.id} portfolioId={view?.portfolio.id} request={api} onImported={async portfolioId => { await loadInstruments(); await load(portfolioId); }} />
-    {view && <>
-      <h2>{view.portfolio.name}</h2>
-      <a href={`/api/portfolios/${view.portfolio.id}/export?format=JSON`} download={`portfolio-${view.portfolio.id}.json`}>Export Portfolio (lossless JSON)</a>{' · '}
-      <a href={`/api/portfolios/${view.portfolio.id}/export?format=CSV`} download={`transactions-${view.portfolio.id}.csv`}>Export transactions (CSV)</a>
-      <p>Cash: {money(view.cash)}{view.negativeCash && ' · NEGATIVE CASH'}</p>
-      <p>Valuation coverage: {coverageLabel(view)}</p><p>Market value: {money(view.totalMarketValue)} · Priced subtotal: {money(view.pricedMarketValue)} · Equity including cash: {money(view.totalEquity)}</p>
-      <p>Read operation: {view.operation} · Through {view.through} · Known by {view.knowledgeCutoff}</p>
-      <PortfolioTable holdings={view.holdings} onOpen={h => { setSelected(h); setThesisOffset(0); }} />
-      <section><h2>Record transaction</h2><p>LOTS explicitly converts to 100 shares per IDX equity lot. Saved events always use SHARES. Cash events use cash amount only. Corrections replace an event by its ID and retain history.</p>
-        <form onSubmit={e => { e.preventDefault(); const form = e.currentTarget; void act(async () => { const f = fields(form); const trade = f.type === 'BUY' || f.type === 'SELL'; const result = await api<{ duplicate: boolean }>(`/portfolios/${id}/events`, { eventId: crypto.randomUUID(), type: f.type, instrumentId: trade ? f.instrument : null, tradeDate: f.date, quantity: trade ? f.quantity : '0', unit: trade ? f.unit : 'SHARES', price: trade ? f.price : '0', fees: f.fees, cashAmount: trade ? '0' : f.cash, externalReference: f.reference || null, source: 'USER', note: f.note || null, supersedes: f.supersedes || null }); await load(); if (result.duplicate) setNotice('Duplicate ignored'); }); }}>
-          <label>Type<select name="type"><option>CASH_DEPOSIT</option><option>BUY</option><option>SELL</option><option>CASH_WITHDRAWAL</option></select></label>
-          <label>Instrument<select name="instrument"><option value="">Select for BUY / SELL</option>{instruments.filter(i => i.type === 'EQUITY').map(i => <option key={i.id} value={i.id}>{i.symbol}</option>)}</select></label>
-          <label>Quantity<input name="quantity" type="number" min="0" step="1" defaultValue="0" required /></label>
-          <label>Unit<select name="unit"><option>SHARES</option><option>LOTS</option></select></label>
-          <label>Price<input name="price" type="number" min="0" step="any" defaultValue="0" required /></label>
-          <label>Fees<input name="fees" type="number" min="0" step="any" defaultValue="0" required /></label>
-          <label>Cash amount<input name="cash" type="number" min="0" step="any" defaultValue="0" required /></label>
-          <label>Trade date<input name="date" type="date" defaultValue={jakartaToday()} max={jakartaToday()} required /></label>
-          <label>Import reference<input name="reference" maxLength={200} /></label><label>Supersedes event ID (correction)<input name="supersedes" /></label><label>Note<input name="note" maxLength={4000} /></label><button disabled={busy}>Append event</button>
-        </form>
-      </section>
-      <details><summary>Register equity outside collector coverage</summary><form onSubmit={e => { e.preventDefault(); const form = e.currentTarget; void act(async () => { const f = fields(form); await api('/instruments', { id: f.id || crypto.randomUUID(), name: f.name, symbol: f.symbol, type: 'EQUITY', validFrom: f.from }); await loadInstruments(); form.reset(); }); }}>
-        <label>Existing stable ID, or blank for new<input name="id" /></label><label>Issuer name<input name="name" required maxLength={200} /></label><label>Display symbol<input name="symbol" required maxLength={50} /></label><label>Symbol valid from<input name="from" type="date" defaultValue={jakartaToday()} required /></label><button disabled={busy}>Register</button>
-      </form></details>
-      {selected && <section aria-label="Holding detail"><h2>{selected.market.displaySymbol} · holding detail</h2><p>Stable ID: {selected.position.instrumentId}</p><p>Invested cost {money(selected.position.investedCost)} · Realized P&L {money(selected.position.realizedPnl)} · Cash impact {money(selected.position.cashImpact)}</p><p>{valuationLabel(selected)} · Age {selected.valuation.priceAgeDays ?? 'UNKNOWN'} calendar days · Completeness {selected.market.completeness}</p><p>Source {selected.market.source ?? 'UNKNOWN'} · Basis {selected.market.priceBasis} · Revision {selected.market.revision ?? 'UNKNOWN'} · Retrieved {selected.market.retrievedAt ?? 'UNKNOWN'} · Known {selected.market.knownAt ?? 'UNKNOWN'}</p>
-        <p>Feature readiness: {Object.entries(selected.market.features).map(([name, f]) => `${name}: ${f.availability} (${f.unavailableReason ?? ''})`).join('; ')}</p>
-        <h3>Active thesis</h3><p>{selected.activeThesis ? `${selected.activeThesis.mandate} · ${selected.activeThesis.text}` : 'No active thesis'}</p>
-        <form onSubmit={e => { e.preventDefault(); const form = e.currentTarget; void act(async () => { const f = fields(form); await api(`/portfolios/${id}/holdings/${selected.position.instrumentId}/theses`, { mandate: f.mandate, text: f.text, invalidationNote: f.invalidation || null, active: f.active === 'on' }); await load(); setThesisOffset(0); setTheses(await api<Thesis[]>(`/portfolios/${id}/holdings/${selected.position.instrumentId}/theses?limit=100`)); }); }}>
-          <label>Mandate<select name="mandate"><option>LONG_SWING</option><option>FAST_SWING</option><option>INVEST</option></select></label><label>Thesis<textarea name="text" required maxLength={8000} /></label><label>Invalidation note<textarea name="invalidation" maxLength={4000} /></label><label><input type="checkbox" name="active" defaultChecked /> Active</label><button disabled={busy}>Append thesis version</button>
-        </form><h3>Thesis history</h3><ol>{theses.map(t => <li key={t.id}>v{t.version} · {t.mandate} · {t.knownAt} · {t.active ? 'active when recorded' : 'inactive'}<p>{t.text}</p>{t.invalidationNote && <p>{t.invalidationNote}</p>}</li>)}</ol><button disabled={busy || thesisOffset === 0} onClick={() => setThesisOffset(thesisOffset - 100)}>Newer theses</button><button disabled={busy || theses.length < 100} onClick={() => setThesisOffset(thesisOffset + 100)}>Older theses</button>
-      </section>}
-      <details><summary>Append-only event history</summary><ol>{events.map(e => <li key={e.id}>{e.type} · {e.tradeDate} · {e.quantity} {e.unit} · price {money(e.price)} · cash {money(e.cashAmount)} · fees {money(e.fees)}<p>ID {e.id} · Known {e.knownAt}{e.supersedes && ` · Supersedes ${e.supersedes}`}</p></li>)}</ol><button disabled={busy || eventOffset === 0} onClick={() => void act(async () => { const offset = eventOffset - 100; setEventOffset(offset); setEvents(await api<Event[]>(`/portfolios/${id}/events?limit=100&offset=${offset}`)); })}>Previous events</button><button disabled={busy || events.length < 100} onClick={() => void act(async () => { const offset = eventOffset + 100; setEventOffset(offset); setEvents(await api<Event[]>(`/portfolios/${id}/events?limit=100&offset=${offset}`)); })}>Next events</button></details>
-    </>}
-  </main>;
+ const [id,setId]=useState(localStorage.getItem('idx-portfolio-id')??''),[openId,setOpenId]=useState(id),[view,setView]=useState<PortfolioView|null>(null),[instruments,setInstruments]=useState<Instrument[]>([]);const [page,setPage]=useState('portfolio'),[menu,setMenu]=useState(false),[theme,setTheme]=useState(localStorage.getItem('idx-theme')??'dark');const [through,setThrough]=useState(()=>readDraft(id)?.through??jakartaToday()),[cutoff,setCutoff]=useState(()=>readDraft(id)?.cutoff??''),[draftThrough,setDraftThrough]=useState(through),[draftCutoff,setDraftCutoff]=useState(cutoff);const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[revision,setRevision]=useState(0);const [dialog,setDialog]=useState<'portfolio'|'register'|Holding|null>(null);const [saving,setSaving]=useState(false),[saveError,setSaveError]=useState('');const main=useRef<HTMLElement>(null),menuButton=useRef<HTMLButtonElement>(null);
+ async function loadInstruments() {setInstruments(await readInstruments());}
+ useEffect(()=>{void loadInstruments().catch(e=>setError(errorMessage(e)));},[]);
+ useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem('idx-theme',theme);},[theme]);
+ useEffect(()=>{if(!id){setView(null);return;}const c=new AbortController();setBusy(true);setError('');void api<PortfolioView>(`/portfolios/${id}?${new URLSearchParams({through,cutoff:cutoffIso(cutoff)})}`,undefined,c.signal).then(next=>{if(!c.signal.aborted){setView(next);localStorage.setItem('idx-portfolio-id',id);}}).catch(e=>{if(!c.signal.aborted){setError(errorMessage(e));setView(null);}}).finally(()=>{if(!c.signal.aborted)setBusy(false);});return ()=>c.abort();},[id,through,cutoff,revision]);
+ function openPortfolio(next:string){const draft=readDraft(next);const date=draft?.through??jakartaToday(),time=draft?.cutoff??'';setThrough(date);setDraftThrough(date);setCutoff(time);setDraftCutoff(time);setView(null);setId(next);setOpenId(next);setNotice('');setRevision(n=>n+1);}
+ async function saved() {setRevision(n=>n+1);setNotice(cutoff?'Saved. The selected historical cutoff remains unchanged; use Now to see newly recorded history.':'Saved. Original history is preserved.');}
+ function navigate(next:string){setPage(next);setMenu(false);setNotice('');requestAnimationFrame(()=>main.current?.focus({preventScroll:true}));window.scrollTo(0,0);}
+ const label=pages.find(p=>p[0]===page)?.[1]??'Portfolio';
+ return <><a className="skip-link" href="#main">Skip to content</a><aside className={`sidebar ${menu?'open':''}`} aria-label="Workspace navigation"><a className="brand" href="#main" onClick={()=>navigate('portfolio')}><span className="brand-mark"><i/><i/><i/></span><span>idx<span className="brand-second">intelligence</span></span></a><p className="workspace-label">PERSONAL WORKSPACE</p><nav>{pages.map(([name,title,icon])=><button className={`nav-link ${page===name?'active':''}`} key={name} aria-current={page===name?'page':undefined} title={title} onClick={()=>navigate(name)}><Icon name={icon}/><span className="nav-text">{title}</span></button>)}<div className="nav-label">RESEARCH · COMING LATER</div>{[['Screener','search'],['Stocks','chart'],['Market','globe']].map(([name,icon])=><button className="nav-link" disabled key={name} title={`${name} · reserved for a future milestone`}><Icon name={icon}/><span className="nav-text">{name}</span><small>Later</small></button>)}</nav><div className="sidebar-bottom"><p className="local-indicator"><span className="dot"/>Local workspace<span className="mono">IDR</span></p><div className="profile"><span className="avatar">P</span><div><strong>Personal portfolio</strong><small>Local, owner-controlled records</small></div></div></div></aside>
+ <div className="shell"><div className="topbar"><button ref={menuButton} className="icon-button menu-button" aria-label="Toggle navigation" aria-expanded={menu} onClick={()=>setMenu(!menu)} onKeyDown={e=>{if(e.key==='Escape')setMenu(false);}}><Icon name="menu"/></button><div className="breadcrumb"><span>Workspace</span><span className="slash">/</span><strong>{label}</strong></div><div className="topbar-right"><span className="connection"><span className="dot"/>Local only</span><span className="top-divider"/><button className="icon-button" aria-label={`Switch to ${theme==='dark'?'light':'dark'} theme`} onClick={()=>setTheme(theme==='dark'?'light':'dark')}><Icon name="sun"/></button><span className="avatar small">P</span></div></div>
+ <form className="context-bar" aria-label="Portfolio and historical context" onSubmit={e=>{e.preventDefault();setThrough(draftThrough);setCutoff(draftCutoff);setRevision(n=>n+1);setNotice('');}}><div className="portfolio-select"><Icon name="portfolio"/><button type="button" className="text-button" onClick={()=>{setSaveError('');setDialog('portfolio');}}>{view?.portfolio.name??'Open portfolio'} <Icon name="chevron"/></button><span className="context-currency">IDR</span></div><label><span className="muted">Through</span><input aria-label="As-of / through date" name="through" type="date" min="1900-01-01" max={jakartaToday()} value={draftThrough} onChange={e=>setDraftThrough(e.target.value)} required/></label><label><span className="muted">Known by · WIB</span><input className="context-time" aria-label="Knowledge cutoff in WIB; blank uses now" aria-describedby="cutoff-help" name="cutoff" type="datetime-local" step="1" value={draftCutoff} onChange={e=>setDraftCutoff(e.target.value)}/><small id="cutoff-help" className="muted">Blank = now</small></label><button className="button ghost" type="button" onClick={()=>{setDraftCutoff('');setCutoff('');setRevision(n=>n+1);}}>Now</button><button className="button" type="submit">Apply</button>{view&&<span className="quality-summary">{view.pricedHoldings}/{view.holdingCount} priced</span>}</form>
+ {(error||notice)&&<div className="context-feedback">{error?<Notice kind="error">{error}</Notice>:<Notice>{notice}</Notice>}</div>}<main id="main" ref={main} tabIndex={-1} onKeyDown={e=>{if(e.key==='Escape'&&menu){setMenu(false);menuButton.current?.focus();}}}>
+ {page==='import'?<ImportPanel key={id} portfolioId={id||undefined} request={api} onImported={async (next,signal)=>{await loadInstruments();if(!signal?.aborted)openPortfolio(next);}}/>:!id?<><PageHeader eyebrow="PERSONAL WORKSPACE" title="Your portfolio workspace" subtitle="Open an existing portfolio or create an empty account."/><Empty title="No portfolio selected">Choose Open portfolio above. Your history stays local.</Empty></>:busy&&!view?<LoadingSkeleton/>:!view?<Empty title="Portfolio unavailable">Check the selected portfolio and historical context.</Empty>:page==='reconcile'?<ReconciliationPanel key={id} portfolioId={id} through={through} cutoff={cutoff} contextDirty={draftThrough!==through||draftCutoff!==cutoff} onRegistryChanged={loadInstruments}/>:page==='transactions'?<Transactions key={id} portfolioId={id} cutoff={cutoff} instruments={instruments} revision={revision} onSaved={saved}/>:page==='thesis'?<ThesisJournal key={id} portfolioId={id} holdings={view.holdings} cutoff={cutoff} revision={revision} onSaved={saved}/>:<><PageHeader eyebrow="YOUR PORTFOLIO, CLEARLY RECORDED" title={view.portfolio.name} subtitle="Ledger costs and dated market observations, with explicit valuation coverage."><button className="button" onClick={()=>{setSaveError('');setDialog('register');}}><Icon name="plus"/>Register equity</button></PageHeader>
+ <div className="summary-strip portfolio-metrics"><Metric label="Portfolio value" value={money(view.totalEquity)} note="IDR · cash + priced positions"/><Metric label="Cash" value={money(view.cash)} note={view.negativeCash?'NEGATIVE CASH':'IDR · ledger balance'}/><Metric label="Invested cost" value={money(view.investedCost)} note="Open positions · weighted cost"/><Metric label="Unrealized P/L" value={money(view.unrealizedPnl)} note={view.unrealizedPnl===null?'Incomplete pricing coverage':'IDR · complete valuation'}/><Metric label="Realized P/L" value={money(view.realizedPnl)} note="Includes closed positions"/><Metric label="Data coverage" value={`${view.pricedHoldings}/${view.holdingCount}`} note={view.valuationCoverage}/></div>
+ {view.totalMarketValue===null&&<Notice kind="review"><strong>Valuation is incomplete.</strong> Unpriced holdings stay visible. Priced subtotal: Rp {money(view.pricedMarketValue)}. Complete portfolio value and unrealized P/L are unavailable.</Notice>}{!view.holdings.length?<Empty title="No open holdings">Record a transaction or import generic CSV to add a position.</Empty>:<PortfolioTable holdings={view.holdings} onOpen={h=>setDialog(h)}/>}
+ <div className="section-heading"><h2>Valuation notes</h2><span className="muted">{coverageLabel(view)}</span></div><p className="muted">Average cost is reconstructed from the ledger. Market observations retain their original dates and provenance. Missing data is unavailable.</p><div className="record-actions"><button className="button primary" onClick={()=>navigate('transactions')}>View transactions <Icon name="arrow"/></button></div></>}
+ {view&&<p className="read-context muted">Through {view.through} · known by {recorded(view.knowledgeCutoff)} · {busy?'Refreshing…':view.operation}</p>}</main><footer className="workspace-footer"><span><span className="dot"/>LOCAL PORTFOLIO <span className="footer-separator">/</span>Deterministic ledger · IDR</span><span>History stays explicit</span></footer></div>
+ {dialog==='portfolio'&&<Dialog title="Open or create portfolio" eyebrow="PERSONAL WORKSPACE" onClose={()=>{if(!saving)setDialog(null);}}><div className="dialog-body page-stack"><form id="open-portfolio-form" onSubmit={e=>{e.preventDefault();setSaving(true);setSaveError('');void api<PortfolioView>(`/portfolios/${openId}`).then(()=>{openPortfolio(openId);setDialog(null);}).catch(e=>setSaveError(errorMessage(e))).finally(()=>setSaving(false));}}><label className="field"><span>Existing portfolio ID</span><input name="portfolioId" value={openId} onChange={e=>setOpenId(e.target.value)} required pattern="[0-9a-fA-F-]{36}"/></label><div className="record-actions"><button className="button" disabled={saving}>Open portfolio</button></div></form><form id="create-portfolio-form" onSubmit={e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.currentTarget));setSaving(true);setSaveError('');void api<{id:string}>('/portfolios',{name:f.name}).then(p=>{openPortfolio(p.id);setDialog(null);}).catch(e=>setSaveError(errorMessage(e))).finally(()=>setSaving(false));}}><label className="field"><span>New portfolio name</span><input name="name" required maxLength={200}/></label><div className="record-actions"><button className="button primary" disabled={saving}>Create empty portfolio</button></div></form>{saveError&&<Notice kind="error">{saveError}</Notice>}</div><div className="dialog-footer"><button className="button ghost" disabled={saving} onClick={()=>setDialog(null)}>Cancel</button></div></Dialog>}
+ {dialog==='register'&&<Dialog title="Register equity" eyebrow="STABLE INSTRUMENT IDENTITY" subtitle="Outside collector coverage is supported. Registration does not fetch prices." onClose={()=>{if(!saving)setDialog(null);}}><form id="register-form" onSubmit={e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.currentTarget));setSaving(true);setSaveError('');void api('/instruments',{id:f.id||crypto.randomUUID(),name:f.name,symbol:f.symbol,type:'EQUITY',validFrom:f.from}).then(async()=>{await loadInstruments();setDialog(null);setNotice('Equity registered. No market data was fetched.');}).catch(e=>setSaveError(errorMessage(e))).finally(()=>setSaving(false));}}><div className="dialog-body page-stack"><label className="field"><span>Existing stable ID, or blank for new</span><input name="id"/></label><label className="field"><span>Issuer name</span><input name="name" required maxLength={200}/></label><label className="field"><span>Display symbol</span><input name="symbol" required maxLength={50}/></label><label className="field"><span>Symbol valid from</span><input name="from" type="date" defaultValue={jakartaToday()} required/></label>{saveError&&<Notice kind="error">{saveError}</Notice>}</div><div className="dialog-footer"><button type="button" className="button ghost" disabled={saving} onClick={()=>setDialog(null)}>Cancel</button><button className="button primary" disabled={saving}>Register equity</button></div></form></Dialog>}
+ {dialog&&typeof dialog==='object'&&<Dialog title={`${dialog.market.displaySymbol} · market data`} eyebrow="HOLDING CONTEXT" onClose={()=>setDialog(null)}><div className="dialog-body page-stack"><Badge kind={dialog.valuation.availability==='UNAVAILABLE'?'unknown':'info'}>{valuationLabel(dialog)}</Badge><p>Stable ID: {dialog.position.instrumentId}</p><p>Invested cost Rp {money(dialog.position.investedCost)} · Realized P/L Rp {money(dialog.position.realizedPnl)}</p><p>Price {money(dialog.valuation.price)} · Date {dialog.valuation.date??'UNKNOWN'} · Age {dialog.valuation.priceAgeDays??'UNKNOWN'} calendar days</p><p>Source {dialog.market.source??'UNKNOWN'} · {dialog.market.priceBasis} · revision {dialog.market.revision??'UNKNOWN'}</p><p>Retrieved {dialog.market.retrievedAt?recorded(dialog.market.retrievedAt):'UNKNOWN'} · Known {dialog.market.knownAt?recorded(dialog.market.knownAt):'UNKNOWN'}</p><p>Completeness {dialog.market.completeness}</p><details><summary>Feature readiness</summary>{Object.entries(dialog.market.features).map(([name,state])=><p key={name}>{name}: {state.availability} · {state.unavailableReason}</p>)}</details><Notice>Market-data quality is separate from reconciliation, P/L and mandate.</Notice></div><div className="dialog-footer"><button className="button" onClick={()=>setDialog(null)}>Done</button></div></Dialog>}
+ </>;
 }
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(<App/>);

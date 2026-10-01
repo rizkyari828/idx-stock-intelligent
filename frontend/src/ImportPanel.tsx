@@ -1,44 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { errorMessage, type Request } from './api';
 import { canConfirmImport, type ImportPreview } from './view.js';
-export function ImportPanel({ portfolioId, request, onImported }: {
-  portfolioId?: string;
-  request: <T>(path: string, body?: unknown) => Promise<T>;
-  onImported: (id: string) => Promise<void>;
-}) {
-  const [format, setFormat] = useState('JSON');
-  const [mode, setMode] = useState('CREATE_NEW');
-  const [content, setContent] = useState('');
-  const [preview, setPreview] = useState<ImportPreview | null>(null);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState('');
-  const body = () => ({ format, content, mode: format === 'CSV' ? 'CREATE_NEW' : mode, portfolioId: format === 'CSV' ? portfolioId : null });
-  async function act(work: () => Promise<void>) {
-    setBusy(true); setError('');
-    try { await work(); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
-    finally { setBusy(false); }
-  }
-  return <section aria-label="Portfolio import">
-    <h2>Import portfolio</h2>
-    <p>JSON restores a complete portfolio with its original ID and timestamps. CSV appends generic transactions to the open portfolio. Preview writes nothing; Confirm Import writes atomically.</p>
-    <label>Format<select disabled={busy} value={format} onChange={e => { setFormat(e.target.value); setPreview(null); setResult(''); }}><option>JSON</option><option>CSV</option></select></label>
-    {format === 'JSON' ? <label>Mode<select disabled={busy} value={mode} onChange={e => { setMode(e.target.value); setPreview(null); setResult(''); }}><option>CREATE_NEW</option><option>RESTORE_EXISTING_EMPTY</option></select></label>
-      : <p>Target portfolio: {portfolioId ?? 'Open or create a portfolio before CSV import.'}</p>}
-    <label>Select file (UTF-8, max 8 MiB)<input type="file" accept=".json,.csv" disabled={busy} onChange={e => {
-      const file = e.target.files?.[0]; setPreview(null); setResult(''); setContent('');
-      if (file) void act(async () => { if (file.size > 8 * 1024 * 1024) throw new Error('File exceeds 8 MiB.'); setContent(new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())); });
-    }} /></label>
-    <button type="button" disabled={busy || !content || format === 'CSV' && !portfolioId} onClick={() => void act(async () => { setResult(''); setPreview(await request<ImportPreview>('/portfolio-imports/preview', body())); })}>Preview</button>
-    {preview && <div role="status"><p>{preview.status} · Rows read {preview.rowsRead} · Valid {preview.validRows} · Invalid {preview.invalidRows} · Duplicates {preview.duplicates} · Resulting events {preview.estimatedResultingEvents}</p>
-      <p>Unknown instruments: {preview.unknownInstruments.length}</p><ul>{preview.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
-      <details><summary>Normalized quantities / row validation</summary><ol>{preview.rows.map(r => <li key={r.row}>Row {r.row}: {r.error ?? `${r.event?.type} · ${r.event?.quantity} SHARES`}{r.duplicate && ' · DUPLICATE'}</li>)}</ol></details>
-    </div>}
-    <button type="button" disabled={busy || !canConfirmImport(preview)} onClick={() => void act(async () => {
-      const response = await request<{ status: string; portfolioId: string | null; eventsAdded: number; thesesAdded: number; errors: string[] }>('/portfolio-imports', body());
-      setResult(`${response.status} · ${response.eventsAdded} events added · ${response.thesesAdded} thesis versions added`); setPreview(null);
-      if (response.errors.length) setError(response.errors.join('; '));
-      if (['IMPORTED', 'ALREADY_PRESENT'].includes(response.status) && response.portfolioId) await onImported(response.portfolioId);
-    })}>Confirm Import</button>
-    {result && <p role="status">{result}</p>}{error && <p role="alert" className="error">{error}</p>}
-  </section>;
+import { Badge, Icon, Metric, Notice, PageHeader } from './ui';
+type ImportBody = {format: string;content: string;mode: string;portfolioId: string|null};
+export function ImportPanel({portfolioId,request,onImported}: {portfolioId?: string;request: Request;onImported: (id: string, signal?: AbortSignal) => Promise<void>}) {
+ const [format,setFormat]=useState('JSON'),[mode,setMode]=useState('CREATE_NEW'),[content,setContent]=useState(''),[fileName,setFileName]=useState('');const [preview,setPreview]=useState<ImportPreview|null>(null);const [validated,setValidated]=useState<ImportBody|null>(null);const [error,setError]=useState(''),[busy,setBusy]=useState(false),[result,setResult]=useState('');const generation=useRef(0),pending=useRef<AbortController|null>(null);
+ function invalidate() {generation.current++;pending.current?.abort();setPreview(null);setValidated(null);setResult('');setError('');setBusy(false);}
+ useEffect(()=>{invalidate();return ()=>{generation.current++;pending.current?.abort();};},[portfolioId]);
+ const body=():ImportBody=>({format,content,mode:format==='CSV'?'CREATE_NEW':mode,portfolioId:format==='CSV'?portfolioId??null:null});
+ async function act(work: (signal: AbortSignal,epoch: number)=>Promise<void>) {const epoch=generation.current;const controller=new AbortController();pending.current=controller;setBusy(true);setError('');try{await work(controller.signal,epoch);}catch(e){if(epoch===generation.current&&!controller.signal.aborted)setError(errorMessage(e));}finally{if(epoch===generation.current)setBusy(false);}}
+ const step=result?3:preview?2:1;
+ return <><PageHeader eyebrow="YOUR RECORDS, IN YOUR HANDS" title="Import & export" subtitle="Bring in transactions or restore your complete portfolio history."><span className="readonly-label"><Icon name="lock"/>Preview writes nothing</span></PageHeader><div className="import-layout"><section className="panel import-main" aria-label="Portfolio import"><div className="steps" aria-label={`Import step ${step} of 3`}>{['Select file','Review preview','Confirm import'].map((name,i)=><div className={`step ${step===i+1?'current':step>i+1?'done':''}`} key={name}><em>{step>i+1?'✓':i+1}</em>{name}{i<2&&<span className="step-line"/>}</div>)}</div>
+ <h2>What would you like to import?</h2><div className="format-options">{['JSON','CSV'].map(f=><button type="button" className="format-option" disabled={busy} aria-pressed={format===f} key={f} onClick={()=>{invalidate();setFormat(f);setContent('');setFileName('');}}><span className="format-title">{f==='JSON'?'JSON portfolio backup':'CSV transactions'}{format===f&&<Icon name="check"/>}</span><p>{f==='JSON'?'Restore original identities, corrections, thesis versions and dates.':'Onboard generic transaction records into the open portfolio.'}</p></button>)}</div>
+ {format==='JSON'?<label className="field"><span>Restore destination</span><select id="restore-mode" className="control" disabled={busy} value={mode} onChange={e=>{invalidate();setMode(e.target.value);}}><option value="CREATE_NEW">Restore as a new portfolio</option><option value="RESTORE_EXISTING_EMPTY">Restore into the original empty portfolio</option></select><small>Existing history is never overwritten. Original identity is preserved.</small></label>:<p className="muted input-unit">Target portfolio: {portfolioId??'Open a portfolio before CSV onboarding.'}</p>}
+ <div className="drop-zone"><Icon name="upload"/><p>{fileName||'Select a UTF-8 file'}</p><label className="button">Choose {format} file<input id="import-file" key={format} type="file" accept={format==='JSON'?'.json':'.csv'} disabled={busy} onChange={e=>{const file=e.target.files?.[0];invalidate();setContent('');setFileName('');if(file)void act(async(_,epoch)=>{if(file.size>8*1024*1024)throw new Error('File exceeds 8 MiB.');if(!file.name.toLowerCase().endsWith('.'+format.toLowerCase()))throw new Error(`Select a ${format} file.`);const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());if(epoch===generation.current){setContent(text);setFileName(file.name);}});}}/></label><small>8 MiB maximum · validation happens in .NET</small></div>
+ <div className="import-actions"><span className="muted input-unit">Changes clear the previous preview.</span><button type="button" className="button" disabled={busy||!content||format==='CSV'&&!portfolioId} onClick={()=>void act(async(signal,epoch)=>{setPreview(null);setValidated(null);setResult('');const exact=body();const next=await request<ImportPreview>('/portfolio-imports/preview',exact,signal);if(epoch===generation.current){setPreview(next);setValidated(canConfirmImport(next)?exact:null);}})}> {busy?'Working…':'Preview'} <Icon name="arrow"/></button></div>
+ {preview&&<div className="page-stack import-review"><div className="file-selected"><Icon name="file"/><div><strong>{fileName}</strong><small>{format==='JSON'?'Canonical lossless restore':'Generic CSV onboarding'}</small></div><Badge kind={canConfirmImport(preview)?'match':'review'}>{preview.status}</Badge></div><div className="import-preview-stats"><Metric label="Rows read" value={preview.rowsRead} note="Backend validated"/><Metric label="Valid" value={preview.validRows} note="Rows"/><Metric label="Duplicates" value={preview.duplicates} note="Not added again"/><Metric label="Errors" value={preview.invalidRows} note={`${preview.unknownInstruments.length} unknown instruments`}/></div><Notice kind={canConfirmImport(preview)?'info':'review'}>{format==='JSON'?'Original event identities, recording times, corrections and thesis versions are preserved.':'Normalized quantities are SHARES. CSV does not restore complete portfolio history.'} Resulting ledger events: {preview.estimatedResultingEvents}.</Notice>{preview.errors.length>0&&<ul>{preview.errors.map((text,i)=><li key={i}>{text}</li>)}</ul>}
+ {preview.rows.length>0&&<div className="table-scroll" tabIndex={0} aria-label="Import normalized rows"><table className="import-preview-table"><thead><tr><th>Row</th><th>Type</th><th className="num">Normalized shares</th><th>Validation</th></tr></thead><tbody>{preview.rows.map(r=><tr key={r.row}><td>{r.row}</td><td>{r.event?.type??'—'}</td><td className="num">{r.event?.quantity??'—'}</td><td>{r.error??<Badge kind={r.duplicate?'outline':'match'}>{r.duplicate?'Duplicate':'Valid'}</Badge>}</td></tr>)}</tbody></table></div>}
+ <div className="import-actions"><button type="button" className="button ghost" disabled={busy} onClick={invalidate}>Back to file</button><button type="button" className="button primary" disabled={busy||!validated||!canConfirmImport(preview)} onClick={()=>{if(!validated||!canConfirmImport(preview))return;const exact=validated;void act(async(signal,epoch)=>{const response=await request<{status:string;portfolioId:string|null;eventsAdded:number;thesesAdded:number;errors:string[]}>('/portfolio-imports',exact,signal);if(epoch!==generation.current)return;setPreview(null);setValidated(null);setResult(`${response.status} · ${response.eventsAdded} events · ${response.thesesAdded} thesis versions added`);if(response.errors.length)setError(response.errors.join('; '));if(['IMPORTED','ALREADY_PRESENT'].includes(response.status)&&response.portfolioId)await onImported(response.portfolioId,signal);});}}>Confirm Import <Icon name="arrow"/></button></div></div>}
+ {result&&<Notice>{result}</Notice>}{error&&<Notice kind="error">{error}</Notice>}
+ </section><aside className="panel import-side"><div><span className="download-icon"><Icon name="download"/></span><h3>A complete copy of your portfolio</h3><p>JSON is the canonical, lossless backup. It preserves the ledger, corrections and thesis history.</p>{portfolioId?<a className="button" href={`/api/portfolios/${portfolioId}/export?format=JSON`} download={`portfolio-${portfolioId}.json`}><Icon name="download"/>Export Portfolio · JSON</a>:<p>Open a portfolio to export its backup.</p>}</div><hr/><div><h3>CSV is for onboarding</h3><p>Generic transactions only. LOTS normalize once to SHARES. CSV omits original identities and knowledge/thesis history.</p>{portfolioId&&<a className="button" href={`/api/portfolios/${portfolioId}/export?format=CSV`} download>Export transactions · CSV</a>}<p>CSV export refuses correction history. Use JSON for full recovery.</p></div></aside></div></>;
 }

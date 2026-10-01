@@ -54,6 +54,8 @@ class ProductAcceptance(unittest.TestCase):
         cls.database = "idx_product_test_" + uuid.uuid4().hex
         cls.fixture = json.loads((ROOT / "tests/fixtures/portfolio-slice.json").read_text())
         cls.production_before = cls.sql("SELECT count(*)||':'||coalesce(md5(string_agg(canonical_content_sha256::text,',' ORDER BY instrument_id,session_date,revision_number)),'') FROM daily_bar_revision;", "idx_stock_intelligence")
+        cls.operational_tables = ("instrument", "instrument_history", "portfolio", "portfolio_event", "thesis_version")
+        cls.operational_before = {name: cls.sql(f"SELECT count(*)||':'||coalesce(md5(string_agg(to_jsonb(t)::text,',' ORDER BY to_jsonb(t)::text)),'') FROM {name} t;", "idx_stock_intelligence") for name in cls.operational_tables}
         cls.soak_files_before = {p.name: p.read_bytes() for p in (ROOT / "data/collector-output/pilot").glob("*.operation.json")}
         cls.env = {k: v for k, v in os.environ.items() if k != "EODHD_API_TOKEN"}
         config = {}
@@ -112,6 +114,8 @@ class ProductAcceptance(unittest.TestCase):
         cls.log.close()
         cls.sql("DROP DATABASE " + cls.database + " WITH (FORCE);", "idx_stock_intelligence")
         after = cls.sql("SELECT count(*)||':'||coalesce(md5(string_agg(canonical_content_sha256::text,',' ORDER BY instrument_id,session_date,revision_number)),'') FROM daily_bar_revision;", "idx_stock_intelligence")
+        operational_after = {name: cls.sql(f"SELECT count(*)||':'||coalesce(md5(string_agg(to_jsonb(t)::text,',' ORDER BY to_jsonb(t)::text)),'') FROM {name} t;", "idx_stock_intelligence") for name in cls.operational_tables}
+        if operational_after != cls.operational_before: raise AssertionError("Operational security master/portfolio history changed.")
         if after != cls.production_before: raise AssertionError("Production canonical history changed.")
         if cls.soak_files_before != {p.name: p.read_bytes() for p in (ROOT / "data/collector-output/pilot").glob("*.operation.json")}:
             raise AssertionError("Authoritative operation/soak ledger changed.")

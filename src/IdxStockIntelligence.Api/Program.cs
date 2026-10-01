@@ -80,8 +80,8 @@ app.MapPost("/api/instruments", async (RegisterInstrument input, PortfolioDataba
     await db.RegisterInstrumentAsync(input.Id, input.Name, input.Symbol, input.Type, input.ValidFrom, ct);
     return Results.Ok(input);
 });
-app.MapGet("/api/instruments", async (int? offset, int? limit, PortfolioDatabase db, CancellationToken ct) =>
-    Results.Ok(await db.InstrumentsAsync(offset ?? 0, limit ?? 100, ct)));
+app.MapGet("/api/instruments", async (int? offset, int? limit, DateOnly? through, PortfolioDatabase db, CancellationToken ct) =>
+    Results.Ok(await db.InstrumentsAsync(offset ?? 0, limit ?? 100, ct, through)));
 app.MapGet("/api/portfolios/{id:guid}/export", async (Guid id, string? format, PortfolioDatabase db, CancellationToken ct) =>
 {
     var document = await db.ExportAsync(id, ct);
@@ -94,6 +94,8 @@ app.MapGet("/api/portfolios/{id:guid}/export", async (Guid id, string? format, P
 });
 app.MapPost("/api/portfolio-imports/preview", async (ImportRequest input, PortfolioDatabase db, CancellationToken ct) =>
     Results.Ok(await db.PreviewImportAsync(input, ct)));
+app.MapPost("/api/portfolios/{id:guid}/reconciliation/preview", async (Guid id, ReconciliationInput input, PortfolioDatabase db, CancellationToken ct) =>
+    Results.Ok(await db.ReconcileAsync(id, input, ct)));
 app.MapPost("/api/portfolio-imports", async (ImportRequest input, PortfolioDatabase db, CancellationToken ct) =>
     Results.Ok(await db.ImportAsync(input, ct)));
 app.UseDefaultFiles();

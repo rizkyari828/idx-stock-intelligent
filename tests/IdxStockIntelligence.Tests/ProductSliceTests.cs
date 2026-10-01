@@ -131,6 +131,21 @@ public sealed class ProductSliceTests
     }
 
     [Fact]
+    public void DisplayPercentOverflowDoesNotBreakValuationOrLoseClosedRealizedPnl()
+    {
+        var tiny = new Position(InstrumentId, 1, 0.0000000000000000000000000001m, 7, 0, Day);
+        var valuation = ProductValuation.Value(tiny, Market(InstrumentId, "TINY", 1000000000000m), Day);
+        Assert.Equal(Availability.AVAILABLE, valuation.Availability); Assert.Null(valuation.UnrealizedPercent);
+        var closed = Guid.NewGuid();
+        var view = ProductValuation.Assemble(new(PortfolioId, "SYNTHETIC", false, At),
+            new(100, [tiny, new(closed, 0, 0, 11, 0, Day)]),
+            new Dictionary<Guid, MarketState> { [InstrumentId] = Market(InstrumentId, "TINY", 1000000000000m) },
+            new Dictionary<Guid, ThesisVersion>(), Day, At.AddDays(1));
+        Assert.Equal(18, view.RealizedPnl); Assert.Equal(tiny.InvestedCost, view.InvestedCost);
+        Assert.NotNull(view.UnrealizedPnl);
+    }
+
+    [Fact]
     public void WarmupReadinessDoesNotChangeSuccessfulOperationOrPriceValuation()
     {
         var market = Market(InstrumentId, "SYNTHETIC", 120) with

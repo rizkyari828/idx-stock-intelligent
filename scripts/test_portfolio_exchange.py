@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 import http.client
 import json
+import os
 import socket
 import subprocess
 import tempfile
@@ -238,3 +239,85 @@ class PortfolioExchangeAcceptance(product.ProductAcceptance):
         result = self.request("/api/portfolio-imports", dict(format="JSON", content="../../.env", mode="CREATE_NEW"))
         self.assertEqual("INVALID", result["status"])
         self.assertEqual(before, self.counts(self))
+
+    def test_reconciliation_is_read_only_strict_and_historically_reproducible(self):
+        p = self.historical_source()
+        route = f"/api/portfolios/{p}"
+        preview_route = route + "/reconciliation/preview"
+        before = self.request(route + "/export")
+        counts = self.counts(self)
+        def expected(through="2026-09-30", cutoff="2026-09-30T00:00:00Z"):
+            view = self.request(route + f"?through={through}&cutoff={cutoff}")
+            return dict(through=through, cutoff=cutoff, expectedCash=str(view["cash"]), holdings=[dict(
+                instrumentId=h["position"]["instrumentId"], symbol=h["market"]["displaySymbol"],
+                shares=str(h["position"]["shares"]), averageCost=str(h["position"]["averageCost"])) for h in view["holdings"]])
+        exact = expected()
+        result = self.request(preview_route, exact)
+        self.assertEqual(("MATCH", 2, 0), (result["status"], result["matched"], result["review"]))
+        self.assertEqual("MATCH", next(r for r in result["rows"] if r["instrumentId"] == self.fixture["outside_instrument_id"])["status"])
+        for field in ("expectedCash", "shares", "averageCost"):
+            body = deepcopy(exact)
+            if field == "expectedCash": body[field] = str(float(body[field]) + 1)
+            else: body["holdings"][0][field] = str(float(body["holdings"][0][field]) + 1)
+            self.assertEqual("REVIEW", self.request(preview_route, body)["status"])
+        missing = deepcopy(exact); missing["holdings"].pop()
+        self.assertIn("MISSING_FROM_EXPECTED", [r["status"] for r in self.request(preview_route, missing)["rows"]])
+        blank = dict(through=exact["through"], cutoff="2026-09-09T00:00:00Z", expectedCash="1000000", holdings=exact["holdings"])
+        self.assertEqual({"MISSING_FROM_LEDGER"}, {r["status"] for r in self.request(preview_route, blank)["rows"]})
+        unknown = deepcopy(exact); unknown["holdings"].append(dict(instrumentId=None, symbol="NO_SUCH_EQUITY", shares=100, averageCost="10"))
+        self.assertIn("UNKNOWN_INSTRUMENT", [r["status"] for r in self.request(preview_route, unknown)["rows"]])
+        mismatch = deepcopy(exact); mismatch["holdings"][0]["symbol"] = "NO_SUCH_EQUITY"
+        self.request(preview_route, mismatch, expected=400)
+        duplicate = deepcopy(exact); duplicate["holdings"].append(exact["holdings"][0])
+        self.request(preview_route, duplicate, expected=400)
+        for through, cutoff in (("2026-09-30", "2026-09-19T00:00:00Z"), ("2026-09-30", "2026-09-20T00:00:00Z"), ("2026-09-09", "2026-09-30T00:00:00Z")):
+            self.assertEqual("MATCH", self.request(preview_route, expected(through, cutoff))["status"])
+        history = self.request(route + "/events")
+        original = next(e for e in history if e["correctedBy"])
+        corrected = next(e for e in history if e["supersedes"] == original["id"])
+        self.assertEqual(corrected["id"], original["correctedBy"])
+        earlier = self.request(route + "/events?cutoff=2026-09-19T00:00:00Z")
+        self.assertIsNone(next(e for e in earlier if e["id"] == original["id"])["correctedBy"])
+        self.assertEqual(before, self.request(route + "/export"))
+        self.assertEqual(counts, self.counts(self))
+
+    def test_registry_effective_date_and_registration_conflicts_are_authoritative(self):
+        symbol = "SYNTHETIC_EFFECTIVE_" + uuid.uuid4().hex[:8].upper()
+        instrument = str(uuid.uuid4())
+        self.request("/api/instruments", dict(id=instrument, name="SYNTHETIC NAME ONLY", symbol=symbol,
+            type="EQUITY", validFrom=self.day))
+        current = next(i for i in self.request("/api/instruments?limit=200&through=" + self.day) if i["id"] == instrument)
+        self.assertEqual(symbol, current["symbol"])
+        self.assertTrue(current["hasEffectiveSymbol"])
+        earlier = next(i for i in self.request("/api/instruments?limit=200&through=1900-01-01") if i["id"] == instrument)
+        self.assertFalse(earlier["hasEffectiveSymbol"])
+        self.assertEqual("SYNTHETIC NAME ONLY", earlier["symbol"])
+        # Minimal API binding rejects malformed dates before the JSON error middleware.
+        with self.assertRaises(urllib.error.HTTPError) as malformed:
+            urllib.request.urlopen(self.base + "/api/instruments?through=not-a-date", timeout=30)
+        self.assertEqual(400, malformed.exception.code)
+        self.request("/api/instruments?through=2999-01-01", expected=400)
+        p = self.portfolio()
+        before = self.request(f"/api/portfolios/{p}/export")
+        conflict = dict(id=str(uuid.uuid4()), name="MUST NOT OVERWRITE", symbol=symbol, type="EQUITY", validFrom=self.day)
+        self.request("/api/instruments", conflict, expected=400)
+        self.assertEqual(current, next(i for i in self.request("/api/instruments?limit=200&through=" + self.day) if i["id"] == instrument))
+        # Historical closed ownership also blocks a new open interval that would overlap it.
+        closed = str(uuid.uuid4())
+        closed_symbol = "CLOSED_" + uuid.uuid4().hex[:8].upper()
+        self.sql(f"INSERT INTO instrument(instrument_id,issuer_name,instrument_type) VALUES ('{closed}','SYNTHETIC CLOSED','EQUITY'); INSERT INTO instrument_history(instrument_id,symbol,valid_from,valid_to) VALUES ('{closed}','{closed_symbol}','2010-01-01','2020-01-01');")
+        counts = self.counts(self)
+        self.request("/api/instruments", dict(id=str(uuid.uuid4()), name=closed_symbol, symbol=closed_symbol,
+            type="EQUITY", validFrom="2015-01-01"), expected=400)
+        self.assertEqual(counts, self.counts(self))
+        self.assertEqual(before, self.request(f"/api/portfolios/{p}/export"))
+
+    @unittest.skipUnless(os.environ.get("IDX_TEST_BROWSER") == "1", "Opt-in real Chrome UI acceptance")
+    def test_production_react_browser_interactions(self):
+        p = self.historical_source()
+        runtime = os.environ.get("IDX_TEST_NODE", "node")
+        result = subprocess.run([runtime, "scripts/check_product_ui.mjs", self.base, p], cwd=product.ROOT,
+            env=self.env, text=True, capture_output=True, timeout=150)
+        self.assertEqual(0, result.returncode, result.stderr + result.stdout)
+        self.assertIn('"status": "PASS"', result.stdout)
+        print(result.stdout)

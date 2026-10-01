@@ -45,9 +45,10 @@ security master/pilot reference when registering. New outside-universe equities
 need no collector changes. Registry is paginated; UI reads available pages.
 The schema preserves UNKNOWN rather than guessing every existing instrument is
 equity. Use SHARES or LOTS; a successful response always carries SHARES.
-Click a holding for costs, price provenance, feature states and thesis history.
-Appending a mandate/thesis explicitly creates a version. Event history shows IDs
-for correction entry; supply the ID as `supersedes` and a new import reference.
+Click a holding for costs, price provenance and feature states. Use the Thesis
+journal for current mandate and immutable version history. Transactions provides
+a Correct action that prefills a new event and supplies `supersedes`; the original
+is preserved. Use a new external reference for each correction.
 
 ## API
 
@@ -59,7 +60,8 @@ Money accepts JSON decimal numbers or decimal strings (UI sends strings).
 | POST | /api/portfolios | Create account; name, allowNegativeCash=false |
 | GET | /api/portfolios/{id} | Cash, open holdings, subtotal/nullable totals, coverage, date/cutoff |
 | POST | /api/portfolios/{id}/events | Append or canonical duplicate; event + duplicate flag |
-| GET | /api/portfolios/{id}/events | Immutable history ordered trade date, ledger sequence, UUID |
+| GET | /api/portfolios/{id}/events | Immutable history plus cutoff-aware `correctedBy`, ordered trade date, ledger sequence, UUID |
+| POST | /api/portfolios/{id}/reconciliation/preview | Read-only decimal comparison of expected snapshot against ledger replay |
 | GET | /api/portfolios/{id}/holdings | Bounded holdings page plus whole-account coverage |
 | POST | /api/portfolios/{id}/holdings/{instrumentId}/theses | Append thesis version |
 | GET | /api/portfolios/{id}/holdings/{instrumentId}/theses | History, descending version |
@@ -286,3 +288,347 @@ Ready for bounded generic CSV onboarding or canonical JSON restore on loopback.
 Next milestone: small thesis/transaction editing improvements and private first
 portfolio reconciliation; broker-specific formats need an actual documented
 sample. Use **MEDIUM** reasoning.
+
+
+## Production portfolio milestone — 2026-10-01
+
+The approved `design/portfolio-prototype/` remains a standalone reference. The
+production React app now owns its own tokens/styles, shared primitives and real
+API state. It has no runtime dependency on the prototype and contains no fixture
+ledger or comparison arithmetic. Future research navigation stays disabled.
+
+Audit before implementation: the existing `main.tsx`, `PortfolioTable`,
+`ImportPanel` and `view.ts` already supported portfolio selection/creation,
+registration, appending events/theses and JSON/CSV exchange. `PortfolioDatabase`
+already provided pooled cancellable SQL, replay bounds, per-portfolio write
+locks and historical enrichment; `PortfolioLedger` owned accounting and
+correction semantics. These paths are reused. The only new route is reconciliation
+preview. No database migration, persistence table, accounting engine, dependency
+or authentication was added.
+
+### Reconciliation V0.1
+
+`POST /api/portfolios/{portfolioId}/reconciliation/preview` accepts a JSON body:
+
+```json
+{
+  "through": "2026-09-30",
+  "cutoff": "2026-10-01T02:00:00Z",
+  "expectedCash": "1000000",
+  "holdings": [
+    { "instrumentId": null, "symbol": "ANTM", "shares": "1300", "averageCost": "3450" }
+  ]
+}
+```
+
+Dates are required and follow existing `ProductQuery` validation: through is an
+economic/trade-date boundary (1900..Jakarta today), cutoff is an independent
+recording-time boundary (1900..now). The UI labels cutoff WIB/UTC+7 and sends UTC.
+A blank context cutoff means now at request time; Now changes only the knowledge
+cutoff and preserves the selected through date; the response's exact cutoff
+remains visible. Context edits clear reconciliation results and require Apply
+before a new comparison. Snapshot edits cancel outstanding comparison requests
+and clear their results. Snapshots are not stored.
+
+Stable ID or effective symbol is required per holding. Symbols normalize trim/
+uppercase and resolve using `instrument_history` effective on through; this
+matches the existing effective-only security-master model, which is not a
+bitemporal registry. Both fields, if supplied, must resolve to the same EQUITY.
+Ambiguous symbols, mismatched identities and duplicate resolved identities are
+400 errors. Unknown single IDs/symbols remain `UNKNOWN_INSTRUMENT` result rows.
+Maximum 200 expected holdings; positive integral shares <=10^9; average cost
+nonnegative <=10^12 or null (unknown); expected cash within ±10^12. Negative
+expected cash is supported for the existing negative-cash account setting.
+
+Replay reads at most 10,000 events and retains the existing 200-open-holding
+ceiling. The preview runs in one repeatable-read, **READ ONLY** transaction,
+uses positional SQL parameters and cancellation tokens, and writes no ledger,
+correction, thesis, snapshot or operation records. It never reads prices for
+comparison. Portfolio absence at cutoff is a 404. Other errors use the existing
+400/503 conventions and request body limit of 64 KiB.
+
+Response fields: `through`, `knowledgeCutoff`, `status`, `ledgerCash`,
+`expectedCash`, `cashDifference`, `expectedHoldings`, `ledgerHoldings`, `matched`,
+`review`, `missing`, `unknown`, `rows`. Every row carries stable identity/display
+symbol, ledger/expected shares, share difference, ledger/expected average cost,
+average-cost difference and status. Ordering is symbol then identity. Differences
+are **ledger minus expected**. Missing-side values and differences are null,
+never zero. Decimal comparisons do not round or use a tolerance.
+
+| Status | Meaning |
+| --- | --- |
+| MATCH | Same stable identity, exact shares and known equal average cost. Overall MATCH also requires exact cash and no nonmatching rows. |
+| REVIEW | Share or average-cost difference, or unknown expected average cost. Overall REVIEW includes cash and all nonmatching states. |
+| MISSING_FROM_LEDGER | Resolved expected equity has no open ledger position. |
+| MISSING_FROM_EXPECTED | Open ledger position is absent from the snapshot. |
+| UNKNOWN_INSTRUMENT | Single supplied identity/symbol does not resolve to an equity. |
+
+`review` counts all non-MATCH rows, including missing/unknown; `missing` counts
+both missing-source statuses, and `unknown` counts unresolved rows. Price quality
+and availability never affect these states. The UI uses named badges, distinct
+filled/outlined missing statuses, numeric alignment, quiet zeros, visible
+nonzero differences and All/Needs review filters. No repair action exists.
+
+### Corrections and thesis versions
+
+Transactions shows cutoff-aware ACTIVE/SUPERSEDED labels and inspectable event
+IDs, external references and lineage. `correctedBy` is additive history metadata,
+resolved against all events at cutoff even when a child is on another page.
+It is not part of the portable JSON archive. Correct opens a native dialog with
+immutable original ID, recorded time, instrument and lineage plus prefilled
+economic fields. Confirm submits the existing events endpoint with a new UUID,
+new external reference and `supersedes`. Cancel/Escape closes without writes.
+The backend revalidates current correction eligibility under its existing lock;
+it never updates/deletes an original. History before correction recording still
+shows and reconstructs the original. History after recording uses its successor.
+
+Thesis journal shows current version, mandate, active/inactive state, time, text,
+invalidation note and disclosures for prior immutable versions. Create New
+Version sends the existing thesis endpoint with `active: true`. Invalidate
+requires an explicit reason and appends `active: false`, preserving current
+text/mandate. Neither changes quantities. Historical cutoff reads still use the
+backend history. Pages retain the existing 100-row paging and bounds. Journal
+selection currently covers open holdings; closed-position journal browsing is
+not added. A fixed historical cutoff remains fixed after a write; use Now to
+inspect newly recorded facts.
+
+### Valuation and exchange UI
+
+The .NET portfolio projection now exposes open-position `investedCost`,
+whole-ledger `realizedPnl` (including closed positions), nullable complete
+`unrealizedPnl` and nullable per-holding `unrealizedPercent`. These are derived
+from the existing replay/valuation, not new accounting. An unrepresentable
+percentage returns null without breaking valuation. Complete portfolio/equity
+and unrealized totals remain unavailable when pricing is incomplete. Priced
+subtotal, coverage and every unpriced holding stay visible, with original source
+dates/provenance. Formatting is display-only; input decimals remain strings.
+
+Exchange keeps the original contracts and atomic backend revalidation. The
+styled stepper/file/preview/review/Confirm flow distinguishes canonical JSON
+from generic CSV onboarding. Confirm sends the **exact successful preview
+payload**, never rebuilt current inputs. File/format/mode/portfolio changes clear
+that payload, cancel obsolete requests and discard late responses. Invalid and
+conflicting previews disable confirmation. UTF-8 and file-size checks remain
+local; accounting, identity and import validation remain authoritative in .NET.
+Exports are real downloads through existing routes; CSV correction-history
+refusal remains unchanged. No file path is submitted or returned.
+
+### Browser acceptance and shared UI
+
+Production primitives in `frontend/src/ui.tsx`: icon, badge/status badge, page
+header, notice, metric, instrument cell, loading/empty state and native dialog.
+Feature components retain practical table/timeline/stepper markup. The shell
+uses the reference navigation, surface hierarchy, semantic dark/light tokens,
+spacing/radii, compact fields and tabular financial numerals. There is no generic
+component framework.
+
+The browser check exercises the actual built React application and disposable
+PostgreSQL API, including MATCH/REVIEW, input/result invalidation, identity errors,
+immutable correction submit/cancel, historical replay, thesis version/invalidation,
+valid/invalid JSON and CSV preview gates, exact import payload and file/format/
+mode/portfolio invalidation. It checks all production surfaces at 1440, 1366,
+1280, 1024, 768 and 390 px; tables own horizontal scrolling, reconciliation keeps
+symbols visible, navigation becomes a rail/menu, and dialogs stay within bounds.
+Keyboard Tab wraps within dialogs, Escape/Cancel restore focus, controls retain
+visible focus, tables remain semantic and reduced motion is respected. Status
+text/icons accompany colors. Screenshots are saved outside the repository and
+were visually inspected. This is a targeted Chrome pass; Safari/Firefox and a
+screen-reader audit remain unverified.
+
+To include this check in standard disposable acceptance:
+
+```bash
+# Chrome is installed at the standard macOS path by default; override elsewhere.
+export IDX_TEST_BROWSER=1
+# Optional: IDX_TEST_CHROME=/path/to/chrome
+# Optional: IDX_TEST_NODE=/path/to/node-22
+# Optional: IDX_TEST_UI_OUTPUT=/tmp/idx-product-ui-previews
+python3 -m unittest discover -s scripts -p test_portfolio_exchange.py -v
+```
+
+The harness starts/stops its own isolated headless Chrome/profile and disposable
+API/database. It fingerprints operational security-master and portfolio tables
+as well as canonical revisions and authoritative operation files. Never point
+`check_product_ui.mjs` at the operational API: it deliberately creates synthetic
+corrections/theses/imports in the owned fixture.
+
+Remaining scope limits are unchanged: local IDR equity accounting, bounded
+replay/imports, no corporate actions/FX/shorts, no broker-specific parsing, no
+reconciliation persistence, no public hosting/auth and no Screener/AI scoring.
+
+
+### Executed verification — 2026-10-01
+
+| Check | Actual result |
+| --- | --- |
+| `dotnet build --no-restore` | PASS, zero warnings/errors |
+| Standard `dotnet test --no-restore` | 50/50 passed, zero skipped |
+| Python standard discovery with `IDX_EXPERIMENT_VERIFY_DB=1` | 61/61 passed |
+| Frontend `npm test` | 3/3 native Node tests passed |
+| Frontend `npm run build` | TypeScript + Vite production build passed |
+| Standard disposable exchange acceptance with `IDX_TEST_BROWSER=1` | 7/7 passed: original 5 regressions, read-only reconciliation, real production React/Chrome |
+| Final targeted browser reruns after visual/state refinements | PASS at all six widths; no external requests/runtime exceptions |
+| Existing offline `check_pilot_restore.py` | 14 groups passed, zero provider requests |
+| Operational loopback smoke | Existing account's actual snapshot returns MATCH; no synthetic writes |
+
+Operational API was restarted with the built milestone at
+http://127.0.0.1:5080. Before/after fingerprints of canonical revisions,
+instruments, effective symbol history, portfolio headers, events and theses
+are identical. Counts remain 76 canonical revisions, 11 instrument identities,
+zero symbol-history rows, one pre-existing portfolio, zero events and zero
+theses. Authoritative operation/soak files remain unchanged under acceptance.
+EODHD billable units 0; soak 1/10; FullIdx DISABLED. Disposable fixture databases
+and their isolated Chrome profiles are cleaned up. No market datasets, personal
+exports or screenshots are added to Git.
+
+The workspace includes implementation and tests plus the preserved approved
+prototype. No commit or push was performed for this milestone. Next: owner-led
+private reconciliation against an actual broker snapshot and focused usability
+feedback. Screener remains a separate, unstarted milestone.
+
+
+## Reconciliation Snapshot CSV
+
+On Reconcile, **Upload Snapshot CSV** reads a current broker holdings snapshot
+entirely in the browser. Review validated rows and consolidated holdings, then
+**Apply Snapshot** to replace the expected holdings editor. Manual edits remain
+available. Press **Compare Portfolio** separately to use the existing read-only
+`POST /api/portfolios/{portfolioId}/reconciliation/preview` endpoint. Selecting
+another file, applying or editing clears previous results; Cancel retains the
+current editor. Pending local previews must be applied or cancelled before comparison.
+
+This is not transaction import: no CSV content, filename or local path is uploaded,
+and no ledger events, thesis versions or broker snapshots are written. No backend
+contract or schema changes are needed.
+
+Supported headers (any order, no duplicate or unknown headers):
+`source_account,symbol,lots,shares,average_cost,mandate`. `symbol` and at least one
+of `shares`/`lots` must appear. Optional columns may be omitted. Symbols are trimmed,
+uppercased and limited to 50 characters. Shares are positive whole numbers up to
+1,000,000,000. Optional lots are positive whole numbers; one lot is 100 shares.
+When both are present they must agree. Average cost is a nonnegative plain decimal
+up to 1e12; blank means unknown/null. Decimal inputs support at most 28 digits and
+28 fractional places; repeating weighted averages round to 28 significant digits.
+Scientific notation and localized number separators are not supported.
+
+`source_account` and `mandate` are preview metadata only. Mandate accepts
+FAST_SWING, LONG_SWING or INVEST; unknown values block Apply. These values never
+change ledger identity or mandate/thesis history; manage thesis separately in
+Thesis journal. Different informational mandates can coexist in a consolidated group.
+
+Duplicate normalized symbols consolidate by summing shares (also capped at
+1,000,000,000). If every contributing row supplies average cost, the expected cost
+is the share-weighted mean; otherwise it is null. Preview lists contributing CSV
+row numbers, accounts and mandates and counts duplicate groups. Stable identity,
+unknown symbols and ambiguous effective aliases remain authoritative .NET checks
+at Compare; distinct aliases are not merged locally.
+
+Expected cash stays explicit and unchanged; holdings never imply a cash balance.
+Limits: UTF-8 only (optional BOM), 1 MiB per file, at most 200 resulting holdings.
+Comma-delimited quoted fields, doubled quotes, embedded newlines and CRLF/LF are
+supported. Malformed CSV, wrong headers and invalid rows block Apply with row
+numbers. Blank data rows are invalid; a final line ending is allowed.
+
+Verification: frontend snapshot contract tests in `npm test`; the opt-in real
+browser regression (`IDX_TEST_BROWSER=1` with standard Python acceptance discovery)
+checks replacement/editing, invalidation, unchanged cash, local-only parsing and
+Apply, exact reconciliation request, unchanged exported ledger/thesis history,
+no transaction import calls, and desktop/mobile preview layout.
+
+
+Snapshot enhancement regression result (2026-10-01): 8 frontend tests and Node 22
+production build passed; 50 .NET tests passed; Python discovery passed 60 tests
+with 1 opt-in evidence test skipped; 7 disposable HTTP/PostgreSQL/browser tests
+passed; 14 offline restore groups passed with zero provider requests. Snapshot
+preview screenshots at 1440 and 390 px were inspected. Existing browser checks
+also covered 1366, 1280, 1024 and 768 px. Production database and operational ledger
+fingerprints remained unchanged during disposable acceptance.
+
+
+## Reconciliation Draft
+
+Reconcile automatically saves applied snapshot inputs and later cash/holding edits
+in browser `localStorage`, scoped to `idx.reconcile.draft.v1:{portfolioId}`.
+The versioned schema contains `version: 1`, `portfolioId`, `expectedCash`,
+`holdings`, `through` and `cutoff` (the applied context). Each holding contains
+`instrumentId`, `symbol`, `shares`, `averageCost`, plus optional source-account and
+mandate lists for display only. Unapplied CSV previews are not saved. Blank cutoff
+continues to mean now; applied context is restored at startup/portfolio switch.
+
+No reconciliation result, ledger/market state, backend balance, file contents,
+filename, filesystem path or secret is saved. Refresh or navigating away/back
+restores the selected portfolio's inputs; **Compare Portfolio** always fetches a
+new result from .NET. Cash and holdings remain editable. Malformed/unsupported
+or invalid-date drafts are ignored; unavailable/full browser storage reports a
+save error while retaining current inputs. Local draft storage is bounded to
+1 MiB and 200 holdings. Symbol/identity edits discard associated CSV metadata.
+
+**Clear Draft** removes only the selected portfolio's key, clears expected
+cash/holdings, local file preview and current comparison result, and leaves the
+applied date/cutoff and other portfolios' drafts alone. It does not touch the
+ledger or registry. Empty cash and empty holdings leave no saved draft.
+Browser storage is origin-specific; clearing browser data removes drafts.
+
+## Bulk Instrument Registration
+
+The snapshot preview/applied editor checks normalized symbols against the
+paginated existing `GET /api/instruments?through=YYYY-MM-DD`. The optional
+`through` parameter selects effective symbols at the snapshot date (default
+remains Jakarta today). `hasEffectiveSymbol` distinguishes an effective symbol
+from the existing issuer-name fallback, preventing a display name from being
+mistaken for a registered ticker. Non-EQUITY or ambiguous matches are conflicts
+and are never automatically converted or overwritten.
+
+**Review Missing Instruments** opens a compact review showing symbol, EQUITY,
+display name and source accounts. A separate **Register N Instruments** action is
+the explicit confirmation. No automatic registration occurs on upload, Apply,
+refresh or registry checks. The symbol serves as the minimum valid display name;
+no company legal name, exchange, sector or provider ID is invented. Registration
+uses the existing client `crypto.randomUUID()` convention and
+`POST /api/instruments` contract (`id,name,symbol,type,validFrom`). `validFrom`
+is visibly the selected snapshot date, not a claimed IPO/listing date.
+
+Confirmation rechecks the registry before sequential independent registrations.
+Existing equities are skipped. Backend symbol locking/identity validation remains
+authoritative; overlapping historical symbol ownership is also rejected by the
+shared registration guard. A concurrent successful registration is detected by
+refreshing the registry and reported as already registered. Other conflicts or
+failures are shown per symbol. Successful independent registrations remain;
+there is no cosmetic rollback or bulk endpoint. Retry only remaining missing
+symbols after review. If the final registry refresh fails, reported successes
+stay visible and a recheck is required before retrying. Context changes interrupt
+pending work; completed identities remain registered and registry must be rechecked.
+
+After registration the registry refreshes and stale comparison results clear.
+Expected holdings and cash stay unchanged. Press **Compare Portfolio** again:
+a newly registered EQUITY with no ledger position becomes **MISSING_FROM_LEDGER**
+instead of **UNKNOWN_INSTRUMENT**. Registration never manufactures a MATCH.
+Only canonical instrument registration is written; there are no portfolio events,
+positions, cash events, thesis versions, persisted reconciliation snapshots,
+prices/bars or provider writes. Snapshot mandates remain informational; Thesis
+journal is the authoritative mandate workflow. No migrations or new endpoints.
+
+Checks: frontend storage/reload/isolation, corrupt drafts, registry pagination,
+conflicts, races, partial outcomes and refresh failures; disposable Chrome
+acceptance covers reload/context restore, result absence, explicit review and
+confirmation, unchanged cash/holdings/events/theses, unknown-to-missing status,
+portfolio isolation and Clear Draft. All synthetic identity writes stay in the
+owned disposable database; acceptance fingerprints the operational database
+and operation/soak ledger before/after.
+
+
+Draft/registration enhancement verification (2026-10-01): `dotnet build` passed
+with zero warnings/errors; canonical `dotnet test` passed **50/50**; frontend
+`npm test` passed **14/14** and the Node 22 production build passed; disposable
+HTTP/PostgreSQL/Chrome acceptance passed **8/8**; offline restore passed **14**
+groups with zero provider requests. The browser covered 1440, 1366, 1280, 1024,
+768 and 390 px; mobile snapshot and registration-review screenshots were inspected.
+
+Standard Python discovery ran 61 tests: **60 passed, 1 skipped**. The skip is the
+pre-existing `test_production_database_fingerprint_unchanged` in
+`collectors/python/tests/test_experiment_evidence.py`, gated by
+`IDX_EXPERIMENT_VERIFY_DB=1` with reason **Opt-in local PostgreSQL fingerprint**.
+This decorator existed before both reconciliation enhancements; it is not a new
+skip. Discovery was rerun with that opt-in enabled: **61/61 passed, zero skipped**.
+The opt-in test performs read-only operational database fingerprints around
+filesystem-only synthetic evidence creation in a temporary directory.
