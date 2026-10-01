@@ -21,7 +21,19 @@ Do not copy or clone `local-ai-infra` inside the stock repository.
 
 The stock system must still work when AI is unavailable.
 
-> **Current phase: PHASE 0 — DATA & RIGHTS FEASIBILITY SPIKE.**
+> **Current development: first product vertical slice — portfolio ledger, thesis journal,
+> canonical valuation, thin .NET API and React UI.** Operational Phase 0 H+1 validation
+> continues independently at **1/10**; FullIdx remains **DISABLED**.
+>
+> [Run API/UI and synthetic acceptance](docs/PRODUCT_SLICE_RUNBOOK.md) ·
+> [Ledger contract](docs/PORTFOLIO_LEDGER.md) · [Cost policy](docs/COST_BASIS_V01.md) ·
+> [Product data states](docs/PRODUCT_DATA_STATE.md)
+>
+> Verification: **34 .NET tests, 61 Python tests, frontend test/build, 2 synthetic
+> HTTP/PostgreSQL/React acceptance tests and 14 offline restore groups pass.**
+>
+> This milestone uses **zero EODHD billable units**. No live panel expansion,
+> screener, composite score, trading recommendation or AI accounting is implemented.
 >
 > **ZERO-COST PILOT MODE:** a fixed 10-equity + IHSG manual collector now admits only independently confirmed-session bars into append-only PostgreSQL revisions. There is no trading recommendation. See [pilot commands and limits](docs/ZERO_COST_PILOT.md).
 
@@ -57,7 +69,7 @@ There are no cross-repository source imports, copied infrastructure, or Git subm
 
 ## Local validation
 
-Requirements: .NET SDK 10, Python 3.12+, and optionally Docker Compose for PostgreSQL.
+Requirements: .NET SDK 10, Python 3.12+, Node 22.12+ for the UI, and Docker Compose for local PostgreSQL.
 
 ```bash
 dotnet build IdxStockIntelligence.slnx

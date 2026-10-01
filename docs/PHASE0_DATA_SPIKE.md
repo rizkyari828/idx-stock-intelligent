@@ -1,5 +1,11 @@
 # Phase 0 — Data & Rights Feasibility Spike
 
+Historical Phase 0 scope below. As of 2026-10-01 operational soak is **1/10**;
+product ledger/API/UI development runs independently. See the current
+[README](../README.md) and [product runbook](PRODUCT_SLICE_RUNBOOK.md).
+Earlier "no UI" and strategy gates remain historical evidence, not a veto on the
+explicitly authorized product slice. FullIdx remains disabled.
+
 Current narrower execution is the [zero-cost prospective pilot](ZERO_COST_PILOT.md).
 Its [exit checklist](PHASE0_EXIT_CHECKLIST.md) is separate from the broader historical
 targets below. Prospective hardening is implemented, but bootstrap is incomplete and

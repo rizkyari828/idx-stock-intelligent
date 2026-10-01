@@ -36,3 +36,8 @@ logs/
 Thumbs.db
 *:Zone.Identifier
 
+
+# Frontend
+**/node_modules/
+frontend/dist/
+frontend/.test-output/

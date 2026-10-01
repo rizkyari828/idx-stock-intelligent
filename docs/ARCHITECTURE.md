@@ -1,4 +1,18 @@
-# Architecture Freeze Candidate — V0.1
+# Architecture — V0.1
+
+Current product update (2026-10-01): the application now includes an append-only
+portfolio ledger and thesis journal, deterministic weighted-average projection,
+read-only canonical valuation, a pooled Npgsql API adapter, loopback .NET API and
+minimal React/TypeScript UI. See [ledger](PORTFOLIO_LEDGER.md),
+[data states](PRODUCT_DATA_STATE.md) and [runbook](PRODUCT_SLICE_RUNBOOK.md).
+Operational H+1 soak continues independently at **1/10**, FullIdx **DISABLED**.
+Product development does not wait for 10/10 or authorize provider expansion.
+Calendar defaults classify weekends closed while explicit independent trading
+proof can override; unproven weekdays remain unknown.
+
+The Phase 0 checkpoint below is historical context. Its earlier soak counts and
+"no driver/service" statements describe that checkpoint's CLI implementation;
+the CLI still uses psql, while the new API uses Npgsql.
 
 ## Current execution: ZERO-COST PILOT MODE
 

@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": false, "outDir": ".test-output" },
+  "include": ["src/view.ts", "src/view.test.ts", "src/PortfolioTable.tsx"]
+}

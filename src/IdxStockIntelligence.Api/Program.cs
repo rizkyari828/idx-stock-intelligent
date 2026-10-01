@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args, WebRootPath = Directory.Exists(uiRoot) ? uiRoot : null
 });
-builder.WebHost.UseUrls("http://127.0.0.1:5080");
+var address = builder.Configuration["urls"] ?? "http://127.0.0.1:5080";
+if (!Uri.TryCreate(address, UriKind.Absolute, out var listenUri) || !listenUri.IsLoopback || listenUri.Scheme != "http")
+    throw new ArgumentException("API requires one loopback HTTP address.");
+builder.WebHost.UseUrls(address);
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 65536);
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
