@@ -47,7 +47,9 @@ def invoke(batch):
                           capture_output=True,text=True,env=env,timeout=120)
     messages=[line for line in result.stdout.splitlines() if line.startswith('{"summary_path":')]
     assert messages,"Worker must leave an explicit report."
-    summary=json.loads(Path(json.loads(messages[-1])["summary_path"]).read_text())
+    summary_path=Path(json.loads(messages[-1])["summary_path"])
+    summary=json.loads(summary_path.read_text())
+    summary_path.replace(work/summary_path.name) # Keep offline reports outside the operational root ledger.
     assert not summary["soak_eligible"],"Offline fixtures must never count as prospective runs."
     return result.returncode,summary
 
