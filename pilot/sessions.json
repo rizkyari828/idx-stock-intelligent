@@ -50,5 +50,15 @@
     "known_at": "2026-09-29T14:39:11.599944+00:00",
     "evidence_type": "Independent full-day session II closing report",
     "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp."
+  },
+  {
+    "date": "2026-09-30",
+    "status": "ObservedTrading",
+    "reference": "https://www.idxchannel.com/market-news/ihsg-ditutup-turun-ke-6071-sektor-teknologi-jadi-pemberat-utama",
+    "published_at": "2026-09-30T16:08:00+07:00",
+    "completed_at": "2026-09-30T16:08:00+07:00",
+    "known_at": "2026-10-01T02:26:01.344831+00:00",
+    "evidence_type": "Independent full-day session II closing report",
+    "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp."
   }
 ]
