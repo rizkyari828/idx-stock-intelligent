@@ -31,11 +31,6 @@ public sealed class ExchangeCalendarEvidence
             throw new ArgumentException("Only sourced closure or trading evidence can be recorded.", nameof(evidence));
         }
 
-        if (IsWeekend(evidence.Date) && evidence.Status == ExchangeDayStatus.ObservedTrading)
-        {
-            throw new ArgumentException("Weekend trading needs a separate exceptional-session policy.", nameof(evidence));
-        }
-
         if (_days.TryGetValue(evidence.Date, out var existing))
         {
             if (existing == evidence)
@@ -57,11 +52,12 @@ public sealed class ExchangeCalendarEvidence
             return evidence.Status;
         }
 
-        return IsWeekend(date) ? ExchangeDayStatus.Weekend : ExchangeDayStatus.Unknown;
+        return Classify(date);
     }
 
     public IReadOnlyList<ExchangeDayEvidence> Chronological() => _days.Values.ToArray();
 
-    private static bool IsWeekend(DateOnly date) =>
-        date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+    public static ExchangeDayStatus Classify(DateOnly date, ExchangeDayStatus? explicitStatus = null) =>
+        explicitStatus ?? (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            ? ExchangeDayStatus.Weekend : ExchangeDayStatus.Unknown);
 }

@@ -22,11 +22,13 @@ public static class PilotValidation
             return new("PRE_LISTING", null);
         if (boundary == InstrumentBoundaryState.PostDelisting)
             return new("POST_DELISTING", null);
+        if (proof is null && ExchangeCalendarEvidence.Classify(date) == ExchangeDayStatus.Weekend)
+            return new("CLOSED", null, "CLOSED_BY_CALENDAR");
         if (proof is null || proof.KnownAt > knownAt || string.IsNullOrWhiteSpace(proof.Reference))
             return new("SESSION_UNCONFIRMED", null);
         if (proof.Date != date)
             throw new ArgumentException("Session proof date does not match observation.", nameof(proof));
-        if (proof.Status is ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ExceptionalClosure || date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        if (proof.Status is ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ExceptionalClosure)
             return new("CLOSED", null);
         if (proof.Status != ExchangeDayStatus.ObservedTrading)
             return new("SESSION_UNCONFIRMED", null);

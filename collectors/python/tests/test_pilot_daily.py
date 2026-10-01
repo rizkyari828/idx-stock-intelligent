@@ -109,6 +109,19 @@ class DailyTests(unittest.TestCase):
         self.assertEqual("2026-10-02",self.plan("2026-10-03T00:00:00Z",proofs)["next_candidate_session"])
         self.assertEqual("NO_NEW_SESSION",self.plan(proofs=proofs[:1])["decision"])
 
+    def test_unproven_weekend_is_skipped_but_weekday_and_explicit_weekend_open_are_not(self):
+        for revision in self.state["revisions"]:
+            revision["date"] = "2026-10-02"
+        self.operation["worker"].update(market_date="2026-10-02", canonical_state=deepcopy(self.state["revisions"]))
+        self.operation["ledger"]["session_date"] = "2026-10-02"
+        (self.root / "fixture.operation.json").write_text(json.dumps(self.operation))
+        plan = self.plan("2026-10-06T00:00:00Z")
+        self.assertEqual("2026-10-05", plan["next_candidate_session"])
+        self.assertEqual("WAITING_FOR_SESSION_PROOF", plan["decision"])
+        opened = self.plan("2026-10-06T00:00:00Z", [self.proof("2026-10-03")])
+        self.assertEqual("2026-10-03", opened["next_candidate_session"])
+        self.assertEqual("ELIGIBLE", opened["decision"])
+
     def test_new_successful_session_advances_baseline_without_refetch(self):
         for revision in self.state["revisions"]:
             revision["date"]="2026-10-01"

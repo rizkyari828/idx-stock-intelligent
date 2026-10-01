@@ -80,6 +80,22 @@ public sealed class PilotTests
         Assert.Equal(3,store.History(Stock,date).Count);
     }
 
+    [Fact]
+    public void WeekendDefaultsClosedButExplicitTradingContributesToFeatureContinuity()
+    {
+        var friday = new DateOnly(2026, 9, 25);
+        var saturday = friday.AddDays(1);
+        var monday = friday.AddDays(3);
+        var instrument = new Instrument(Stock, "Synthetic", null);
+        Assert.Equal("CLOSED", PilotValidation.Validate(instrument, saturday, null, null, Known).Status);
+        Assert.Equal("AVAILABLE", PilotValidation.Validate(instrument, saturday, Bar(Stock, saturday), Proof(saturday), Known).Status);
+        var days = new[] { friday, saturday, monday };
+        var bars = days.Select(day => new DailyBarRevision(1, Bar(Stock, day), Known, new('a',64), Guid.NewGuid())).ToArray();
+        var features = PilotFeatures.Calculate(bars, Stock, Index, days.Select(day => Proof(day)).ToArray(), Known);
+        Assert.Equal(3, features.ConsecutiveSessions);
+        Assert.Equal("WARMUP", features.Status);
+    }
+
     private static (List<DailyBarRevision> Bars,List<SessionProof> Proofs) Series()
     {
         var bars = new List<DailyBarRevision>();

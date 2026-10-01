@@ -66,6 +66,9 @@ def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutof
         reason="FUTURE_DATE"
     elif day==jakarta.date() and jakarta.time()<cutoff:
         reason="SAFE_EOD_CUTOFF_NOT_REACHED"
+    elif not proofs and day.weekday()>=5:
+        result["session_proof"]="KNOWN_CLOSED"
+        reason="CLOSED_BY_CALENDAR"
     elif len(proofs)!=1:
         reason="SESSION_PROOF_REQUIRED" if not proofs else "CONFLICTING_SESSION_PROOF"
     else:
@@ -74,7 +77,7 @@ def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutof
         elif proof["status"] in ("AnnouncedClosed","ExceptionalClosure"):
             result["session_proof"]="KNOWN_CLOSED"
             reason="KNOWN_CLOSED"
-        elif proof["status"]!="ObservedTrading" or day.weekday()>=5:
+        elif proof["status"]!="ObservedTrading":
             reason="SESSION_PROOF_REQUIRED"
         else:
             result["session_proof"]="KNOWN_OPEN"

@@ -1,0 +1,8 @@
+[
+  {"date":"2026-10-03","status":null,"reason":"CLOSED_BY_CALENDAR"},
+  {"date":"2026-10-04","status":null,"reason":"CLOSED_BY_CALENDAR"},
+  {"date":"2026-10-05","status":null,"reason":"SESSION_PROOF_REQUIRED"},
+  {"date":"2026-10-03","status":"ObservedTrading","reason":"ELIGIBLE_PRIOR_COMPLETED_SESSION"},
+  {"date":"2026-10-05","status":"AnnouncedClosed","reason":"KNOWN_CLOSED"},
+  {"date":"2026-10-05","status":"ExceptionalClosure","reason":"KNOWN_CLOSED"}
+]

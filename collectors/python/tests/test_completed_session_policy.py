@@ -45,6 +45,18 @@ class CompletedSessionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             collection_eligibility(self.day,datetime(2026,9,29),[],time(19))
 
+    def test_shared_calendar_policy_fixture(self):
+        fixture = Path(__file__).resolve().parents[3] / "tests/fixtures/calendar-policy.json"
+        clock = datetime(2026, 10, 6, 12, tzinfo=timezone.utc)
+        for row in json.loads(fixture.read_text()):
+            proofs = [] if row["status"] is None else [dict(date=row["date"], status=row["status"],
+                reference="https://reference.example/synthetic", known_at="2026-10-05T12:00:00Z")]
+            with self.subTest(row=row):
+                result = collection_eligibility(date.fromisoformat(row["date"]), clock, proofs, time(19))
+                self.assertEqual(row["reason"], result["reason"])
+                if row["reason"] == "CLOSED_BY_CALENDAR":
+                    self.assertEqual("KNOWN_CLOSED", result["session_proof"])
+
     def test_dry_run_reports_gate_and_live_rejects_before_any_provider_io(self):
         root=Path(__file__).resolve().parents[3]
         original=Path.cwd()

@@ -23,8 +23,8 @@ public static class PilotFeatures
         var series = new List<DailyBar>();
         for (var date = own[0].SessionDate; date <= dates[^1]; date = date.AddDays(1))
         {
-            if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
-            if (calendar.TryGetValue(date, out var proof) && proof.Status is ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ExceptionalClosure) continue;
+            calendar.TryGetValue(date, out var proof);
+            if (ExchangeCalendarEvidence.Classify(date, proof?.Status) is ExchangeDayStatus.Weekend or ExchangeDayStatus.AnnouncedClosed or ExchangeDayStatus.ExceptionalClosure) continue;
             if (proof?.Status == ExchangeDayStatus.ObservedTrading && all.TryGetValue((instrument, date), out var bar) && bar.Volume > 0)
                 series.Add(bar);
             else series.Clear(); // Unknown weekdays/missing bars break continuity; never bridge them.
