@@ -11,3 +11,6 @@ export const valuationLabel = (h: Holding) => h.valuation.availability === 'UNAV
   ? `UNAVAILABLE · ${h.valuation.unavailableReason}` : `${h.market.freshness} · ${h.market.quality}`;
 export const coverageLabel = (v: PortfolioView) => `${v.valuationCoverage} · ${v.pricedHoldings}/${v.holdingCount} holdings priced`;
 export const jakartaToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+export type ImportPreview = { status: string; canImport: boolean; portfolioId: string | null; rowsRead: number; validRows: number; invalidRows: number; duplicates: number; estimatedResultingEvents: number; unknownInstruments: string[]; errors: string[]; rows: { row: number; error: string | null; duplicate: boolean; event: { type: string; quantity: number } | null }[] };
+export const canConfirmImport = (preview: ImportPreview | null) => preview !== null && preview.canImport && preview.invalidRows === 0 && preview.errors.length === 0 && ['READY', 'ALREADY_PRESENT'].includes(preview.status);

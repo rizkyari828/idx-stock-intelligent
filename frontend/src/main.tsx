@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { coverageLabel, jakartaToday, money, valuationLabel, type Holding, type PortfolioView, type Thesis } from './view';
 import './style.css';
+import { ImportPanel } from './ImportPanel';
 import { PortfolioTable } from './PortfolioTable';
 
 type Instrument = { id: string; symbol: string; type: string; name: string };
@@ -59,8 +60,12 @@ function App() {
       <form onSubmit={e => { e.preventDefault(); void act(() => load(openId)); }}><label>Portfolio ID<input value={openId} onChange={e => setOpenId(e.target.value)} required /></label><button disabled={busy}>Open</button></form>
       <form onSubmit={e => { e.preventDefault(); const form = e.currentTarget; void act(async () => { const p = await api<{ id: string }>('/portfolios', { name: fields(form).name }); setId(p.id); await load(p.id); }); }}><label>New portfolio name<input name="name" required maxLength={200} /></label><button disabled={busy}>Create</button></form>
     </section>
+    <ImportPanel key={view?.portfolio.id} portfolioId={view?.portfolio.id} request={api} onImported={async portfolioId => { await loadInstruments(); await load(portfolioId); }} />
     {view && <>
-      <h2>{view.portfolio.name}</h2><p>Cash: {money(view.cash)}{view.negativeCash && ' · NEGATIVE CASH'}</p>
+      <h2>{view.portfolio.name}</h2>
+      <a href={`/api/portfolios/${view.portfolio.id}/export?format=JSON`} download={`portfolio-${view.portfolio.id}.json`}>Export Portfolio (lossless JSON)</a>{' · '}
+      <a href={`/api/portfolios/${view.portfolio.id}/export?format=CSV`} download={`transactions-${view.portfolio.id}.csv`}>Export transactions (CSV)</a>
+      <p>Cash: {money(view.cash)}{view.negativeCash && ' · NEGATIVE CASH'}</p>
       <p>Valuation coverage: {coverageLabel(view)}</p><p>Market value: {money(view.totalMarketValue)} · Priced subtotal: {money(view.pricedMarketValue)} · Equity including cash: {money(view.totalEquity)}</p>
       <p>Read operation: {view.operation} · Through {view.through} · Known by {view.knowledgeCutoff}</p>
       <PortfolioTable holdings={view.holdings} onOpen={h => { setSelected(h); setThesisOffset(0); }} />
