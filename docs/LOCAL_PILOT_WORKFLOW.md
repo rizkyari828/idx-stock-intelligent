@@ -1,8 +1,18 @@
 # Local pilot workflow — 2026-09-29
 
+## Normal daily operation — October 1 update
+
+Use the [daily H+1 operator runbook](DAILY_PILOT_WORKFLOW.md): separately record
+independent prior-session proof, run `bash scripts/pilot-daily.sh --dry-run`, review,
+then run `bash scripts/pilot-daily.sh` once. It selects the oldest pending proven
+prior Jakarta session and blocks missing proof/database/current-quota state.
+The successful September 30 pilot advanced soak to **1/10**, with **76** canonical
+revisions. Older counts below remain historical observations. No provider request
+or canonical mutation was needed to implement the daily workflow.
+
 ## Current same-day policy
 
-The [same-day hardening](SAME_DAY_EOD.md) supersedes the earlier H+1-only guard:
+The optional [same-day hardening](SAME_DAY_EOD.md) supersedes the earlier H+1-only guard:
 prior completed sessions or same-day after configured 19:00 WIB with independent
 completed/open proof. Dry-run explains blocked/eligible outcomes without provider
 calls. The shared cutoff is in `pilot/collection-policy.json`. Current checks:

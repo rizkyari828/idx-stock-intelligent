@@ -25,10 +25,13 @@ The stock system must still work when AI is unavailable.
 >
 > **ZERO-COST PILOT MODE:** a fixed 10-equity + IHSG manual collector now admits only independently confirmed-session bars into append-only PostgreSQL revisions. There is no trading recommendation. See [pilot commands and limits](docs/ZERO_COST_PILOT.md).
 
-Run collection through `bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD`
-after independently recording the completed session. [Hardening results](docs/PILOT_HARDENING.md)
+Normal H+1 operation uses `bash scripts/pilot-daily.sh --dry-run`, then
+`bash scripts/pilot-daily.sh` after review and independent session proof. The
+[daily operator runbook](docs/DAILY_PILOT_WORKFLOW.md) covers selection, catch-up,
+database/account gates, and optional dated same-day collection. [Hardening results](docs/PILOT_HARDENING.md)
 and the [Phase 0 exit checklist](docs/PHASE0_EXIT_CHECKLIST.md) document durable
-failure reports, offline reproduction and the **0/10** real-session soak gate.
+failure reports and offline reproduction. The September 30 successful pilot
+advanced the real-session soak to **1/10**; the local ledger remains authoritative.
 
 The system is EOD-first, local-first, and aims for zero-paid-data sources where feasible. Daily operation must not depend on manual market-file downloads. Trustworthy chronology, reproducibility, and explicit uncertainty matter more than feature count.
 
@@ -72,6 +75,7 @@ Offline planning and run tracking require no provider token:
 
 ```bash
 bash scripts/pilot-eod.sh --from YYYY-MM-DD --to YYYY-MM-DD --dry-run
+bash scripts/pilot-daily.sh --dry-run
 bash scripts/pilot-eod.sh --soak-report
 ```
 
@@ -79,7 +83,7 @@ Dates must be independently confirmed completed sessions within the last 330 day
 Same-day collection requires the configurable **19:00 Asia/Jakarta** cutoff and
 explicit independent completion evidence; see [same-day policy](docs/SAME_DAY_EOD.md). See
 [local workflow procedures and validation](docs/LOCAL_PILOT_WORKFLOW.md) for
-reuse/refresh rules, the prospective ledger, restore checks and current **0/10**
+reuse/refresh rules, the prospective ledger, restore checks and current **1/10**
 soak status. FullIdx collection is **NOT ENABLED**.
 
 Copy `.env.example` to ignored, untracked `.env` and choose a local password before starting PostgreSQL. The manual Python pilot requires the locally loaded EODHD token; the .NET worker validates archived evidence and persists revisions without contacting a provider.

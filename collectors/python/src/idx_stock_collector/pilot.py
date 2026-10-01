@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 
 from .contract import archive_payload
 from .eodhd_experimental import parse_daily, PARSER_VERSION
+from .entitlement_probe import counters
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -97,7 +98,10 @@ def collection_plan(start: date, end: date, now: datetime) -> list[dict]:
     return [collection_eligibility(start+timedelta(days=i),now,sessions,cutoff) for i in range((end-start).days+1)]
 
 
-def remaining(usage: dict, ceiling: int, quota_day: date | None = None) -> int:
+def remaining(usage: dict, ceiling: int, quota_day: date | None = None, strict: bool = False) -> int:
+    if strict:
+        # Daily H+1 mode never guesses a lazy reset or spends a rollover unit.
+        counters(json.dumps(usage).encode(), quota_day)
     if str(usage.get("subscriptionType", "")).casefold() != "free" or usage.get("dailyRateLimit") != 20:
         raise ValueError("Expected verified Free entitlement (20 units/day).")
     used = usage.get("apiRequests")
@@ -316,8 +320,10 @@ def collect(args) -> Path:
     if not halted:
         try:
             usage = json.loads(fetch("user", {"fmt": "json"}, 0)[0])
-            allowance = remaining(usage, config["daily_unit_ceiling"], datetime.now(timezone.utc).date())
-            run["usage_before"] = {k: usage.get(k) for k in ("subscriptionType", "dailyRateLimit", "apiRequests", "apiRequestsDate")}
+            allowance = remaining(usage, config["daily_unit_ceiling"], datetime.now(timezone.utc).date(), getattr(args,"daily",False))
+            if getattr(args,"daily",False) and allowance < sum(s not in previous and s not in seeds for s in symbols):
+                raise ValueError("Insufficient allowance for the complete daily panel.")
+            run["usage_before"] = {k: usage.get(k) for k in ("subscriptionType", "dailyRateLimit", "apiRequests", "apiRequestsDate", "extraLimit")}
         except (ValueError,KeyError):
             run["account_error"]="ACCOUNT_CHECK_FAILED"
             halted=True
@@ -340,7 +346,7 @@ def collect(args) -> Path:
             try:
                 # Account check is zero-unit; never rely on bonus quota or purchase it.
                 usage = json.loads(fetch("user", {"fmt": "json"}, 0)[0])
-                if remaining(usage, config["daily_unit_ceiling"], datetime.now(timezone.utc).date()) < 1:
+                if remaining(usage, config["daily_unit_ceiling"], datetime.now(timezone.utc).date(), getattr(args,"daily",False)) < 1:
                     halted = True
                     entry.update(status="SOURCE_ERROR", reason="QUOTA_DEFERRED", rows=[])
                 else:
@@ -356,7 +362,7 @@ def collect(args) -> Path:
     if not args.offline and any(r["reserved_units"] for r in run["requests"]):
         try:
             usage = json.loads(fetch("user", {"fmt": "json"}, 0)[0])
-            run["usage_after"] = {k: usage.get(k) for k in ("subscriptionType", "dailyRateLimit", "apiRequests", "apiRequestsDate")}
+            run["usage_after"] = {k: usage.get(k) for k in ("subscriptionType", "dailyRateLimit", "apiRequests", "apiRequestsDate", "extraLimit")}
         except ValueError:
             run["usage_after"] = "UNKNOWN"
     run["completed_at"] = datetime.now(timezone.utc).isoformat()
@@ -512,6 +518,7 @@ def main():
     parser.add_argument("--seed", action="append", default=[], help="SYMBOL=manifest.json=raw-root")
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--daily", action="store_true", help="Select one pending proven prior Jakarta session; no rollover or refresh.")
     parser.add_argument("--soak-report", action="store_true")
     parser.add_argument("--refresh", action="store_true", help="Bypass automatic canonical reuse; never automatic retry.")
     parser.add_argument("--ingest", action="store_true", help="Run validation, ingestion, features and durable operation report after collection.")
@@ -520,10 +527,17 @@ def main():
     except SystemExit as error:
         raise SystemExit(1 if error.code else 0) from None
     try:
+        if args.daily and (args.start or args.end or args.resume or args.seed or args.offline or args.refresh or args.soak_report or args.universe != "pilot/universe.json"):
+            raise ValueError("Daily mode cannot override dates, panel or collection policy.")
         if args.soak_report:
             print(json.dumps(soak_report(Path("data/collector-output/pilot")),indent=2))
             return
-        if not args.start or not args.end:
+        if args.daily and args.dry_run:
+            from .pilot_daily import daily_plan
+            plan = daily_plan()
+            print(json.dumps(plan,indent=2))
+            raise SystemExit(1 if plan["decision"]=="BLOCKED" else 3 if plan["decision"]=="WAITING_FOR_SESSION_PROOF" else 0)
+        if not args.daily and (not args.start or not args.end):
             raise ValueError("Explicit --from and --to required.")
         if args.refresh and (args.resume or args.seed):
             raise ValueError("Refresh cannot reuse resume/seed evidence.")
@@ -539,6 +553,13 @@ def main():
     with Path("data/collector-output/pilot/collector.lock").open("a") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if args.daily:
+                from .pilot_daily import daily_plan
+                plan = daily_plan()
+                print(json.dumps(plan,indent=2))
+                if plan["decision"] != "ELIGIBLE":
+                    raise SystemExit(0 if plan["decision"]=="NO_NEW_SESSION" else 3 if plan["decision"]=="WAITING_FOR_SESSION_PROOF" else 1)
+                args.start = args.end = plan["next_candidate_session"]
             path=collect(args)
             if args.ingest:
                 path=ingest_and_summarize(path)
