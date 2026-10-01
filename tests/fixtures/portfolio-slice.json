@@ -1,0 +1,16 @@
+{
+  "purpose": "SYNTHETIC DEVELOPMENT/TEST ONLY — never load into the pilot database",
+  "pilot_instrument_id": "81808734-9a0d-5fa6-aa94-ea723dcb414f",
+  "pilot_symbol": "BBCA.JK",
+  "outside_instrument_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  "outside_symbol": "SYNTHETIC_XYZ.JK",
+  "deposit": 1000000,
+  "buy_lots": 13,
+  "buy_price": 100,
+  "buy_fees": 1300,
+  "corrected_price": 110,
+  "partial_sell_shares": 300,
+  "sell_price": 120,
+  "sell_fees": 300,
+  "market_price": 125
+}

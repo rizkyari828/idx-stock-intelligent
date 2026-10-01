@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/IdxStockIntelligence.Api/IdxStockIntelligence.Api.csproj" />
     <Project Path="src/IdxStockIntelligence.Application/IdxStockIntelligence.Application.csproj" />
     <Project Path="src/IdxStockIntelligence.Domain/IdxStockIntelligence.Domain.csproj" />
     <Project Path="src/IdxStockIntelligence.Infrastructure/IdxStockIntelligence.Infrastructure.csproj" />
