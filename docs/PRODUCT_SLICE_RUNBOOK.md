@@ -632,3 +632,35 @@ This decorator existed before both reconciliation enhancements; it is not a new
 skip. Discovery was rerun with that opt-in enabled: **61/61 passed, zero skipped**.
 The opt-in test performs read-only operational database fingerprints around
 filesystem-only synthetic evidence creation in a temporary directory.
+
+## Screener V0.1 contract review — 2026-10-02
+
+Final pre-implementation review is complete: **CONDITIONAL GO** for the fixed-pilot,
+descriptive Screener. The canonical implementation contract is
+[docs/SCREENER_V0_1_CONTRACT.md](SCREENER_V0_1_CONTRACT.md), reviewed against
+`f36e539b0cdf508590879fa960b6f634af9aaba9`. No Screener code was implemented by this review.
+
+Required small changes: explicit `through` enforcement in the shared feature
+calculator; distinct RS20/RS60 percentage-point return differences without relabeling
+legacy relative performance; bounded as-of reads and retained, knowledge-dated pilot
+reference inputs. The effective-dated registry cannot establish past knowledge;
+missing identity/status/basis evidence must remain blocked. Full registry history
+redesign is deferred. **No database migration or Screener result persistence is
+expected for V0.1.**
+
+Actual candidate readiness remains blocked by short/discontinuous history and
+unverified identity/status/price-volume basis coverage. The screen must preserve
+all held positions and display unavailable evidence honestly. FullIdx remains
+**DISABLED**; the read-only soak report still shows **1/10**. No threshold optimization.
+
+Next milestone: implement the contract's shared through/RS corrections and
+chronological fixtures, then the bounded descriptive service/API and existing-design
+React screen. Recommended implementation reasoning: **HIGH**.
+
+Continuation verification: .NET build passed with zero warnings/errors and standard
+`dotnet test` passed **50/50**. Earlier checks at the same commit passed Python opt-in
+**61/61**, frontend **14/14** and the production build. October 2 disposable acceptance
+and offline restore reruns could not verify results because Docker was unavailable,
+including outside the sandbox. Their previously recorded **8/8** and **14 groups**
+remain historical baseline evidence, not fresh passes; rerun them before implementation
+release. The completed contract incorporates the temporary checkpoint, which was removed.
