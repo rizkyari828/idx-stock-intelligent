@@ -4,12 +4,13 @@ Requires .NET 10, PostgreSQL 17 (existing compose service), Python 3.12+ for
 acceptance and Node 22.12+ for current Vite. Run from repository root unless
 indicated. No provider token is needed. Keep connection strings outside Git.
 
-Current Screener status: **Milestone 5 complete**. The production sidebar now opens
-the read-only PILOT Screener independently of a portfolio. The final section below
-records its context/pinning behavior and fresh verification. Empty real Screener
-references still produce honest BLOCKED coverage; implementation completion does
-not certify real candidate readiness. Earlier dated sections retain their milestone
-results and scope at the time.
+Current Screener status: **Milestone 6 data-readiness/evidence complete**. The
+production sidebar opens the read-only PILOT Screener independently of a portfolio.
+The final section below records the read-only operational audit plus the
+authoritative-source review, the one substantiated PILOT configured-membership
+universe snapshot, and the honest BLOCKED candidate result. Implementation and
+evidence-review completion does not certify real candidate readiness. Earlier dated
+sections retain their milestone results and scope at the time.
 
 ## Schema and startup
 
@@ -1456,3 +1457,255 @@ Do not populate it from tests, shorten warmup, infer equity from current registr
 or enable FullIdx to manufacture candidates. Larger universes, richer Stock Detail/
 charts, alternative setups and portfolio decision workflows require separately
 authorized post-V0.1 work; no recommendation or rule promotion is implied here.
+
+## Screener V0.1 — Milestone 6 data-readiness/evidence, 2026-10-02
+
+**Pass 1 (read-only operational audit) is accepted and preserved below.** Starting
+state was clean `main` at `39268c0` (`feat: complete screener v0.1 production UI`);
+M1–M5 are committed and there was **no pre-existing M6 diff** to continue. M6 is the
+data-readiness/evidence milestone required by contract sections Q/W-step-7. No
+Screener code, frozen policy, migration, dependency or provider call was made and no
+operational table was written. **Pass 2** (authoritative-source review, below) added
+exactly one substantiated PILOT universe snapshot to `pilot/screener-reference.json`;
+the `instruments` array remains empty and unknown evidence stays unknown.
+
+### Read-only operational evidence audit
+
+The audit queried the operational PostgreSQL database inside `BEGIN READ ONLY`
+transactions only.
+
+| Observation | Actual value |
+| --- | --- |
+| Canonical bar revisions | **76** rows; **11** instrument IDs (10 configured pilot stock candidates + `JKSE.INDX` benchmark); **7** dates 2026-08-24..2026-09-30 |
+| Canonical quality | `DEGRADED` for all 76 rows; zero `VALID` |
+| Volume basis / segment | `SPLIT_ADJUSTED` / `UNKNOWN` for all rows |
+| Volume unit | `SHARE_COUNT_CORROBORATED` 70, `UNKNOWN` 6 |
+| Source | single `eodhd`; `terms_status = UNKNOWN` |
+| Raw artifacts | 34 |
+| `instrument` types | 11 × `UNKNOWN` (no `EQUITY`/`INDEX` label) |
+| `instrument_history` | 0 rows |
+| `instrument_listing_evidence` | 18 rows / 11 IDs |
+| `market_session` | 0 rows |
+| `pilot/instrument-sessions.json` | `[]` (no status or no-trade evidence) |
+| Portfolio | 1 header, 0 events, 0 theses (no held IDs) |
+
+Each of the ten configured stock candidates has exactly **7** observed dates; `JKSE.INDX` has **6**
+(missing 2026-09-29). No instrument reaches the 15-observation ATR floor, the
+21-observation setup minimum, the 50-observation EMA50 window or the 61-observation
+RS60 window. Session evidence currently proves five 2026-09 dates plus 2026-08-24/26;
+2026-09-28 has no open-session proof, so the recent suffix is not a continuous
+20/50/60-session sequence. `instrument-sessions.json` is empty, so no affirmative
+no-trade/suspension evidence exists.
+
+Listing evidence (reused by M2/M3 through `InstrumentBoundaries.AsOf`) carries
+VERIFIED listing dates for BBCA, BBRI, ANTM, DSSA, ENRG, GOTO, RAJA (2003-01-22),
+VKTR (2023-06-19) and PTRO (1990-05-21; a later `known_at` VERIFIED assertion
+supersedes its earlier PARTIAL candidate). LPIN remains year-only `PARTIAL` with
+`listed_from` null; `JKSE.INDX` is `NOT_APPLICABLE`. These are **listing boundaries
+only**, not classification, board, mechanism or basis clearance.
+
+### Pass 2 — authoritative-source evidence review
+
+Pass 2 looked for primary sources per candidate. Pages were fetched directly; search
+snippets were **not** used as evidence. KSEI (the Indonesian central securities
+depository) was reachable and authoritative. `idx.co.id` and `e-ipo.co.id` returned
+**HTTP 403** to the fetcher and `eodhd.com/exchange/INDX` returned **404**, so those
+facts remain unresolved rather than guessed. No fact below is inferred from ticker
+text, the mutable registry, or common knowledge.
+
+| # | Source (URL) | As-of / publication | Retrieved | Exact fact supported | Limitation | Scope (current vs interval) |
+| --- | --- | --- | --- | --- | --- | --- |
+| S1 | `https://web.ksei.co.id/Download/StatisEfek20260930.txt.zip` (title: Master File Efek 30 September 2026) | 2026-09-30 | 2026-10-02 | KSEI registered-securities master as of 2026-09-30: all ten candidates appear with `Type=EQUITY`, `Status=ACTIVE`, `Stock Exchange=IDX`, `Currency=IDR`, an ISIN and (six) listing dates | Broad `EQUITY` class only; no ordinary/preferred split, no board/mechanism, no price/volume basis or segment; single dated snapshot | Dated current-at-2026-09-30 observation, not a historical interval |
+| S2 | `https://web.ksei.co.id/services/registered-securities/shares/lc/<SYMBOL>` (ten pages, title: Efek Terdaftar — issuer) | page "As of 1 Oct 2026" | 2026-10-02 | Every candidate's type is `Saham Biasa` (ordinary shares), `IDR`, status `Active`, exchange `IDX`, with ISIN and a dated corporate-action list | Current classification only (no effective-dated interval); no board/mechanism/segment; corporate-action list completeness not guaranteed | Current classification observation; the evaluated Aug–Sep 2026 window is not covered by an effective interval |
+| S3 | `https://www.gotocompany.com/news/press/goto-tercatat-di-papan-utama-bei` (issuer primary) | 2022-04-11 | 2026-10-02 | GOTO listed and traded on the IDX Main Board (`Papan Utama`) under code GOTO from 2022-04-11; first listing under OJK multiple-voting-share rules (`saham Seri A`) | Listing-day board only; no current board/mechanism; MVS is a nuance for ordinary-share treatment | Historical listing-day fact |
+| S4 | `https://eodhd.com/financial-apis/api-for-historical-data-and-volumes` (retained, `docs/EODHD_SEMANTICS_RIGHTS.md`) | documented contract; retained 2026-09-29 | 2026-10-02 (retained) | Provider feeds raw as-traded OHLC plus a separate adjusted close, and split-adjusted volume | Provider documentation, not an exchange tape; does not establish the JK regular-market segment | Provider semantics, not instrument-dated |
+| S5 | `https://rdis.idx.co.id/en/events/mengenai-satuan-lot-apa-itu-lot` (retained) | IDX education | retained | IDX convention: 1 lot = 100 shares | Defines lots, not the provider's transformation or segment | Convention, not instrument-dated |
+
+Unavailable during this pass (no fact taken): IDX company-profile page/API (403),
+`idx.co.id` (403), `e-ipo.co.id` (403), `eodhd.com/exchange/INDX` (404).
+
+**Current classification.** KSEI per-security pages show `Saham Biasa` for all ten —
+BBCA, BBRI, ANTM, RAJA, VKTR, ENRG, PTRO, DSSA, GOTO, LPIN — with `IDR`, `Active`,
+`IDX` and ISINs `ID1000109507`, `ID1000118201`, `ID1000106602`, `ID1000094105`,
+`ID1000190309`, `ID1000098304`, `ID1000122401`, `ID1000113400`, `ID1000166903`,
+`ID1000086408`. This is a **current** observation and is not an effective-dated
+interval reaching 2026-08-24..2026-09-30.
+
+**Corporate actions listed for the window.** BBCA cash dividend (cum 2026-09-01);
+DSSA proxy voting (cum 2026-08-11); GOTO proxy voting (cum 2026-09-21); none for
+BBRI, ANTM, ENRG, PTRO, RAJA, VKTR, LPIN. ENRG (`2 : 1 ENRG-R`, cum 2026-10-02) and
+VKTR (`35 : 12 VKTR-R`, cum 2026-10-06) are **after** the window. No in-window
+unit-changing event was listed for any candidate; the RAJA 1:5, DSSA 1:25 and PTRO
+1:10 conversions are before it. Cash dividends may remain in a verified raw-price
+sequence and proxy voting is not price-affecting, but a KSEI list is not certified
+complete coverage, so price continuity is still not "cleared".
+
+### Universe snapshot decision
+
+The frozen contract defines a universe snapshot as **configured experiment
+membership**, not historical exchange membership. The retained `pilot/universe.json`
+is the authoritative definition of that configuration and is public and
+commit-pinnable, so it **is** sufficient evidence for configured membership. Exactly
+one substantiated snapshot was created:
+
+- `snapshotId` = `pilot-universe-2026-10-02`; `knownAt` = `2026-10-02T07:31:15.1843500Z`
+  (actual capture, not backdated); `universeId` = `PILOT`; 10 `memberIds`;
+  `benchmarkId` = `76237e96-232f-5085-9b13-dcb7104222bc` (`JKSE.INDX`).
+- One evidence record cites the pinned public configuration
+  `https://raw.githubusercontent.com/rizkyari828/idx-stock-intelligent/7c501136ba924f6dc265fed4af2872de5c2fe06a/pilot/universe.json`
+  (`publishedAt` 2026-09-28T09:24:41Z; retrieved/known 2026-10-02).
+- `contentHash` = `d7a3266cd9aaa360e8ea6c373866c117f8fc3a13f4db2489cede297b1149aa8f`,
+  verified by the application's own `ScreenerReferences.Parse`/`SnapshotHash`.
+
+`pilot/universe.json`, the configured ceiling and FullIdx are unchanged. Cutoffs at
+or after `knownAt` now see a known PILOT universe; earlier cutoffs still return
+`UNIVERSE_NOT_KNOWN`.
+
+### Instrument snapshot decision
+
+**No instrument reference snapshot was created or updated.** The substantiated
+classification/currency/status facts are current observations (KSEI as of
+2026-09-30/2026-10-01); applying them to the Aug–Sep window would require backdating
+capture to a listing date, which the contract forbids. Board, mechanism and an
+explicit-end trading-status interval are unsubstantiated, and price/volume clearance
+cannot be supplied (sections G/H below). A partial snapshot would yield no eligibility
+and risk implying more than is known, so unknown stays unknown and `instruments`
+remains `[]`.
+
+### Clearance result
+
+The reference schema needs, per instrument, a `knownAt`-visible full snapshot with an
+identity interval (`ORDINARY`/`INDEX`, `IDR`, supported board), a trading interval, a
+price interval (`RAW_AS_TRADED` + `STOCK_RAW`/`INDEX_LEVEL` + `CLEARED`/
+`NOT_APPLICABLE` + matching `sourceId` + selected content hashes) and a volume interval
+(non-`UNKNOWN` unit/basis/segment). The substantiated evidence still does not supply
+those knowledge-dated attestations for the evaluated dates:
+
+- Ordinary classification: current-only (KSEI `Saham Biasa`), no effective interval.
+- Board/mechanism/status: only GOTO's 2022 listing-day Main Board; current board and
+  mechanism `UNKNOWN`; KSEI `Active` is current-only with no explicit-end interval.
+- Price basis: no `RAW_AS_TRADED`/`CLEARED` event-coverage attestation and no
+  selected-hash clearance.
+- Volume basis: every selected bar has `market_segment = UNKNOWN`, so volume
+  clearance cannot be satisfied for any instrument under the frozen rule.
+
+No instrument can be promoted to `ELIGIBLE` without fabricating evidence. The honest
+real outcome remains BLOCKED/WARMUP/Unavailable, never a candidate list.
+
+### Current live Screener result
+
+`GET /api/screener?through=2026-09-30&view=all` (default cutoff = now, API run from
+the repository root, read-only, then stopped):
+
+- `status` = **BLOCKED**; `reasons` = `["INCOMPLETE_COVERAGE","RAW_PRICE_RETURNS"]`;
+  `universeSnapshotId` = `pilot-universe-2026-10-02`; `targetSession` = `2026-09-30`.
+- `summary`: configured 10, eligible 0, ineligible 0, dataBlocked 10, evaluated 0,
+  candidates 0, confirmed 0, watch 0, shortlisted 0, insufficientHistory 10, stale 0,
+  unsupported 0, held 0, heldOutsideUniverse 0.
+- `marketContext`: trend/volatility `UNKNOWN`/`UNKNOWN`, reason `REFERENCE_NOT_KNOWN`.
+- 10 rows, all `DATA_BLOCKED` (`REFERENCE_NOT_KNOWN`, `STATUS_UNKNOWN`,
+  `INSUFFICIENT_HISTORY`, some `LISTING_UNKNOWN`), `setup=NONE`, `NOT_EVALUATED`.
+- `inputHash` = `c4491e4f78d629dc631eab80c3de107e2f307fec3394fac98a5b747b74ab368b`.
+
+### Final M6 report (A–Q)
+
+**A. Files changed.** `pilot/screener-reference.json` (one PILOT universe snapshot;
+`instruments` still empty) and `docs/PRODUCT_SLICE_RUNBOOK.md` (this record). No source
+code, test, migration, frozen-contract, collector, frontend, or operational file
+changed; `bin/`/`obj/` build output is gitignored.
+
+**B. Authoritative sources reviewed.** S1–S5 above, all directly fetched or retained
+with URLs/titles/as-of dates; HTTP-failure sources are recorded as unresolved.
+
+**C. Universe snapshot status.** Created: `pilot-universe-2026-10-02`, actual
+`knownAt` 2026-10-02, 10 configured member IDs, `JKSE.INDX` benchmark, evidence pinned
+to the public configuration commit `7c50113`, verified `contentHash`
+`d7a3266c…aa8f`. Configured experiment membership only.
+
+**D. Instrument reference snapshots added/updated.** None (rationale above). No
+instrument fact is asserted beyond the current, sourced observations in E.
+
+**E. Identity/classification readiness.** Current `Saham Biasa` (ordinary) + `IDR` +
+`ACTIVE` + ISIN substantiated for all ten (KSEI, 2026-09-30/10-01). Effective-dated
+interval for the Aug–Sep window: **not substantiated**. GOTO carries multiple-voting
+Series A shares.
+
+**F. Board/mechanism/status readiness.** Board: only GOTO Main Board at listing
+(2022-04-11); current board `UNKNOWN` for all (IDX 403). Mechanism: `UNKNOWN` for all.
+Trading status: KSEI `Active` current-only; no explicit-end interval, so not usable as
+a frozen trading interval.
+
+**G. Price-basis readiness.** Not cleared. No `RAW_AS_TRADED`/`CLEARED` attestation;
+all 76 canonical bars are `DEGRADED`. In-window corporate actions are limited to a
+BBCA cash dividend and non-price proxy votes; no in-window split/consolidation was
+listed, but absence of a listed event is not certified completeness.
+
+**H. Volume-basis readiness.** Not cleared. Every bar is `volume_basis=SPLIT_ADJUSTED`,
+`market_segment=UNKNOWN`, unit `SHARE_COUNT_CORROBORATED` (70) or `UNKNOWN` (6). KSEI
+does not state volume basis/segment; the provider documents split-adjusted volume but
+no JK segment. The rule that `UNKNOWN` metadata is not verification is unchanged.
+
+**I. Per-instrument history/readiness matrix.** All ten configured candidates have 7
+bars (2026-08-24..2026-09-30); `JKSE.INDX` has 6 (missing 2026-09-29). No instrument
+reaches 21 continuous observations, so all are `DATA_BLOCKED`
+(`REFERENCE_NOT_KNOWN` + `STATUS_UNKNOWN` + `INSUFFICIENT_HISTORY`; some
+`LISTING_UNKNOWN`). Listing evidence: BBCA 2000-05-31, BBRI 2003-11-10, ANTM
+1997-11-27, RAJA 2003-01-22, VKTR 2023-06-19, ENRG 2004-06-07, PTRO 1990-05-21, DSSA
+2009-12-10, GOTO 2022-04-11 are retained as verified; LPIN remains year-only partial.
+No candidate is `ELIGIBLE`.
+
+**J. IHSG readiness.** `JKSE.INDX` has 6 bars with an interior gap at 2026-09-29 and no
+instrument snapshot, so `marketContext` is `UNKNOWN`/`UNKNOWN` with
+`REFERENCE_NOT_KNOWN`; RS20/RS60 are unavailable. Missing index context does not veto
+an otherwise valid stock breakout.
+
+**K. Current live Screener result.** See the section above: `BLOCKED`,
+`INCOMPLETE_COVERAGE`/`RAW_PRICE_RETURNS`, configured 10 / dataBlocked 10 / candidates
+0, `inputHash` `c4491e4f…368b`, known `universeSnapshotId`.
+
+**L. Soak status.** `pilot/soak.json` is `after_market_date=2026-09-28`,
+`required_completed_runs=10` → **1/10**; FullIdx remains **DISABLED**; provider calls
+**0**.
+
+**M. Evidence that remains unresolved.** Current-and-historical board/mechanism for
+all; classification as an effective-dated interval for 2026-08-24..2026-09-30; KSEI
+corporate-action completeness; volume basis/segment; `RAW_AS_TRADED` continuity;
+exact LPIN listing day; GOTO MVS/current board; IDX and e-IPO sources (403);
+post-cancellation retention rights.
+
+**N. Exact test results.** `rtk proxy dotnet test`: **305 total, 296 passed, 9 skipped
+(opt-in disposable PostgreSQL), 0 failed**. `rtk proxy python3.13 -m unittest discover
+-s scripts -p 'test_screener_*.py' -v`: **12 tests, 11 passed, 1 skipped** (opt-in
+browser), with the embedded owned-DB .NET discovery **305/305 passed, 0 skipped** and
+operational database/reference/operation fingerprints unchanged before/after. Release
+builds of `IdxStockIntelligence.Application` and `IdxStockIntelligence.Api`: **0
+warnings, 0 errors**. A temporary harness confirmed `ScreenerReferences.Parse` accepts
+the new reference and `Universe` selects the snapshot. Not rerun: frontend `npm
+test`/`npm run build`, portfolio exchange, offline restore, collector discovery.
+
+**O. Operational fingerprint/provider/FullIdx safety.** The operational database was
+read-only throughout; counts are unchanged (76 bars, 1 portfolio, 0 events, 0 theses,
+18 listing rows) and the disposable harness asserts unchanged fingerprints. The only
+API interaction was a read-only `GET`; provider calls **0**; FullIdx **DISABLED**; soak
+**1/10**. No migration, index, dependency, code or frozen-policy change.
+
+**P. Next recommended data-readiness action.** Obtain knowledge-dated, effective-dated
+authoritative evidence for the pilot window: IDX board/mechanism and trading status
+via an accessible official route, and provider/segment confirmation of volume basis
+and `RAW_AS_TRADED` continuity tied to selected revision hashes; separately resolve
+LPIN's exact listing day and GOTO's MVS/current board. Because the Aug–Sep window
+predates capture, the practical path is prospective retention (continue the soak) plus
+a new reference snapshot once dated evidence exists. Do not backdate or infer.
+
+**Q. Git status.** Uncommitted, unpushed:
+`M docs/PRODUCT_SLICE_RUNBOOK.md`, `M pilot/screener-reference.json`. `git diff
+--check` is clean.
+
+### Verification and operational safety
+
+All database work was read-only (`BEGIN READ ONLY`); the operational database, the
+`pilot/` inputs and authoritative operation/soak state are unchanged. Provider calls
+were **0** and FullIdx remains **DISABLED**. This milestone produces no candidate, no
+migration, no code and no recommendation; the only new retained evidence is the
+substantiated configured-membership universe snapshot. Real Screener candidate
+readiness is still not established.

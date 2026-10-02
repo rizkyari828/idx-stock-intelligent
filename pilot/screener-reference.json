@@ -1,5 +1,1 @@
-{
-  "schemaVersion": 1,
-  "universes": [],
-  "instruments": []
-}
+{"schemaVersion":1,"universes":[{"snapshotId":"pilot-universe-2026-10-02","knownAt":"2026-10-02T07:31:15.18435+00:00","universeId":"PILOT","memberIds":["81808734-9a0d-5fa6-aa94-ea723dcb414f","517ffb58-0202-55fc-8a9f-b7862232a3a0","b698ea22-04c7-5f9c-b8d3-076c36a95308","17d3a141-b1c3-5f52-be80-63b116929fa6","b2bfad81-a029-5bd1-a18c-cf5f91a9ff29","34caad60-b753-5afb-bb8e-cda047fbae66","f7d72ea1-d05d-5c5b-ace9-0435bb3e52eb","6419190e-2f43-5d94-abb2-d6bc030aa5dd","dfdddd0f-42ae-5fd3-9901-942db72cce5e","bd4c12c4-7523-5dc1-99eb-68e4f701edf3"],"benchmarkId":"76237e96-232f-5085-9b13-dcb7104222bc","evidence":[{"id":"pilot-config-universe-7c50113","source":"Retained pilot configuration (repository pilot/universe.json, commit 7c50113); configured experiment membership, not historical exchange membership.","reference":"https://raw.githubusercontent.com/rizkyari828/idx-stock-intelligent/7c501136ba924f6dc265fed4af2872de5c2fe06a/pilot/universe.json","publishedAt":"2026-09-28T09:24:41+00:00","retrievedAt":"2026-10-02T07:31:15.18435+00:00","knownAt":"2026-10-02T07:31:15.18435+00:00"}],"contentHash":"d7a3266cd9aaa360e8ea6c373866c117f8fc3a13f4db2489cede297b1149aa8f"}],"instruments":[]}
