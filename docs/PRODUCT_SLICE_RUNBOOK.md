@@ -746,3 +746,176 @@ transparent sort/held union; read-only API; production screen; disposable accept
 when Docker is available. The shared primitive does not attest corporate-action,
 identity/status or volume-basis clearance and does not by itself establish live
 candidate readiness. Follow the frozen contract before adding these later pieces.
+
+## Screener V0.1 — Milestone 2 completed, 2026-10-02
+
+Implemented only the evidence-read foundation against the unchanged
+[frozen contract](SCREENER_V0_1_CONTRACT.md). Starting state was clean `main` at
+`d124385e23e80c1440332e7c37d910a3d6b76517`, already two commits ahead of origin.
+Milestone 1's calculator, callers, legacy report shape and RS formulas are unchanged.
+No commit or push was performed.
+
+### Bounded canonical reads
+
+`ScreenerEvidenceDatabase.ReadAsync(connection, transaction, request, ct)` accepts
+the caller's existing Npgsql connection/transaction. A parameterized Npgsql batch
+reads bars and canonical listing evidence in one round trip, without the CLI reader,
+per-bar queries, registry joins or application-side historical revision selection.
+Milestone 4 must supply its one read-only repeatable-read transaction; the disposable
+tests exercise that exact transaction mode. This reader opens no independent view
+and issues no writes.
+
+`ScreenerReadRequest` requires the fixed **2026-08-24** anchor and through within
+**2026-08-24..2027-08-24**, inclusive (366 civil dates). Explicit errors reject a
+different anchor/out-of-scope date or more than **211** selected stable IDs including
+the benchmark. Bars are limited to **80,000 selected rows**, with SQL limit+1 and
+an unavailable overflow result, never truncation. The batch timeout is **15 seconds**;
+tokens reach database execution, result reads, file reads and hashing. A blocked
+database-read cancellation test verifies prompt termination.
+
+SQL filters requested IDs, anchored dates, `known_at`, raw-artifact fetch time,
+recorded retrieval and session knowledge against inclusive through/cutoff **before**
+`DISTINCT ON (instrument_id, session_date)` ordered by `known_at DESC,
+revision_number DESC`. Stocks and benchmark use the same query. A→B→A evidence and
+equal-knowledge revision ordering are preserved. Missing provenance is retained
+as missing, rather than synthesized or used to prefer an older bar.
+
+`ScreenerBarEvidence` retains selected ID/date/revision/knowledge/hash, run/artifact
+identities, source/raw hash/fetch/retrieval, session reference/knowledge, exact
+canonical quality, OHLC/adjusted-close strings, volume and unit/basis/segment.
+Validation occurs **after selection** through `Validate()`. REJECTED/UNKNOWN quality,
+incomplete provenance, inconsistent OHLC or unrepresentable decimals yield typed
+unavailable reasons and retain the selected row. Excess fractional precision is
+also rejected instead of allowing decimal parsing to round. No cleaner-revision
+fallback. DEGRADED/STALE quality is retained independently of later clearance and
+freshness decisions; no source-quality promotion occurs.
+
+Listing evidence is selected from `instrument_listing_evidence` by stable ID and
+cutoff and resolved with `InstrumentBoundaries.AsOf`. Original legacy assertions
+retain their missing retrieval limitation and stable-ID name placeholder; no live
+issuer name, type, symbol or listing boundary is borrowed from the mutable registry.
+Listing/identity reconciliation and sequence eligibility belong to Milestone 3.
+
+### Local reference schema 1 and effective resolution
+
+The only new real reference input is `pilot/screener-reference.json`:
+
+```json
+{"schemaVersion":1,"universes":[],"instruments":[]}
+```
+
+This is intentionally valid, empty and **not ready evidence**. Missing files likewise
+supply no assertions; absent universe returns `UNIVERSE_NOT_KNOWN` and absent
+instrument snapshot `REFERENCE_NOT_KNOWN`. No fallback to `pilot/universe.json`,
+`instrument` or `instrument_history`. No real verification snapshots were generated.
+
+The typed camelCase schema requires these fields (nullable values remain explicit):
+
+| Record | Fields |
+| --- | --- |
+| Universe snapshot | `snapshotId`, `knownAt`, `universeId=PILOT`, `memberIds` (max 10), `benchmarkId`, `evidence`, `contentHash` |
+| Instrument full snapshot | `snapshotId`, `instrumentId`, `knownAt`, `evidence`, `contentHash`, `identities`, `trading`, `prices`, `volumes` |
+| Source evidence | `id`, `source`, `reference` (HTTPS), `publishedAt` (nullable), `retrievedAt`, `knownAt` |
+| Identity interval | `from`, `through` (nullable), `symbol`, `displayName` (nullable), `classification`, `currency`, `board`, `evidenceIds` |
+| Trading interval | `from`, explicit `through`, `status`, `mechanism`, `evidenceIds` |
+| Price interval | `from`, explicit `through`, `sourceId`, `convention`, `continuity`, `eventCoverage`, `contentHashes`, `evidenceIds` |
+| Volume interval | `from`, explicit `through`, `sourceId`, `unit`, `basis`, `rawPriceCompatible`, `currency`, `marketSegment`, `contentHashes`, `evidenceIds` |
+
+Snapshots are retained append-only assertions: actual local `knownAt` cannot precede
+source knowledge/retrieval, and publication never substitutes for capture. Select
+the latest full snapshot known at cutoff, then an inclusive effective interval.
+Back-effective facts known later never leak. New incomplete/UNKNOWN coverage replaces
+old coverage in full; it is never merged to improve readiness. Same-time competing
+snapshots return conflict. V1 conservatively requires non-overlapping intervals within
+each fact collection; overlap invalidates the selected instrument snapshot, including
+overlap outside the evaluated day. Distinct snapshots at later knowledge times are
+the replacement mechanism, not edits to old assertions.
+
+Unknown/duplicate JSON fields, missing required fields/arrays, duplicate snapshot or
+member IDs, empty/malformed UUIDs, unsupported schema/vocabulary, invalid ranges,
+unseen evidence IDs, invalid lowercase SHA-256 or changed snapshot content fail closed.
+`contentHash` must equal `ScreenerReferences.SnapshotHash(snapshot)`: SHA-256 of canonical
+JSON excluding the root `contentHash`, with ordinal property/collection ordering and
+UTC instants. It detects accidental mutation, not the truth of an external assertion.
+Never update the hash/knowledge of an old assertion to manufacture historical readiness.
+
+Identity classes are ORDINARY/INDEX/UNSUPPORTED/UNKNOWN. The schema records supported,
+unsupported and unknown boards/mechanisms without deciding final eligibility.
+Price continuity requires RAW_AS_TRADED, source convention STOCK_RAW or INDEX_LEVEL,
+specific selected canonical content hashes and valid canonical price provenance.
+Ordinary-share price use requires IDR, positive observed stock volume and CLEARED
+unit-changing-event coverage; unresolved splits/consolidations/reorganizations remain
+unavailable. Verified raw cash-dividend movements are retained; no total-return math.
+Index event coverage can be NOT_APPLICABLE: verified identity, index-level convention,
+continuity and valid prices remain required, but stock boards/status/share quantities
+and positive index volume do not gate index price clearance.
+
+Volume clearance is independent: explicit source, matching revision hashes, compatible
+raw-price quantity basis, IDR, known segment and matching verified share metadata are
+required. UNKNOWN equality is not verification. LOTS can be represented but are not
+converted or cleared for these share-based fields. SPLIT_ADJUSTED is usable only with
+specific independent raw-price compatibility evidence, never merely because strings
+match. Missing/failed volume clearance need not erase cleared positive-volume prices.
+No adjustment factor, adjusted-close substitution or guessed ×100 is introduced.
+
+`ScreenerReferenceFiles.LoadAsync(ct)` copies exactly the three fixed local inputs
+once: new reference, existing `pilot/sessions.json`, `pilot/instrument-sessions.json`.
+They share **4 MiB / 10,000 evidence-record** bounds (including nested assertions,
+membership IDs and revision-hash entries); overflow returns explicit unavailable.
+There is no remote fetch, HTTP upload or supplied filesystem path.
+
+Calendar resolution reuses `SessionProof`, `InstrumentSessionProof`,
+`ExchangeCalendarEvidence.Classify` and `CompletedSessionPolicy` (19:00 WIB).
+Through/cutoff filter precedes latest dated assertion selection. An unambiguous later
+assertion replaces the earlier assertion for that date; incompatible same-time
+assertions block chronology. Closures/weekends remain distinct from unknown weekdays;
+same-day open evidence needs completion. Missing bars and zero volume never generate
+closure/no-trade assertions. Existing operational files and Worker admission are not
+rewritten. Before operational session corrections are appended, separately verify
+legacy Worker ingestion, whose pre-existing single-record-per-date parser is unchanged.
+
+### Selected-input digest and actual verification
+
+`ScreenerReferences.Select` exposes only the chosen knowledge-visible snapshots and
+anchored, through-bounded latest session/status assertions for selected IDs. Competing
+selected assertions are retained for conflict provenance. `SelectedDigest(..., ct)`
+hashes resolved policy/anchor/through/cutoff/IDs, selected bar revision tuples, selected
+canonical listing facts/hashes and the selected reference bundle. Properties/arrays
+are ordered invariantly; dates are ISO and instants UTC. Input ordering and equivalent
+timestamp offsets do not alter the digest. Future-only references, bars and proofs
+cannot change an old-cutoff digest. Paths, connection settings and unselected history
+are absent. This is an **internal market/reference digest**, not the final public
+`inputHash`: portfolio ledger/thesis facts and API input pinning are Milestone 4 work.
+
+Added **64 .NET cases**: 55 in-memory chronology/schema/clearance/calendar/digest/bounds
+checks and 9 opt-in real PostgreSQL cases. The SQL tests use connection-local TEMP
+copies of the actual schema in a harness-owned `idx_screener_test_*` database.
+They verify stock/index A→B→A, late/future-source exclusion, invalid latest and decimal
+overflow without fallback, revision ties, requested-ID/date bounds, listing chronology,
+future append digest stability, read-only repeatable-read compatibility and cancellation
+while waiting on an owned table lock. Every existing 74-case regression remains.
+
+| Check | Actual Milestone 2 result |
+| --- | --- |
+| Canonical `rtk proxy dotnet build` | PASS, zero warnings/errors |
+| Plain canonical `rtk proxy dotnet test` | 138 discovered: **129 passed, 9 skipped**, zero failures; skips are the new explicit disposable-DB opt-in gate |
+| `rtk proxy python3.13 -m unittest discover -s scripts -p test_screener_evidence.py -v` | **1/1 passed**; invokes canonical `rtk proxy dotnet test` with owned DB context: **138/138 passed, zero skipped** |
+| Collector standard discovery with `IDX_EXPERIMENT_VERIFY_DB=1`, Python3.13 and collector PYTHONPATH | **61/61 passed**, zero skipped; includes existing DB fingerprint and FullIdx rejection checks |
+| `git diff --check` | PASS |
+| Frontend/browser/exchange acceptance and archived restore | Not rerun for this foundation; no API/UI/exchange/Worker behavior changes |
+
+Docker was available after the required outside-sandbox readiness retry (server
+29.8.1). The final owned DB run passed and removed its disposable database. Before/
+after fingerprints matched for canonical bars, raw artifacts/fetches/runs, registry/
+symbol history/listing evidence/calendar, portfolio headers/events/theses, all local
+pilot JSON inputs and authoritative operation files. The only intentional real
+evidence-file addition is the empty schema-1 reference. No operational tables or
+existing reference/soak files were written. No provider calls, collector changes,
+new dependencies, database migrations/indexes or FullIdx activation.
+
+Remaining: Milestone 3 eligibility/continuity, per-feature evidence dependencies,
+episode transitions, transparent ordering and held union; Milestone 4 one request
+transaction/read-only endpoint and final portfolio-inclusive digest/pinning; production
+UI and full disposable acceptance/restore. Real identity/status/price-volume attestations
+and enough retained history remain external readiness gaps. This milestone does not
+produce candidates or certify operational stocks as ready.
