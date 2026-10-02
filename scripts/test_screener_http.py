@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta, timezone
 import hashlib
 import http.client
 import json
+import os
 from pathlib import Path
 import socket
 import subprocess
@@ -89,7 +90,7 @@ class ScreenerHttpAcceptance(unittest.TestCase):
             cls.base = "http://127.0.0.1:" + str(listener.getsockname()[1])
         env, connection, _ = evidence.environment(cls.database)
         env["IDX_DATABASE_CONNECTION"] = connection
-        env["IDX_UI_ROOT"] = self.directory.name  # No frontend/browser acceptance in this milestone.
+        env["IDX_UI_ROOT"] = str(ROOT / "frontend/dist")
         self.log = tempfile.TemporaryFile()
         self.addCleanup(self.log.close)
         self.process = subprocess.Popen(["dotnet", str(ROOT / "src/IdxStockIntelligence.Api/bin/Debug/net10.0/IdxStockIntelligence.Api.dll"),
@@ -198,6 +199,24 @@ class ScreenerHttpAcceptance(unittest.TestCase):
                  f"repeat('{chr(96 + revision)}',64),{close},GREATEST(high,{close}),LEAST(low,{close}),{close},volume,'{quality}',"
                  "volume_unit,volume_basis,market_segment,adjusted_close,retrieved_at,session_reference,session_known_at "
                  f"FROM daily_bar_revision WHERE instrument_id='{i}' AND session_date='{THROUGH}' AND revision_number=1")
+
+    @unittest.skipUnless(os.environ.get("IDX_TEST_BROWSER") == "1", "Opt-in real Chrome Screener acceptance")
+    def test_production_react_screener_browser_interactions(self):
+        self.fixture(); p = self.portfolio()
+        complete = deepcopy(self.document)
+        for snapshot in complete["instruments"]:
+            if snapshot["instrumentId"] != INDEX: snapshot["identities"][0]["classification"] = "UNSUPPORTED"
+            snapshot["contentHash"] = snapshot_hash(snapshot)
+        (Path(self.directory.name) / "complete-empty-reference.json").write_text(json.dumps(complete))
+        (Path(self.directory.name) / "selected-change.sql").write_text(self.bar_statement(identifier(1), 2, quality="REJECTED"))
+        env, _, _ = evidence.environment(type(self).database)
+        env["IDX_TEST_SCREENER_DATABASE"] = type(self).database
+        result = subprocess.run([os.environ.get("IDX_TEST_NODE", "node"), "scripts/check_product_ui.mjs",
+                                 type(self).base, p, "screener", self.directory.name], cwd=ROOT, env=env,
+                                text=True, capture_output=True, timeout=150)
+        self.assertEqual(0, result.returncode, result.stderr + result.stdout)
+        self.assertIn('"status": "PASS"', result.stdout)
+        print(result.stdout)
 
     def test_query_validation_and_empty_evidence_are_honest(self):
         response = self.request("/api/screener")

@@ -1,11 +1,12 @@
 // Real React/HTTP acceptance in an OWNED disposable database. Node 22+, native CDP, no packages.
 import assert from 'node:assert/strict';
+import {checkScreener} from './check_screener_ui.mjs';
 import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
-const [base,portfolioId]=process.argv.slice(2);
+const [base,portfolioId,mode='portfolio',fixtureRoot]=process.argv.slice(2);
 assert.ok(/^http:\/\/127\.0\.0\.1:\d+$/.test(base),'Only the disposable loopback API is allowed');
 assert.notEqual(new URL(base).port,'5080','Never run synthetic UI acceptance on the operational port');
 const output=process.env.IDX_TEST_UI_OUTPUT||join(tmpdir(),'idx-product-ui-previews');
@@ -25,16 +26,17 @@ const submit=selector=>evaluate(`document.querySelector(${JSON.stringify(selecto
 const nav=label=>evaluate(`Array.from(document.querySelectorAll('nav button')).find(e=>e.title===${JSON.stringify(label)}).click()`);
 async function size(width,height=1000){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});}
 async function noOverflow(){const d=await evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');assert.ok(d.scroll<=d.width+1,JSON.stringify(d));}
-async function shot(name){await evaluate('document.fonts.ready');const r=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});await writeFile(join(output,name+'.png'),Buffer.from(r.data,'base64'));}
+async function shot(name){await evaluate('window.scrollTo(0,0)');await evaluate('document.fonts.ready');const r=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});await writeFile(join(output,name+'.png'),Buffer.from(r.data,'base64'));}
 async function file(format,content,name){await evaluate(`(()=>{const e=document.querySelector('#import-file');const data=new DataTransfer();data.items.add(new File([${JSON.stringify(content)}],${JSON.stringify(name)},{type:${JSON.stringify(format==='JSON'?'application/json':'text/csv')}}));e.files=data.files;e.dispatchEvent(new Event('change',{bubbles:true}));})()`);await until('!document.querySelector("#import-file").disabled');}
 const buttonText=text=>evaluate(`Array.from(document.querySelectorAll('main button')).find(e=>e.textContent.trim().startsWith(${JSON.stringify(text)})).click()`);
 try {
- assert.equal((await request(`/portfolios/${portfolioId}`)).portfolio.name,'SYNTHETIC HISTORICAL RESTORE','UI acceptance requires the owned historical fixture');
+ if(mode!=='screener')assert.equal((await request(`/portfolios/${portfolioId}`)).portfolio.name,'SYNTHETIC HISTORICAL RESTORE','UI acceptance requires the owned historical fixture');
  await mkdir(output,{recursive:true});let pages;
  for(let i=0;i<100;i++){if(chromeError)throw chromeError;try{pages=await (await fetch(`http://127.0.0.1:${port}/json`)).json();break;}catch{await wait(50);}}
  assert.ok(pages,'Chrome startup');socket=new WebSocket(pages.find(p=>p.type==='page').webSocketDebuggerUrl);await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject;});
  socket.onmessage=event=>{const m=JSON.parse(event.data);if(m.method==='Runtime.exceptionThrown')exceptions.push(m.params.exceptionDetails);if(m.method==='Network.requestWillBeSent')requests.push(m.params.request);if(m.id){const cb=pending.get(m.id);pending.delete(m.id);m.error?cb.reject(m.error):cb.resolve(m.result);}};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await size(1440);await send('Page.navigate',{url:base});await until('!!document.querySelector(".portfolio-select button")');
+ if(mode==='screener'){await checkScreener({base,portfolioId,fixtureRoot,send,evaluate,until,click,set,submit,nav,size,noOverflow,shot,buttonText,requests,exceptions,output});}else {
  await evaluate(`localStorage.setItem('idx-portfolio-id',${JSON.stringify(portfolioId)});localStorage.setItem('idx-theme','dark')`);await send('Page.reload',{ignoreCache:true});await until('!!document.querySelector(".holdings-table")');
  assert.match(await evaluate('document.querySelector("main").innerText'),/Valuation is incomplete/);assert.equal(await evaluate('document.querySelectorAll(".holdings-table tbody tr").length'),2);await shot('portfolio-1440');
  const initial=await request(`/portfolios/${portfolioId}`);const historyBefore=await request(`/portfolios/${portfolioId}/events`);
@@ -142,4 +144,5 @@ try {
  await size(1440);await nav('Portfolio');await click('[aria-label="Switch to light theme"]');await noOverflow();await shot('portfolio-light');await click('[aria-label="Switch to dark theme"]');
  assert.equal(exceptions.length,0,JSON.stringify(exceptions));assert.ok(requests.every(r=>r.url.startsWith(base+'/')||r.url.startsWith('data:')),'External request');
  console.log(JSON.stringify({status:'PASS',checks:'local snapshot CSV/duplicate preview, local draft reload/context/isolation/clear, explicit EQUITY registration, UNKNOWN to missing-ledger, unchanged cash and ledger/thesis history, no snapshot import writes, real reconciliation/errors, correction append and history, thesis version/invalidation, JSON/CSV preview gates, exact confirmation payload, file/format/mode/portfolio invalidation, responsive overflow/dialogs, keyboard focus/Escape, light theme, no external requests',widths:[1440,1366,1280,1024,768,390],screenshots:output},null,2));
+ }
 } finally {socket?.close();chrome.kill();await new Promise(resolve=>{if(chrome.exitCode!==null)resolve();else {chrome.once('exit',resolve);setTimeout(resolve,3000);}});await rm(profile,{recursive:true,force:true});}

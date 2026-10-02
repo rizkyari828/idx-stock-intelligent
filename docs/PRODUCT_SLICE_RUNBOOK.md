@@ -4,6 +4,13 @@ Requires .NET 10, PostgreSQL 17 (existing compose service), Python 3.12+ for
 acceptance and Node 22.12+ for current Vite. Run from repository root unless
 indicated. No provider token is needed. Keep connection strings outside Git.
 
+Current Screener status: **Milestone 5 complete**. The production sidebar now opens
+the read-only PILOT Screener independently of a portfolio. The final section below
+records its context/pinning behavior and fresh verification. Empty real Screener
+references still produce honest BLOCKED coverage; implementation completion does
+not certify real candidate readiness. Earlier dated sections retain their milestone
+results and scope at the time.
+
 ## Schema and startup
 
 Apply migrations using the existing local CLI, once the target database exists.
@@ -1263,3 +1270,189 @@ states/filters/held exposure and browser acceptance; broader release/restore che
 as applicable. Real retained identity/status/price-volume clearance and adequate
 history remain external readiness gaps. The unchanged empty real reference file
 still yields honest BLOCKED coverage rather than claiming actual candidates are ready.
+
+## Screener V0.1 — Milestone 5 completed, 2026-10-02
+
+The production React application now contains one enabled **Screener** navigation
+entry and a descriptive comparison page. It reuses the existing shell, theme tokens,
+PageHeader, Metric, Badge, Notice, table scrolling and native Dialog. The standalone
+design prototype is unchanged. M4 at `006254d` is the committed baseline; all M5
+changes remain uncommitted. The frozen contract and M1–M4 backend are unchanged.
+
+### Files and production page
+
+| File | Change |
+| --- | --- |
+| `frontend/src/ScreenerPage.tsx` | Context, summary, IHSG context, discovery and held sections, filters/paging, notices and row details |
+| `frontend/src/screener.ts` | Literal DTO types, GET wrapper, display formatting and one cancellable request owner with generation/hash/cutoff guards |
+| `frontend/src/api.ts` | Preserve HTTP status/code in an Error subclass; existing message callers keep their behavior |
+| `frontend/src/main.tsx` | Route Screener before portfolio availability gates; reuse the current portfolio/open dialog state, hide unrelated portfolio context on Screener |
+| `frontend/src/ui.tsx` | Reuse/test the actual navigation; optional loading label and keyboard traversal of native summaries in dialogs |
+| `frontend/src/style.css` | Screener grids, wrapping facts, numeric alignment, sticky symbol cells and narrow-screen table scrolling |
+| `frontend/src/screener.test.tsx` | 36 new native Node/React render and request lifecycle checks |
+| `frontend/package.json`, `frontend/tsconfig.test.json` | Include the new checks in the existing frontend test command; no dependency change |
+| `scripts/check_product_ui.mjs` | Extend the existing Chrome/CDP entry point with a Screener mode and consistent screenshot scroll position |
+| `scripts/check_screener_ui.mjs` | Screener assertions using the same browser/runtime helpers and real disposable HTTP responses |
+| `scripts/test_screener_http.py` | Serve the built frontend, add opt-in Chrome case and owned temporary mutation/reference fixtures |
+| `docs/PRODUCT_SLICE_RUNBOOK.md` | This completion record, operation and recovery guidance |
+
+### Context, pinning and errors
+
+Through is a market date, bounded by the frozen 2026-08-24..2027-08-24 horizon and
+Jakarta today. Known by is a WIB datetime-local input; an explicit value uses the
+existing UTC conversion. Blank omits cutoff on a fresh request, allowing the server
+to resolve now once. The response displays policy, PILOT, applied through, resolved
+target session and resolved known-by time. Its normalized cutoff and inputHash are
+retained verbatim for view/filter/page requests. No frontend indicator, ranking,
+eligibility, setup or quality calculation is performed.
+
+Editing through/cutoff aborts and clears rows, details and pin immediately, resets
+offset, and requires **Apply context**. **Now** intentionally clears the known-by
+input and evaluates. Portfolio is optional: choose **Discovery only** or the open
+workspace portfolio. Its selector starts a fresh context; opening another portfolio
+reuses the existing workspace dialog/state and remounts the Screener with a fresh
+today/now context. No reconciliation draft or portfolio result is used as Screener
+evidence. There is no duplicate portfolio-list loader.
+
+AbortController plus an increasing request generation reject both late success and
+late error responses, including a transport that ignores cancellation. Same-context
+filter/page loads replace discovery with its own busy state while retaining all
+held rows from the established pin. New contexts and errors clear the displayed
+result. No result is written to localStorage, IndexedDB or a database.
+
+HTTP 409 `INPUT_CHANGED` clears every displayed row and disables traversal. The
+notice says **Underlying Screener inputs changed. Refresh the evaluation.** Explicit
+**Refresh evaluation** discards the pin, resets offset to zero and evaluates the
+current context. Blank cutoff resolves a fresh now; an explicit historical cutoff
+remains selected. HTTP 400 shows context/filter validation guidance, 404 reports an
+unavailable portfolio under the context, and 503/network failures offer retry.
+Errors never become empty success and private server details are not displayed.
+
+### Presentation and coverage
+
+The header says **Descriptive breakout screening; not an order.** Summary metrics
+are Configured, Eligible, Data Blocked, Candidates and Held. The disclosure exposes
+confirmed/watch, evaluated/ineligible, history/stale/unsupported, shortlist/omitted
+and outside-universe held counts. Diagnostics explicitly may overlap. Null counts
+stay **Unavailable**, and API zero remains zero.
+
+IHSG is separate: trend POSITIVE/NEUTRAL/NEGATIVE/UNKNOWN and volatility
+NORMAL/ELEVATED/UNKNOWN retain the supplied values. Market date, close, EMA20/50,
+ATR14/%, reasons, availability and provenance are discoverable. UNKNOWN is never
+converted to neutral or normal.
+
+Default discovery columns, in order: Symbol/Held, Setup, Close IDR/observed date,
+Distance to prior high %, RS60 pp, RS20 pp, Prior-20 Value Proxy IDR, Data State.
+The backend's ID list controls order; a Map only resolves the shared returned rows.
+No local sorting, gate, cap refill or ranking is added. Prices, percentages and pp
+use two decimals; IDR proxies use whole IDR. Details show unrounded returned numeric
+values. Stale observations keep their actual old dates. Historical labels never
+fall back to the mutable instrument registry.
+
+Shortlist is default; All instruments, ALL/NONE/WATCH/CONFIRMED/FAILED setup and
+ALL/ELIGIBLE/INELIGIBLE/DATA_BLOCKED eligibility controls fetch the backend. Filters
+and views reset offset; Previous/Next use returned offset/limit/total. Production
+default limit is **20**. Held rows are never locally filtered or paged away.
+
+**All Held Positions** uses `heldIds` and the same row objects as discovery. A shared
+instrument may appear in both tables but the API summary is displayed without
+double counting. Outside-universe, ineligible, blocked and noncandidate holdings
+remain visible. Mandate is neutral FAST_SWING/LONG_SWING/INVEST/Unassigned metadata.
+A selected empty portfolio has a factual no-positive-holdings message; discovery
+still operates. Discovery only has no held section.
+
+COMPLETE is neutral; zero candidates explicitly says **No candidates met this
+descriptive setup**, even if All instruments still contains excluded rows. PARTIAL
+has a persistent coverage notice and actual reasons while evaluable setups remain
+visible. BLOCKED explains unavailable required evidence/history and cannot be
+mistaken for an empty successful screen. `setupEvaluated=false` renders **Not
+evaluated**, never No setup; evaluated NONE is **NONE / No setup**. Canonical
+DEGRADED and selected REJECTED quality remain explicit beside evaluation quality.
+
+The instrument dialog exposes stable/historical identity, configured/held/mandate/
+rank, eligibility and setup reasons, all nine episode fields, every technical
+feature, field availability/reasons, observation and selected-current provenance,
+source/revision/known/retrieved times, canonical quality, sequence/seed starts and
+reference snapshot IDs. Null stays unavailable; legitimate zero stays numeric.
+No action, recommendation, confidence, urgency or order controls are introduced.
+
+### Browser, accessibility and regression results
+
+The new browser case uses the existing Chrome/CDP stack, owned disposable database
+and private API working/reference directory. It covers discovery without portfolio,
+shared/outside held rows, real filters, pinned pages, reverse-release of two actual
+HTTP responses whose cancellation is deliberately ignored, and a selected revision
+that causes an actual 409 followed by explicit refresh. Empty/malformed temporary
+references exercise BLOCKED/503; known exclusions exercise COMPLETE with zero
+candidates; optional-feature warmup exercises PARTIAL with a valid confirmed setup.
+
+The max-ten PILOT fixture normally cannot fill a twenty-row page. A **test-only
+browser fetch shim** requests limit 2 from the real API to exercise Previous/Next.
+The unmodified production default-20 request is separately asserted and captured.
+No fixture values or shim enter the production frontend or operational files.
+
+All six widths **1440, 1366, 1280, 1024, 768, 390** pass body-overflow and last-column
+reachability assertions. Screenshots at every width were inspected, along with
+light/dark views, mobile dialog top/bottom, horizontally scrolled tables and the
+409/BLOCKED/COMPLETE states. Numeric alignment, controls, held rows, wrapped hashes,
+full data-state columns and dialog actions remain reachable. Keyboard checks cover
+context/filter/paging controls, dialog Tab containment, Escape and returned focus;
+labels, scoped headers/captions, busy labels, status/alert notices, text state badges,
+visible focus and existing reduced-motion/theme behavior are retained.
+
+| Check | Actual M5 result |
+| --- | --- |
+| Canonical `rtk proxy dotnet build` | PASS, **0 warnings, 0 errors** |
+| Plain canonical `rtk proxy dotnet test` | **305 discovered: 296 passed, 9 expected database opt-in skips**, 0 failures |
+| Owned disposable canonical .NET discovery via evidence wrapper | **305/305 passed**, 0 skipped |
+| Existing Screener SQL/HTTP discovery | **11/11 existing cases passed**; the added browser case initially opt-in skipped, then **1/1 passed** in targeted enabled discovery |
+| Collector discovery with `IDX_EXPERIMENT_VERIFY_DB=1` | **61/61 passed**, 0 skipped; ordinary discovery also passed with its 1 expected DB fingerprint skip |
+| `npm test` | **50/50 passed**, 0 skipped: 14 existing + 36 new |
+| `npm run build` | PASS using Node **24.19.0**, existing dependencies only |
+| Existing disposable portfolio/exchange/Chrome discovery | **8/8 passed**, including actual reconciliation, draft/registration, transactions, thesis, exchange, responsive and keyboard flows |
+| Established offline `check_pilot_restore.py` | **14/14 groups passed**, 0 provider requests |
+| `git diff --check`; frozen/backend/reference comparison to HEAD | PASS; frozen contract, backend, migrations, existing .NET tests, collector and pilot files unchanged |
+
+Reproduction uses the existing commands and installed Node 22.12+; build first:
+
+```bash
+rtk proxy dotnet build
+rtk proxy dotnet test
+cd frontend
+npm test
+npm run build
+cd ..
+IDX_EXPERIMENT_VERIFY_DB=1 PYTHONPATH=collectors/python/src python3.13 -m unittest discover -s collectors/python/tests -v
+IDX_TEST_BROWSER=1 IDX_TEST_NODE="$(command -v node)" python3.13 -m unittest discover -s scripts -p 'test_screener_*.py' -v
+IDX_TEST_BROWSER=1 IDX_TEST_NODE="$(command -v node)" python3.13 -m unittest discover -s scripts -p test_portfolio_exchange.py -v
+python3.13 scripts/check_pilot_restore.py
+```
+
+### Recovery, safety and remaining readiness
+
+Screener has no persisted results to restore. Preserve the source-controlled
+`pilot/screener-reference.json` together with `pilot/sessions.json` and
+`pilot/instrument-sessions.json`, using their exact dated versions alongside the
+database backup. Existing pilot JSON fingerprint coverage already includes the new
+Screener reference. Raw re-ingestion still cannot reproduce original canonical
+knowledge timestamps; exact historical recovery requires the established database
+backup, retained raw provenance and the matching reference files. No restore or
+portfolio-export semantics were changed to persist a transient response.
+
+Docker **29.8.1** was available. Existing disposable harness cleanup completed.
+Before/after checks preserved **all 11 operational canonical/raw/registry/listing/
+calendar/portfolio tables** and **14 pilot/reference/operation files**; the same
+checks also surrounded the offline restore invocation. This includes the new empty
+Screener reference and authoritative operation/soak state. Browsing made **0 API
+writes and 0 external requests**; provider calls **0**. FullIdx remains **DISABLED**
+and rejected. No migration, result persistence, threshold change, backend semantic
+change, new dependency, AI, chart or Stock Detail was added. No commit or push.
+
+Implementation and fixture acceptance are complete. Real retained knowledge-dated
+membership/identity/trading evidence, price continuity/event clearance, independently
+certified volume basis and sufficient 20/50/60 history remain readiness limitations.
+The real reference remains empty and real BLOCKED/WARMUP/Unavailable is expected.
+Do not populate it from tests, shorten warmup, infer equity from current registry,
+or enable FullIdx to manufacture candidates. Larger universes, richer Stock Detail/
+charts, alternative setups and portfolio decision workflows require separately
+authorized post-V0.1 work; no recommendation or rule promotion is implied here.
