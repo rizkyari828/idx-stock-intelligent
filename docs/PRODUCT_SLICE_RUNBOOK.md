@@ -664,3 +664,85 @@ and offline restore reruns could not verify results because Docker was unavailab
 including outside the sandbox. Their previously recorded **8/8** and **14 groups**
 remain historical baseline evidence, not fresh passes; rerun them before implementation
 release. The completed contract incorporates the temporary checkpoint, which was removed.
+
+## Screener V0.1 — Milestone 1 completed, 2026-10-02
+
+Implemented only the shared feature chronology/relative-strength milestone against
+the unchanged [frozen contract](SCREENER_V0_1_CONTRACT.md). Starting repository state
+was clean at `7fcff5316c395648f3e9fca7e6628f44c259d431` (`main`, already one commit
+ahead of origin). No commit or push was performed for this milestone.
+
+`PilotFeatures.Calculate` now requires an inclusive `DateOnly through` immediately
+before `DateTimeOffset cutoff`. It filters both canonical bar dates and session-proof
+dates internally before calendar/revision resolution. Existing known-at/source-
+availability filters remain in effect. Future input cannot supply a historical
+market date, advance its feature window, alter seeds or break its continuity.
+There is no default/inferred through value or old-signature overload.
+
+| Caller updated | Explicit market boundary / compatibility |
+|---|---|
+| Worker `Program.cs` (only production caller) | `last`, parsed and validated from the requested batch's `to`. Stored history and evidence may extend beyond that batch; the shared boundary excludes them. Same eligible inputs evaluated at the intended batch end retain the existing calculations. |
+| `scripts/OfflineScale/Program.cs` (six call sites) | A fixed `through` equal to the planned fixture's 250th exchange date, independent of the supplied/revised history. Scoped/full, missing/alignment and correction/replay checks use the same date. This is an opt-in synthetic checker, not FullIdx activation. |
+| Existing `PilotTests.cs` (nine call sites) | The fixture's explicit evaluation date; the 10-observation warmup case uses its tenth proof date, and the weekend case its planned Monday. Existing expected feature/legacy values were preserved. |
+
+The legacy `RelativePerformance20` remains
+`(stockEnd/stockStart)/(indexEnd/indexStart)-1`, including its prior positive-index-
+volume rule. It was neither renamed nor converted to pp. EMA20/EMA50, True Range,
+Wilder ATR14, prior ranges and volume ratio retain their existing implementations.
+
+New programmatic fields `PilotFeatureResult.Rs20Pp` and `.Rs60Pp` calculate
+`100 * ((stockEnd/stockStart-1) - (indexEnd/indexStart-1))` over exactly 21/61
+observations on matching exchange dates. Every interior benchmark observation must
+exist; no nearest date, forward fill or skipped gap is permitted. Index volume is
+irrelevant to these new price returns. Fixtures verify **5 pp** for stock 100→110 /
+IHSG 100→105, and **10 pp** for stock 100→120 / IHSG 100→110, while retaining the
+distinct legacy ratio.
+
+`Rs20PpState` / `Rs60PpState` reuse the existing `FeatureState` model. Adequate aligned
+history is AVAILABLE; insufficient continuous stock observations are WARMUP with
+`INSUFFICIENT_SESSIONS`; an absent/misaligned benchmark is UNAVAILABLE with
+`BENCHMARK_MISSING`. Missing/current-gap/unconfirmed-session results remain
+UNAVAILABLE with the existing result's reason. Decimal overflow of an optional new
+RS field yields UNAVAILABLE/`NUMERIC_OUT_OF_RANGE` without breaking legacy features.
+Every unavailable/warmup RS scalar stays null. Horizons are independent: RS20 may
+be available while RS60 is warmup or blocked by an older benchmark gap.
+
+The new RS values/states are intentionally excluded from legacy pilot JSON via
+`JsonIgnore`: existing report fields and offline report-hash serialization retain
+their previous shape. Future Screener DTOs must project the named numeric values
+and states explicitly. No archived output was rewritten and no Screener API was added.
+
+Added `PilotFeatureChronologyTests.cs` with **24** discovered cases covering through-
+stable EMA20/EMA50/ATR14 and both RS horizons; future bars/proofs/oversized inputs;
+future-only price dates; future conflicting proof records excluded before resolution;
+repeated results; legacy formula/report compatibility; exact pp fixtures; 20/21/60/61
+warmup boundaries; missing interior/end benchmark observations; absent/date-shifted
+IHSG; stock missing/unknown/zero-volume continuity breaks; zero-volume index prices;
+late stock/benchmark revisions and source availability; and optional RS overflow.
+All existing .NET regression expectations remain intact apart from explicit dates.
+
+| Check | Actual Milestone 1 result |
+|---|---|
+| Canonical `rtk proxy dotnet build` | PASS, zero warnings/errors |
+| Canonical `rtk proxy dotnet test` | **74/74 passed**, zero skipped (50 prior + 24 new cases) |
+| `rtk proxy dotnet build scripts/OfflineScale/OfflineScale.csproj` | PASS, zero warnings/errors; all auxiliary callers compile |
+| Standard Python discovery with Python3.13 and collector `PYTHONPATH` | 61 discovered: **60 passed, 1 skipped**, no failures |
+| `git diff --check` | PASS |
+| Disposable HTTP/browser acceptance, restore, database opt-in fingerprint and scale execution | **NOT RUN**: Docker socket access was denied in the sandbox; the outside-sandbox readiness retry confirmed the Docker daemon was unavailable |
+| Frontend tests/build | Not rerun; no frontend/API changes in this milestone |
+
+The Python skip is the existing `test_production_database_fingerprint_unchanged`
+gate (`IDX_EXPERIMENT_VERIFY_DB=1`, reason `Opt-in local PostgreSQL fingerprint`).
+It is not a new skip or a database-verification pass. No fresh operational database
+fingerprint is claimed. Tests use in-memory/temporary fixtures; Worker ingestion and
+provider collection were not run. No database writes, migrations, reference snapshots,
+Screener evaluator, API, UI, portfolio action or threshold change was introduced.
+Collector FullIdx rejection guards and pilot configuration are unchanged; standard
+Python tests covering FullIdx rejection passed.
+
+Remaining milestones: bounded quality-preserving as-of reads and dated reference
+evidence; actual price/status/basis readiness gates; eligibility and episode logic;
+transparent sort/held union; read-only API; production screen; disposable acceptance
+when Docker is available. The shared primitive does not attest corporate-action,
+identity/status or volume-basis clearance and does not by itself establish live
+candidate readiness. Follow the frozen contract before adding these later pieces.

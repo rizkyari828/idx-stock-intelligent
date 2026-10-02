@@ -91,7 +91,7 @@ public sealed class PilotTests
         Assert.Equal("AVAILABLE", PilotValidation.Validate(instrument, saturday, Bar(Stock, saturday), Proof(saturday), Known).Status);
         var days = new[] { friday, saturday, monday };
         var bars = days.Select(day => new DailyBarRevision(1, Bar(Stock, day), Known, new('a',64), Guid.NewGuid())).ToArray();
-        var features = PilotFeatures.Calculate(bars, Stock, Index, days.Select(day => Proof(day)).ToArray(), Known);
+        var features = PilotFeatures.Calculate(bars, Stock, Index, days.Select(day => Proof(day)).ToArray(), monday, Known);
         Assert.Equal(3, features.ConsecutiveSessions);
         Assert.Equal("WARMUP", features.Status);
     }
@@ -127,7 +127,7 @@ public sealed class PilotTests
         bars.RemoveAll(r => r.Bar.SessionDate == holiday.Date);
         var padded = Bar(Stock,holiday.Date,9000);
         bars.Add(new(1,padded,Known,PilotValidation.ContentHash(padded),Guid.NewGuid()));
-        var result = PilotFeatures.Calculate(bars,Stock,Index,proofs,Known);
+        var result = PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known);
         Assert.Equal(59,result.ConsecutiveSessions);
         Assert.Equal("AVAILABLE_PILOT",result.Status);
         Assert.Equal(100m,result.Ema20);
@@ -137,7 +137,7 @@ public sealed class PilotTests
         Assert.Equal(99m,result.PriorLow20);
         Assert.Equal(1m,result.VolumeRatio20);
         Assert.Equal(0m,result.RelativePerformance20);
-        var warmup = PilotFeatures.Calculate(bars,Stock,Index,proofs.Take(10).ToArray(),Known);
+        var warmup = PilotFeatures.Calculate(bars,Stock,Index,proofs.Take(10).ToArray(),proofs[9].Date,Known);
         Assert.Null(warmup.Ema20);
         Assert.Null(warmup.Atr14);
     }
@@ -147,15 +147,15 @@ public sealed class PilotTests
     {
         var (bars,proofs) = Series();
         bars.RemoveAll(r => r.Bar.InstrumentId == Index && r.Bar.SessionDate == proofs[^10].Date);
-        Assert.Null(PilotFeatures.Calculate(bars,Stock,Index,proofs,Known).RelativePerformance20);
+        Assert.Null(PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known).RelativePerformance20);
         proofs.RemoveAt(50);
-        var result = PilotFeatures.Calculate(bars,Stock,Index,proofs,Known);
+        var result = PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known);
         Assert.Equal(9,result.ConsecutiveSessions);
         Assert.Null(result.Ema20);
         Assert.Null(result.RelativePerformance20);
-        Assert.Equal("SESSION_UNCONFIRMED",PilotFeatures.Calculate(bars,Stock,Index,proofs,Known.AddSeconds(-1)).Status);
+        Assert.Equal("SESSION_UNCONFIRMED",PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known.AddSeconds(-1)).Status);
         bars.RemoveAll(r => r.Bar.InstrumentId == Stock && r.Bar.SessionDate == proofs[^1].Date);
-        Assert.Equal("STALE",PilotFeatures.Calculate(bars,Stock,Index,proofs,Known).Status);
+        Assert.Equal("STALE",PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known).Status);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public sealed class PilotTests
         var (bars,proofs) = Series();
         var latest = Bar(Stock,proofs[^1].Date,200,2000);
         bars.Add(new(2,latest,Known,PilotValidation.ContentHash(latest),Guid.NewGuid()));
-        var result = PilotFeatures.Calculate(bars,Stock,Index,proofs,Known);
+        var result = PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known);
         Assert.Equal(101m,result.PriorHigh20);
         Assert.Equal(99m,result.PriorLow20);
         Assert.Equal(2m,result.VolumeRatio20);
@@ -174,6 +174,6 @@ public sealed class PilotTests
         Assert.Equal(2m + (1m / 14m) * 99m,result.Atr14);
         var changed = new DailyBar(Stock,latest.SessionDate,200,201,199,200,2000,latest.Source,100,"UNKNOWN","UNKNOWN","UNKNOWN");
         bars.Add(new(3,changed,Known,PilotValidation.ContentHash(changed),Guid.NewGuid()));
-        Assert.Null(PilotFeatures.Calculate(bars,Stock,Index,proofs,Known).VolumeRatio20);
+        Assert.Null(PilotFeatures.Calculate(bars,Stock,Index,proofs,proofs[^1].Date,Known).VolumeRatio20);
     }
 }

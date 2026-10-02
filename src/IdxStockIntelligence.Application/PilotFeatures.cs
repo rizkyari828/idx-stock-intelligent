@@ -1,18 +1,26 @@
+using System.Text.Json.Serialization;
 using IdxStockIntelligence.Domain;
 
 namespace IdxStockIntelligence.Application;
 
 public sealed record PilotFeatureResult(DateOnly? MarketDate, string Status, int ConsecutiveSessions,
     decimal? Ema20, decimal? Ema50, decimal? Atr14, decimal? PriorHigh20, decimal? PriorLow20,
-    decimal? VolumeRatio20, decimal? RelativePerformance20);
+    decimal? VolumeRatio20, decimal? RelativePerformance20)
+{
+    // Preserve the legacy pilot report/hash shape; future Screener DTOs project these explicitly.
+    [JsonIgnore] public FeatureState Rs20PpState { get; init; } = new(Availability.UNAVAILABLE, null, "NOT_CALCULATED");
+    [JsonIgnore] public FeatureState Rs60PpState { get; init; } = new(Availability.UNAVAILABLE, null, "NOT_CALCULATED");
+    [JsonIgnore] public decimal? Rs20Pp => Rs20PpState.Value;
+    [JsonIgnore] public decimal? Rs60Pp => Rs60PpState.Value;
+}
 
 public static class PilotFeatures
 {
     public static PilotFeatureResult Calculate(IEnumerable<DailyBarRevision> revisions,
-        InstrumentId instrument, InstrumentId benchmark, IReadOnlyList<SessionProof> proofs, DateTimeOffset cutoff)
+        InstrumentId instrument, InstrumentId benchmark, IReadOnlyList<SessionProof> proofs, DateOnly through, DateTimeOffset cutoff)
     {
-        var calendar = proofs.Where(p => p.KnownAt <= cutoff).ToDictionary(p => p.Date);
-        var all = revisions.Where(r => r.KnownAt <= cutoff && r.Bar.Source.AvailableAt <= cutoff)
+        var calendar = proofs.Where(p => p.Date <= through && p.KnownAt <= cutoff).ToDictionary(p => p.Date);
+        var all = revisions.Where(r => r.Bar.SessionDate <= through && r.KnownAt <= cutoff && r.Bar.Source.AvailableAt <= cutoff)
             .GroupBy(r => (r.Bar.InstrumentId, r.Bar.SessionDate))
             .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.KnownAt).ThenByDescending(r => r.RevisionNumber).First().Bar);
         var dates = calendar.Values.Where(p => p.Status == ExchangeDayStatus.ObservedTrading)
@@ -34,11 +42,26 @@ public static class PilotFeatures
         var trueRanges = series.Skip(1).Select((b, i) => Math.Max(b.High - b.Low,
             Math.Max(Math.Abs(b.High - series[i].Close), Math.Abs(b.Low - series[i].Close)))).ToArray();
         decimal? relative = null;
+        // Legacy multiplicative excess ratio, not a percentage-point return difference.
         if (series.Count >= 21)
         {
             var aligned = series.TakeLast(21).Select(b => all.GetValueOrDefault((benchmark, b.SessionDate))).ToArray();
             if (aligned.All(b => b is not null && b.Volume > 0))
                 relative = (series[^1].Close / series[^21].Close) / (aligned[^1]!.Close / aligned[0]!.Close) - 1m;
+        }
+        FeatureState RelativeStrength(int sessions)
+        {
+            if (series.Count <= sessions) return new(Availability.WARMUP, null, "INSUFFICIENT_SESSIONS");
+            var aligned = series.TakeLast(sessions + 1).Select(b => all.GetValueOrDefault((benchmark, b.SessionDate))).ToArray();
+            if (aligned.Any(b => b is null)) return new(Availability.UNAVAILABLE, null, "BENCHMARK_MISSING");
+            // Index volume is unrelated to price-return alignment.
+            try
+            {
+                var value = 100m * ((series[^1].Close / series[^(sessions + 1)].Close - 1m)
+                    - (aligned[^1]!.Close / aligned[0]!.Close - 1m));
+                return new(Availability.AVAILABLE, value, null);
+            }
+            catch (OverflowException) { return new(Availability.UNAVAILABLE, null, "NUMERIC_OUT_OF_RANGE"); }
         }
         var previous = series.SkipLast(1).TakeLast(20).ToArray();
         var sameVolumeBasis = previous.Length == 20 && previous.All(b =>
@@ -48,7 +71,8 @@ public static class PilotFeatures
         return new(series[^1].SessionDate, series.Count >= 50 ? "AVAILABLE_PILOT" : "WARMUP", series.Count,
             Smooth(closes, 20, 2m / 21m), Smooth(closes, 50, 2m / 51m), Smooth(trueRanges, 14, 1m / 14m),
             previous.Length == 20 ? previous.Max(b => b.High) : null,
-            previous.Length == 20 ? previous.Min(b => b.Low) : null, volumeRatio, relative);
+            previous.Length == 20 ? previous.Min(b => b.Low) : null, volumeRatio, relative)
+        { Rs20PpState = RelativeStrength(20), Rs60PpState = RelativeStrength(60) };
     }
 
     private static decimal? Smooth(decimal[] values, int period, decimal alpha)
@@ -59,5 +83,9 @@ public static class PilotFeatures
         return value;
     }
 
-    private static PilotFeatureResult Empty(DateOnly? date, string status) => new(date, status, 0, null, null, null, null, null, null, null);
+    private static PilotFeatureResult Empty(DateOnly? date, string status) => new(date, status, 0, null, null, null, null, null, null, null)
+    {
+        Rs20PpState = new(Availability.UNAVAILABLE, null, status),
+        Rs60PpState = new(Availability.UNAVAILABLE, null, status)
+    };
 }

@@ -29,6 +29,8 @@ Guid Identity(string text) => new(SHA256.HashData(Encoding.UTF8.GetBytes(text))[
 var start = new DateOnly(2025, 1, 6);
 var dates = Enumerable.Range(0, 400).Select(start.AddDays)
     .Where(d => d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)).Take(250).ToArray();
+// Fixed planned fixture horizon, independent of the histories passed to the calculator.
+var through = dates[^1];
 // Synthetic knowledge clocks, deliberately distinct from dates. No real calendar claim.
 var t0 = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 var t1 = t0.AddDays(1); var t2 = t1.AddDays(1);
@@ -41,7 +43,7 @@ PilotFeatureResult[] Scoped(IReadOnlyList<DailyBarRevision> history, DateTimeOff
 {
     var groups = history.GroupBy(r => r.Bar.InstrumentId).ToDictionary(g => g.Key, g => g.ToArray());
     return instruments.Take(count).Select(i => PilotFeatures.Calculate(groups[i.Id].Concat(groups[benchmark]),
-        i.Id, benchmark, proofs, cutoff)).ToArray();
+        i.Id, benchmark, proofs, through, cutoff)).ToArray();
 }
 if (args.Length == 3)
 {
@@ -109,7 +111,7 @@ var canonical = Measure("canonical_resolution", () => revisions.Where(r => r.Kno
         .ThenByDescending(r => r.RevisionNumber).First()).ToArray());
 Check(canonical.Length == generated, "Canonical resolution lost rows");
 PilotFeatureResult[] Features(IReadOnlyList<DailyBarRevision> history, DateTimeOffset cutoff) => instruments.Take(count)
-    .Select(i => PilotFeatures.Calculate(history, i.Id, benchmark, proofs, cutoff)).ToArray();
+    .Select(i => PilotFeatures.Calculate(history, i.Id, benchmark, proofs, through, cutoff)).ToArray();
 var features = Measure("features_full_input", () => Features(revisions, t0));
 Check(features.All(f => f.Status == "AVAILABLE_PILOT" && f.ConsecutiveSessions == 250
     && f.Ema20 != null && f.Ema50 != null && f.Atr14 != null && f.PriorHigh20 != null
@@ -120,14 +122,14 @@ var repeated = Measure("features_scoped_rerun", () => Scoped(revisions, t0));
 Check(features.SequenceEqual(repeated), "Rerun/scoped feature mismatch");
 foreach (var i in new[] { 0, count / 2, count - 1 }.Distinct())
     Check(features[i] == PilotFeatures.Calculate(grouped[instruments[i].Id].Concat(grouped[benchmark]),
-        instruments[i].Id, benchmark, proofs, t0), "Cross-symbol contamination");
+        instruments[i].Id, benchmark, proofs, through, t0), "Cross-symbol contamination");
 var missingDate = dates[^10];
 var missing = PilotFeatures.Calculate(grouped[instruments[0].Id].Where(r => r.Bar.SessionDate != missingDate)
-    .Concat(grouped[benchmark]), instruments[0].Id, benchmark, proofs, t0);
+    .Concat(grouped[benchmark]), instruments[0].Id, benchmark, proofs, through, t0);
 Check(missing.Status == "WARMUP" && missing.ConsecutiveSessions == 9, "Missing session was bridged");
 Check(PilotValidation.Validate(instruments[0], missingDate, null, proofs[^10], t0).Status == "MISSING", "Missing outcome");
 var unaligned = PilotFeatures.Calculate(grouped[instruments[0].Id].Concat(grouped[benchmark].Where(r => r.Bar.SessionDate != dates[^5])),
-    instruments[0].Id, benchmark, proofs, t0);
+    instruments[0].Id, benchmark, proofs, through, t0);
 Check(unaligned.RelativePerformance20 is null, "Missing benchmark alignment was fabricated");
 var affected = instruments.Take(Math.Max(1, count / 100)).Select(i => i.Id).ToHashSet();
 var originals = bars.Where(b => affected.Contains(b.InstrumentId) && b.SessionDate == dates[^15]).ToArray();
@@ -158,7 +160,7 @@ var correctedGroups = corrected.GroupBy(r => r.Bar.InstrumentId).ToDictionary(g 
 Measure("affected_features_only", () => {
     foreach (var i in Enumerable.Range(0,count).Where(i => affected.Contains(instruments[i].Id)))
         Check(latest[i] == PilotFeatures.Calculate(correctedGroups[instruments[i].Id].Concat(correctedGroups[benchmark]),
-            instruments[i].Id,benchmark,proofs,t1), "Bounded recalculation differs");
+            instruments[i].Id,benchmark,proofs,through,t1), "Bounded recalculation differs");
     return 0;
 });
 Measure("asof_price_queries", () => {

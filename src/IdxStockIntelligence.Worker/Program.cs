@@ -244,7 +244,7 @@ try
         features = instruments.Select(i => new { symbol = i.Key, result = PilotFeatures.Calculate(
             featureHistory.GetValueOrDefault(new InstrumentId(i.Value.GetProperty("id").GetGuid()),[])
                 .Concat(benchmarkHistory),
-            new InstrumentId(i.Value.GetProperty("id").GetGuid()), benchmark, proofs, now) }) };
+            new InstrumentId(i.Value.GetProperty("id").GetGuid()), benchmark, proofs, last, now) }) };
     File.WriteAllText(output, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
     Console.WriteLine(JsonSerializer.Serialize(new { summary_path=output }));
     Environment.ExitCode=runStatus=="SUCCEEDED" ? 0 : 2;
