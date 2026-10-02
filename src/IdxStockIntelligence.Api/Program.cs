@@ -24,6 +24,7 @@ var connectionString = builder.Configuration["IDX_DATABASE_CONNECTION"]
     ?? throw new InvalidOperationException("Set IDX_DATABASE_CONNECTION to a PostgreSQL connection string.");
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddSingleton<PortfolioDatabase>();
+builder.Services.AddSingleton<ScreenerService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -49,6 +50,18 @@ app.Use(async (context, next) =>
         await context.Response.WriteAsJsonAsync(new { operation = OperationStatus.FAILED,
             error = exception is NpgsqlException ? "Database constraint or availability error." : exception.Message }, context.RequestAborted);
     }
+});
+
+app.MapGet("/api/screener", async (HttpRequest request, ScreenerService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Any(p => p.Value.Count != 1)) throw new ArgumentException("Repeated Screener parameter.");
+        var query = ScreenerQuery.Resolve(request.Query.ToDictionary(p => p.Key, p => (string?)p.Value[0], StringComparer.Ordinal), DateTimeOffset.UtcNow);
+        return Results.Ok(await service.ReadAsync(query, ct));
+    }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+    catch (ArgumentException error) { return Results.BadRequest(new { code = "INVALID_QUERY", error = error.Message }); }
 });
 
 app.MapPost("/api/portfolios", async (CreatePortfolio input, PortfolioDatabase db, CancellationToken ct) =>

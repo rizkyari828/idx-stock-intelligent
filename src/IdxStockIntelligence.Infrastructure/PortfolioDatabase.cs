@@ -265,9 +265,18 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         return document;
     }
 
-    private static async Task<List<ThesisVersion>> AllThesesAsync(NpgsqlConnection connection, Guid id, CancellationToken ct)
+    internal static async Task<ScreenerPortfolioHistory> ScreenerHistoryAsync(NpgsqlConnection connection,
+        Guid id, DateTimeOffset cutoff, CancellationToken ct)
     {
-        await using var command = Command(connection, $"SELECT {ThesisColumns} FROM thesis_version WHERE portfolio_id=$1 ORDER BY instrument_id,version LIMIT 2001", id);
+        var portfolio = await ReadPortfolioAsync(connection, id, false, ct);
+        if (portfolio.CreatedAt > cutoff) throw new KeyNotFoundException("Portfolio did not exist at cutoff.");
+        return new(portfolio, await HistoryAsync(connection, id, cutoff, ct), await AllThesesAsync(connection, id, ct, cutoff));
+    }
+
+    private static async Task<List<ThesisVersion>> AllThesesAsync(NpgsqlConnection connection, Guid id, CancellationToken ct,
+        DateTimeOffset? cutoff = null)
+    {
+        await using var command = Command(connection, $"SELECT {ThesisColumns} FROM thesis_version WHERE portfolio_id=$1 AND known_at<=$2 ORDER BY instrument_id,version LIMIT 2001", id, cutoff ?? DateTimeOffset.MaxValue);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var rows = new List<ThesisVersion>();
         while (await reader.ReadAsync(ct)) rows.Add(ReadThesis(reader));

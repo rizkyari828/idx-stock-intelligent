@@ -1095,3 +1095,171 @@ portfolio/evidence reads, GET/HTTP DTO/error mapping, final portfolio-inclusive
 input digest and pinning, display filters/paging; then production UI and broader
 disposable browser/restore acceptance before release. The empty real reference file
 and short/uncleared actual history still prevent a claim of real candidate readiness.
+
+## Screener V0.1 — Milestone 4 completed, 2026-10-02
+
+Implemented the read-only HTTP milestone against the unchanged
+[frozen contract](SCREENER_V0_1_CONTRACT.md). Starting state was clean `main` at
+`7e49dbdfe1b52e8e66fa8a531b1d4d78b56ce15d`, already four commits ahead of origin.
+No commit or push was performed. M1 feature arithmetic/report compatibility, M2
+evidence selection/clearance, M3 eligibility/episodes/order/status and all actual
+pilot references remain unchanged. M2's canonical hashing gains only a public
+cancellation-token overload for the final hash.
+
+### GET /api/screener
+
+`ScreenerQuery.Resolve` receives one request clock reading. The through default,
+cutoff default and both future checks use that same instant. The endpoint accepts
+only these parameters; unknown and repeated keys are 400 errors.
+
+| Parameter | Accepted values / default |
+| --- | --- |
+| `through` | Exact `YYYY-MM-DD`; default Jakarta today. Inclusive **2026-08-24..2027-08-24**, and not after Jakarta today. No clamping when today itself exceeds the horizon. |
+| `cutoff` | RFC3339 with explicit `Z` or `±HH:MM` offset, seconds and optional .NET-representable fractional seconds (up to seven digits). Blank/omitted resolves once to now. Inclusive 1900..request now; returned as UTC. |
+| `universe` | `PILOT` only, default PILOT. FullIdx and arbitrary lists return 400. |
+| `portfolioId` | Optional nonempty UUID. Omitted means discovery only. Missing/not created by cutoff returns 404 `PORTFOLIO_NOT_FOUND`. |
+| `view` | `shortlist` (default) or `all`. |
+| `setup` | `ALL` (default), `NONE`, `WATCH`, `CONFIRMED`, `FAILED`. |
+| `eligibility` | `ALL` (default), `ELIGIBLE`, `INELIGIBLE`, `DATA_BLOCKED`. |
+| `offset` | Integer 0..10000, default 0. |
+| `limit` | Integer 1..100, default 20. |
+| `inputHash` | Optional exact lowercase SHA-256 returned by an earlier request. Changed inputs return 409 `INPUT_CHANGED`. |
+
+Example initial request and pinned second page:
+
+```text
+GET /api/screener?through=2026-09-30&view=all&limit=20
+GET /api/screener?through=2026-09-30&view=all&offset=20&limit=20&cutoff=<URL-encoded returned cutoff>&inputHash=<returned hash>
+```
+
+Keep the first response's through and cutoff when changing filters/pages. A supplied
+cutoff is never replaced with a newer now. Invalid query returns 400 `INVALID_QUERY`;
+database/timeouts/internal portfolio bounds return sanitized 503
+`SCREENER_UNAVAILABLE`. M2 reference/bound errors retain stable codes such as
+`REFERENCE_MALFORMED` and `REFERENCE_BOUND_EXCEEDED`. Incomplete valid evidence
+returns HTTP 200 with the computed status, including an empty valid reference bundle.
+No body, server path, custom sort, held-exclusion control or run/job endpoint is added.
+
+### One database view and copied reference bundle
+
+`ScreenerService.ReadAsync` copies the three fixed local evidence files once using
+M2's loader, opens one pooled connection and begins one **REPEATABLE READ, READ ONLY**
+transaction. Portfolio header, knowledge-visible event history and thesis versions,
+selected canonical/listing evidence and benchmark are all read on that connection
+within the same transaction. Existing portfolio decoders and ledger projection are
+reused; there is no per-holding query, registry/symbol-history fallback, independent
+portfolio view or second evidence transaction.
+
+Positive ledger holdings determine the bounded configured/held/benchmark union.
+M2 reads the selected revisions, M2 resolves the copied evidence, and M3 evaluates
+the result. The service computes the final hash, verifies any pin, maps the response,
+then completes the read transaction. A file replacement during the request cannot
+replace the already copied bundle. A concurrent database commit cannot change later
+reads in the established request snapshot.
+
+Existing bounds remain: 10 configured stocks, 200 open holdings, 211 distinct IDs
+including benchmark, 366 anchored dates, 80,000 selected bars, 10,000 events and
+2,000 knowledge-visible thesis versions per portfolio. SQL uses limit+1 for bounded
+histories/evidence; overflow fails explicitly rather than truncating. The three
+files share 4 MiB / 10,000 reference-record bounds. All database commands use a
+15-second timeout. Request cancellation reaches file/database reads, evidence
+selection, replay, canonical hashing and mapping; it propagates rather than returning
+an empty success. Existing ledger projection stays bounded and is checked for
+cancellation before and after; its accounting implementation is unchanged.
+
+### Final inputHash and pinning
+
+The final SHA-256 incorporates M2's selected-input digest: policy, anchor, through,
+cutoff, selected IDs, stock/benchmark revision tuples, listing facts/hashes,
+universe/instrument snapshots and calendar/instrument-session evidence. With a
+portfolio, it also includes the immutable portfolio header/settings, knowledge-visible
+ledger facts and correction lineage used by replay, held share state and
+knowledge-visible thesis versions for held IDs. With no portfolio, those inputs
+remain absent. Decimal portfolio/share values use invariant round-trip strings;
+instants normalize to UTC and canonical object/collection ordering is deterministic.
+
+View, setup/eligibility filters, offset and limit do not affect evaluation identity.
+Future-only facts, reference snapshots and session replacements cannot alter a pinned
+old-cutoff response. A newly visible selected revision, universe/reference, ledger
+fact or thesis changes the hash and makes the old pin return 409. No latest-file hash,
+filesystem path, connection details or independent wall clock is included. This
+continues to describe `FIXED_PILOT_KNOWN_INPUTS`; it does not recover an unretained
+actual historical decision or a historical all-listed universe.
+
+### Response, status and paging
+
+`ScreenerResponse.cs` defines explicit camelCase HTTP DTOs and a presentation mapper.
+Top-level context includes policy, through/target/cutoff/anchor, selected universe ID,
+replay scope, final hash, M3 status/reasons/summary, shared IHSG context, page metadata,
+ordered discovery/held IDs and one deduplicated row collection. Every row consistently
+exposes identity/membership/mandate/rank; eligibility and setup reasons/evaluation;
+episode attributes; dated close, price/volume/IDR-proxy/ATR/RS pp features; freshness,
+trading status, data quality/reasons, sparse field states and provenance.
+
+Unavailable numbers/tri-state flags remain null or UNKNOWN with availability/reasons;
+legitimate ATR/RS zeros stay zero. Structural null mandate/episode/rank needs no
+feature reason. Canonical DEGRADED/REJECTED quality is preserved separately from
+computed COMPLETE/PARTIAL/BLOCKED. Flat provenance describes the actual retained
+observation and seeds/reference IDs; `currentEvidence` independently retains the
+selected current revision even when rejected. A stale close keeps its actual date;
+current indicators stay unavailable. No legacy relative-performance, recommendation,
+action, score or confidence field is projected.
+
+Status/summary come directly from M3 before any display filter: unknown universe
+keeps category counts null; incomplete/no evaluated coverage is BLOCKED; optional
+gaps can produce PARTIAL with an eligible setup; complete affirmative exclusions
+can produce COMPLETE with zero candidates. Configured/category sums, overlapping
+diagnostics, pre-cap candidates and omissions remain unchanged.
+
+Shortlist starts with M3's ranked top 20, then filters, then pages. Filters never
+refill from lower ranks. All-view starts with all configured rows, including NONE,
+FAILED, blocked/ineligible and candidates below the cap. `page.total` counts the
+filtered list before paging. Discovery ranks and whole-result summary are unchanged.
+Every positive holding is exposed independently of view/filter/offset/limit,
+including outside-universe, blocked and ineligible holdings. A held discovery row
+appears once; held rows consume no page capacity. Closed holdings and thesis-only
+ownership do not become held. Existing correction chronology and latest-version/
+active thesis semantics determine holdings/mandates at cutoff.
+
+### Actual verification
+
+Added **47 .NET cases** in `ScreenerResponseTests.cs`: exact/default/boundary query
+validation and offset normalization; cap-before-filter/no refill; all-view deterministic
+paging; held preservation/deduplication/ranks/counts; JSON nulls/reasons/real zeros;
+pinning/cancellation; portfolio-aware hash changes and ordering/offset/decimal-scale/
+future-fact invariance. Existing M1–M3 and database cases remain in standard discovery.
+
+Extended the existing unittest/PostgreSQL/HTTP harness with
+`scripts/test_screener_http.py`; common environment/fingerprint helpers are reused
+from `test_screener_evidence.py`. **10 HTTP cases** exercise the full route through
+validation, copied reference resolution, bounded SQL, M3, final hash and DTO.
+They cover empty/malformed evidence and 400/404/409/503 mappings, filtered/paged held
+union, historical unavailability, future facts, selected-input changes, stock/index
+A→B→A and rejected-current provenance, correction/closed-position/inactive-thesis
+chronology, 201 holdings/10,001 events/2,001 thesis overflow, reference byte overflow,
+concurrent canonical/portfolio commits plus file replacement, client disconnect and
+the real 15-second command timeout. All fixtures use owned temporary databases and
+private temporary API/reference directories, removed by cleanup.
+
+| Check | Actual Milestone 4 result |
+| --- | --- |
+| Canonical `rtk proxy dotnet build` | PASS, zero warnings/errors |
+| Plain canonical `rtk proxy dotnet test` | 305 discovered: **296 passed, 9 expected M2 DB opt-in skips**, zero failures |
+| Standard disposable discovery: `rtk proxy python3.13 -m unittest discover -s scripts -p 'test_screener_*.py' -v` | **11/11 passed**: existing SQL wrapper + 10 HTTP cases; canonical opt-in .NET discovery **305/305 passed**, zero skipped |
+| Collector standard discovery with `IDX_EXPERIMENT_VERIFY_DB=1` and collector PYTHONPATH | **61/61 passed**, zero skipped, including operational DB fingerprint and FullIdx rejection |
+| `git diff --check` | PASS |
+| Frontend/browser/product exchange and archived restore | Not rerun; no fresh pass claimed |
+
+Docker was available (29.8.1) after the outside-sandbox readiness check. Disposable
+checks verified unchanged before/after fingerprints of all 11 operational canonical/
+raw/registry/listing/calendar/portfolio tables, pilot JSON files and authoritative
+operation/soak files. Provider calls **0**. FullIdx remains **DISABLED** and rejected.
+No operational writes, migration/index, result/episode persistence, provider/collector
+change, new dependency, threshold optimization or Worker/StockDetail/snapshot change.
+Only GET is added; React page, navigation, API wrapper and table remain unimplemented.
+
+Remaining M5+: production React Screener within the existing shell/design, accessible
+states/filters/held exposure and browser acceptance; broader release/restore checks
+as applicable. Real retained identity/status/price-volume clearance and adequate
+history remain external readiness gaps. The unchanged empty real reference file
+still yields honest BLOCKED coverage rather than claiming actual candidates are ready.

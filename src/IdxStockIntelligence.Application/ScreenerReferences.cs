@@ -265,6 +265,7 @@ public static class ScreenerReferences
 
     public static string SnapshotHash(object snapshot) => Hash(snapshot, omitContentHash: true);
     public static string Hash(object value, bool omitContentHash = false) => Hash(value, omitContentHash, default);
+    public static string Hash(object value, CancellationToken ct) => Hash(value, false, ct);
     private static string Hash(object value, bool omitContentHash, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
