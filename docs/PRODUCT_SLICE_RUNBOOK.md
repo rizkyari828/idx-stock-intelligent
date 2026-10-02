@@ -919,3 +919,179 @@ transaction/read-only endpoint and final portfolio-inclusive digest/pinning; pro
 UI and full disposable acceptance/restore. Real identity/status/price-volume attestations
 and enough retained history remain external readiness gaps. This milestone does not
 produce candidates or certify operational stocks as ready.
+
+## Screener V0.1 — Milestone 3 completed, 2026-10-02
+
+Implemented the pure application evaluation core against the unchanged
+[frozen contract](SCREENER_V0_1_CONTRACT.md). Starting state was clean `main` at
+`c5083f48a47e0f86b453a4908bcf59273beb3500`, already three commits ahead of origin.
+No commit or push was performed. The canonical contract, M2 readers/resolvers/digest,
+reference files, collector, Worker entry point, API and frontend are unchanged.
+
+### Application inputs and result
+
+`ScreenerEvaluator.Evaluate(request, database, selectedReferences, portfolioHistory, ct)`
+accepts M2's bounded, selected evidence and optional immutable portfolio history. It
+does not open a database connection, load a file, use a current clock, generate IDs,
+fetch a provider or write anything. Explicit `through`/`cutoff` and the fixed anchor
+govern every replay. Missing evidence returns blocked rows rather than fabricated
+successful empty results; cancellation propagates.
+
+| File | Responsibility |
+| --- | --- |
+| `ScreenerEvaluation.cs` | Application records, ordered eligibility classification, prepared-evidence episode transitions, canonical ordering, cap and summaries |
+| `ScreenerEvaluator.cs` | Calendar-aligned replay, M2 evidence integration, independently cleared index context, held union and historical mandate selection |
+| `ScreenerFeatures.cs` | Internal availability/dependency integration around shared arithmetic; independently certified volume and IDR value proxies |
+| `PilotFeatures.cs` | Extract existing TR, smoothing, volume-ratio and pp-return arithmetic into internal helpers for reuse; legacy public signature, calculations, stock/index admission and report shape preserved |
+| `ScreenerEvaluationTests.cs` | 42 pure transition/precedence/order/cap/model cases |
+| `ScreenerEvaluatorTests.cs` | 78 integrated evidence/replay/feature/held/chronology/bounds cases |
+
+Paths in the table are under `src/IdxStockIntelligence.Application/` or
+`tests/IdxStockIntelligence.Tests/`, respectively. No new dependency, framework,
+repository layer, migration, index, result table or episode persistence was added.
+
+The complete in-memory result contains dated rows, ordered eligibility reasons,
+setup/evaluation reasons, episodes, per-field `FeatureState`s, row quality,
+reference/seed/canonical provenance, shared IHSG context, nullable summary counts,
+and separate ranked-candidate/all-view/shortlist/held ID lists. These are application
+models, not the final HTTP DTO. Raw close/volume retain their actual observation
+date; current indicators become null when the current sequence is unavailable.
+Provenance retains both the last valid observed row and the selected current evidence,
+including a rejected/unrepresentable current revision. Canonical quality is never
+promoted to match computed quality.
+
+### Eligibility and availability
+
+Reuse the domain `Eligible`/`Ineligible`/`DataBlocked` states. Ordered precedence is:
+
+1. Unresolved/conflicting identity, reference or membership, then unknown class:
+   DATA_BLOCKED (`IDENTITY_CONFLICT`, `REFERENCE_NOT_KNOWN`, `TYPE_UNKNOWN`).
+2. Proven non-ordinary type, pre-/post-listing, unsupported board/mechanism,
+   suspension or no-trade: INELIGIBLE, in the contract's exclusion reason order.
+3. Otherwise listing/board/status/calendar/basis/canonical/current/history gaps:
+   DATA_BLOCKED, in the frozen reason order. Keep additional specific M2 errors and
+   all established causes rather than returning only the primary code.
+4. Verified ordinary shares on MAIN/DEVELOPMENT, continuous trading and at least
+   21 uninterrupted completed valid observations: ELIGIBLE.
+
+Use M2 reference/calendar/status resolution and existing listing boundary semantics.
+There is no registry/suffix inference or cleaner-revision fallback. A listing assertion
+without retained retrieval remains `LISTING_UNKNOWN`; its missing knowledge provenance
+is not synthesized. Conflicting reference/session status cannot certify `noTrade`.
+An unexplained zero stock volume blocks observation use. Proven pre-listing,
+post-delisting, suspension and no-trade absence is distinct from a missing provider
+row; it does not create a missing-current/history reason for a known exclusion.
+
+Known exchange closures/weekends are skipped. Unknown weekdays, invalid/missing bars,
+unsupported/unknown required facts and uncleared price segments break the sequence.
+The next cleared segment starts a new seed and must rebuild 21 observations before
+setup evaluation. Unknown/uncompleted trailing sessions never make an older close
+current. Actual observed dates remain visible.
+
+Optional EMA50, RS60/RS20, benchmark/context, volume ratio, ATR and liquidity gaps
+do not become eligibility/setup gates. Price and volume certification remain
+independent and revision-specific. Unknown volume metadata equality is not clearance;
+no guessed conversion or adjusted-close substitution is used. The prior-20 IDR
+close×share proxy excludes the current observation; daily value uses current only.
+Optional arithmetic overflow affects that field alone. Index EMA/TR/Wilder ATR and
+returns use cleared index prices with no share-volume, stock-board or stock-status
+gate. IHSG trend and the inclusive ATR% >=2 volatility flag remain independent.
+
+Field readiness is AVAILABLE/WARMUP/UNAVAILABLE; unsupported values are null with
+reasons. Row COMPLETE/PARTIAL/BLOCKED is separate from eligibility, setup and source
+quality. A price-eligible CONFIRMED row can be PARTIAL. Every blocked/ineligible row
+has NONE, `Evaluated=false` and `NOT_EVALUATED`, distinct from evaluated `NO_SETUP`.
+
+### Episodes
+
+`ScreenerEpisodes.Advance` consumes only prepared close, prior high and evaluability.
+It does not calculate features. Close > priorHigh20 directly confirms; the inclusive
+98%..100% band starts WATCH; lower closes produce evaluated NONE. Current intraday
+high alone cannot create confirmation or failure.
+
+WATCH retains one ID while its rolling threshold changes. Sessions 1–5 can confirm
+in that same episode, freezing the current prior high and confirmation date.
+The would-be sixth session expires first, without confirmation/restart on that bar.
+Leaving the band ends the watch. CONFIRMED retains its original trigger/date despite
+higher rolling highs. Close equal to trigger stays confirmed; a lower close fails
+only during confirmed sessions 1–20. The would-be 21st expires before a failure test.
+Neither exit nor expiry restarts on its ending session. FAILED is terminal for its
+failure session; the next evaluable session applies fresh NONE rules.
+
+Blocked/ineligible days or a broken sequence terminate an active episode with
+`DATA_INTERRUPTED`/`INELIGIBLE`; no pause, resurrection or inferred price failure.
+Expiry/interruption retains the last evaluated age. Ordinary watch exit/failure
+counts its evaluated ending session. Confirmation age starts at 1 independently
+of total episode age. Closed dates advance neither counter.
+
+Episode IDs are exactly `screener-v0.1.0/{lowercase UUID}/YYYY-MM-DD`, from the start
+session. Start/confirmation/end dates, reason, both ages, frozen trigger and current
+watch threshold are explicit. No random/request-clock identity or repeated daily
+confirmation event exists. Revision-aware replay can revise attributes at a later
+cutoff without rewriting stored evidence.
+
+### Ordering, held positions and counts
+
+Discovery requires configured, eligible, evaluated WATCH/CONFIRMED. Sort CONFIRMED
+before WATCH, then available RS60 pp descending, RS20 pp descending, prior-20 IDR
+proxy descending, uppercase ordinal symbol (missing last), then lowercase UUID
+ordinal. Available negatives precede nulls; non-available values cannot improve rank.
+No rounding or composite score. All-view adds FAILED then NONE under the same keys.
+
+Rank the complete candidate list before taking its first **20**. Preserve every
+candidate and configured row, plus omitted confirmed/watch counts. A 28-candidate
+service-level ordering fixture proves the cap and ranks without changing the real
+max-10 universe/reference bound. No HTTP filter or page is implemented here.
+
+`PortfolioLedger.Project` supplies positive open holdings using the same through
+and cutoff and its existing correction/accounting rules. Closed/future positions
+and thesis-only ownership are not held. All held IDs survive eligibility, setup,
+membership and cap restrictions, including outside-universe/missing-label rows.
+Membership/held union produces one logical row per stable ID, with configured/held
+flags and a nullable canonical discovery rank. Held ordering is supported symbol
+then UUID; no current registry label fallback.
+
+Mandates follow the existing known-at/latest-version/active thesis semantics;
+FAST_SWING/LONG_SWING/INVEST or null. An inactive latest version cannot resurrect an
+older active mandate. Mandates do not alter features, episodes or rank. Replay uses
+the existing 10,000-event/200-open-holding bounds and 2,000-thesis archive ceiling,
+with no per-instrument database calls. M4 must read the bounded portfolio/evidence
+inputs together in its request transaction.
+
+Known-universe configured/category/evaluated/candidate/shortlist/omission counts
+are deterministic; configured equals eligible+ineligible+dataBlocked. History,
+stale and unsupported diagnostics can overlap. Held/held-outside counts are separate.
+Unknown membership leaves configured/category counts and held-outside membership
+count null, while the number of reconstructed held positions remains known.
+Complete known exclusions can produce COMPLETE with zero candidates; blocked held
+coverage still prevents that complete state. Unresolved universe/calendar produces
+BLOCKED. No action, recommendation, buy/sell signal, confidence or AI score exists.
+
+### Actual verification
+
+Added **120 discovered .NET cases** (42 pure, 78 integrated), on top of the M2
+138-case baseline. Fixtures are in-memory only; no operational reference attestations
+or market/portfolio fixtures were written.
+
+| Check | Actual Milestone 3 result |
+| --- | --- |
+| Canonical `rtk proxy dotnet build` | PASS, zero warnings/errors |
+| Plain canonical `rtk proxy dotnet test` | 258 discovered: **249 passed, 9 skipped**, zero failures |
+| Existing disposable Screener evidence harness via standard Python discovery | **1/1 passed**; canonical opt-in .NET discovery **258/258 passed**, zero skipped |
+| Collector standard discovery with `IDX_EXPERIMENT_VERIFY_DB=1`, Python3.13 and collector PYTHONPATH | **61/61 passed**, zero skipped, including DB fingerprint and FullIdx rejection |
+| `git diff --check` | PASS |
+| Frontend/browser/exchange acceptance and archived restore | Not rerun; no fresh pass claimed |
+
+Plain discovery's nine skips are the existing M2 disposable PostgreSQL opt-in gate,
+not new M3 skips. Docker was available (29.8.1) after the outside-sandbox socket
+readiness check. The final disposable run exercised the existing nine real SQL cases
+and all new application cases, removed its owned database and verified unchanged
+fingerprints of 11 operational tables, pilot JSON files and authoritative operation
+files. Provider calls **0**; FullIdx remains **DISABLED**. No new migrations, collector
+universe changes, operational writes, API route or UI/navigation changes occurred.
+
+Remaining M4+: one read-only repeatable-read request transaction with bounded
+portfolio/evidence reads, GET/HTTP DTO/error mapping, final portfolio-inclusive
+input digest and pinning, display filters/paging; then production UI and broader
+disposable browser/restore acceptance before release. The empty real reference file
+and short/uncleared actual history still prevent a claim of real candidate readiness.

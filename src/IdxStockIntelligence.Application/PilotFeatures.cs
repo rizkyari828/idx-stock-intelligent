@@ -39,8 +39,7 @@ public static class PilotFeatures
         }
         if (series.Count == 0) return Empty(own[^1].SessionDate, own[^1].SessionDate < dates[^1] ? "STALE" : "UNKNOWN");
         var closes = series.Select(b => b.Close).ToArray();
-        var trueRanges = series.Skip(1).Select((b, i) => Math.Max(b.High - b.Low,
-            Math.Max(Math.Abs(b.High - series[i].Close), Math.Abs(b.Low - series[i].Close)))).ToArray();
+        var trueRanges = TrueRanges(series);
         decimal? relative = null;
         // Legacy multiplicative excess ratio, not a percentage-point return difference.
         if (series.Count >= 21)
@@ -49,33 +48,42 @@ public static class PilotFeatures
             if (aligned.All(b => b is not null && b.Volume > 0))
                 relative = (series[^1].Close / series[^21].Close) / (aligned[^1]!.Close / aligned[0]!.Close) - 1m;
         }
-        FeatureState RelativeStrength(int sessions)
-        {
-            if (series.Count <= sessions) return new(Availability.WARMUP, null, "INSUFFICIENT_SESSIONS");
-            var aligned = series.TakeLast(sessions + 1).Select(b => all.GetValueOrDefault((benchmark, b.SessionDate))).ToArray();
-            if (aligned.Any(b => b is null)) return new(Availability.UNAVAILABLE, null, "BENCHMARK_MISSING");
-            // Index volume is unrelated to price-return alignment.
-            try
-            {
-                var value = 100m * ((series[^1].Close / series[^(sessions + 1)].Close - 1m)
-                    - (aligned[^1]!.Close / aligned[0]!.Close - 1m));
-                return new(Availability.AVAILABLE, value, null);
-            }
-            catch (OverflowException) { return new(Availability.UNAVAILABLE, null, "NUMERIC_OUT_OF_RANGE"); }
-        }
         var previous = series.SkipLast(1).TakeLast(20).ToArray();
         var sameVolumeBasis = previous.Length == 20 && previous.All(b =>
             b.VolumeUnit == series[^1].VolumeUnit && b.VolumeBasis == series[^1].VolumeBasis && b.MarketSegment == series[^1].MarketSegment);
         decimal? volumeRatio = sameVolumeBasis && previous.Sum(b => (decimal)b.Volume) > 0
-            ? series[^1].Volume / previous.Average(b => (decimal)b.Volume) : null;
+            ? VolumeRatio(series) : null;
         return new(series[^1].SessionDate, series.Count >= 50 ? "AVAILABLE_PILOT" : "WARMUP", series.Count,
             Smooth(closes, 20, 2m / 21m), Smooth(closes, 50, 2m / 51m), Smooth(trueRanges, 14, 1m / 14m),
             previous.Length == 20 ? previous.Max(b => b.High) : null,
             previous.Length == 20 ? previous.Min(b => b.Low) : null, volumeRatio, relative)
-        { Rs20PpState = RelativeStrength(20), Rs60PpState = RelativeStrength(60) };
+        { Rs20PpState = RelativeStrength(series, all.Values.Where(b => b.InstrumentId == benchmark).ToDictionary(b => b.SessionDate), 20),
+            Rs60PpState = RelativeStrength(series, all.Values.Where(b => b.InstrumentId == benchmark).ToDictionary(b => b.SessionDate), 60) };
     }
 
-    private static decimal? Smooth(decimal[] values, int period, decimal alpha)
+    internal static decimal[] TrueRanges(IReadOnlyList<DailyBar> series) => series.Skip(1).Select((b, i) =>
+        Math.Max(b.High - b.Low, Math.Max(Math.Abs(b.High - series[i].Close), Math.Abs(b.Low - series[i].Close)))).ToArray();
+
+    internal static decimal VolumeRatio(IReadOnlyList<DailyBar> series) =>
+        series[^1].Volume / series.SkipLast(1).TakeLast(20).Average(b => (decimal)b.Volume);
+
+    internal static FeatureState RelativeStrength(IReadOnlyList<DailyBar> series,
+        IReadOnlyDictionary<DateOnly, DailyBar> benchmark, int sessions)
+    {
+        if (series.Count <= sessions) return new(Availability.WARMUP, null, "INSUFFICIENT_SESSIONS");
+        var aligned = series.TakeLast(sessions + 1).Select(b => benchmark.GetValueOrDefault(b.SessionDate)).ToArray();
+        if (aligned.Any(b => b is null)) return new(Availability.UNAVAILABLE, null, "BENCHMARK_MISSING");
+        // Index volume is unrelated to price-return alignment.
+        try
+        {
+            var value = 100m * ((series[^1].Close / series[^(sessions + 1)].Close - 1m)
+                - (aligned[^1]!.Close / aligned[0]!.Close - 1m));
+            return new(Availability.AVAILABLE, value, null);
+        }
+        catch (OverflowException) { return new(Availability.UNAVAILABLE, null, "NUMERIC_OUT_OF_RANGE"); }
+    }
+
+    internal static decimal? Smooth(decimal[] values, int period, decimal alpha)
     {
         if (values.Length < period) return null;
         var value = values.Take(period).Average();
