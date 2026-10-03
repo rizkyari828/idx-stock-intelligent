@@ -15,7 +15,8 @@ public sealed record InstrumentSessionProof(InstrumentId Instrument, DateOnly Da
 public static class PilotValidation
 {
     public static PilotObservation Validate(Instrument instrument, DateOnly date, DailyBar? row,
-        SessionProof? proof, DateTimeOffset knownAt, bool sourceError = false, InstrumentSessionProof? instrumentProof = null)
+        SessionProof? proof, DateTimeOffset knownAt, bool sourceError = false, InstrumentSessionProof? instrumentProof = null,
+        InstrumentId? benchmark = null)
     {
         var boundary = InstrumentBoundaries.Classify(instrument,date);
         if (boundary == InstrumentBoundaryState.PreListing)
@@ -32,7 +33,7 @@ public static class PilotValidation
             return new("CLOSED", null);
         if (proof.Status != ExchangeDayStatus.ObservedTrading)
             return new("SESSION_UNCONFIRMED", null);
-        if (instrumentProof is not null)
+        if (instrumentProof is not null && instrument.Id != benchmark)
         {
             if (instrumentProof.Instrument != instrument.Id || instrumentProof.Date != date || string.IsNullOrWhiteSpace(instrumentProof.Reference))
                 throw new ArgumentException("Invalid instrument-session proof.", nameof(instrumentProof));
@@ -44,7 +45,10 @@ public static class PilotValidation
             instrument.ListedOn is null ? "Listing boundary unknown." : null);
         if (row.InstrumentId != instrument.Id || row.SessionDate != date || row.Source.AvailableAt > knownAt)
             throw new ArgumentException("Row identity/date/availability does not match observation.", nameof(row));
-        if (row.Volume == 0) return new("UNKNOWN", null, "Zero volume does not establish tradable/no-trade/suspension status.");
+        if (row.Volume == 0 && instrument.Id != benchmark)
+            return new("UNKNOWN", null, "Zero volume does not establish tradable/no-trade/suspension status.");
+        if (instrument.Id == benchmark)
+            return new("AVAILABLE", row, "Index price observation; volume/tradability not applicable.");
         return new("AVAILABLE", row, row.MarketSegment == "UNKNOWN" ? "Market segment unresolved; pilot evidence only." : null);
     }
 

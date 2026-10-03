@@ -100,6 +100,7 @@ try
     var boundaryPath=Environment.GetEnvironmentVariable("IDX_PILOT_BOUNDARIES") ?? "pilot/instrument-boundaries.json";
     if (File.Exists(boundaryPath)) boundaryHistory.AddRange(BoundaryReference.ReadFile(boundaryPath));
     if (instruments.Count != 11 || !instruments.TryGetValue("JKSE.INDX", out var benchmarkConfig)) throw new ArgumentException("Fixed pilot panel required.");
+    var benchmark = new InstrumentId(benchmarkConfig.GetProperty("id").GetGuid());
     var entries = batch.RootElement.GetProperty("entries").EnumerateArray().ToArray();
     if (entries.Length != 11 || entries.Select(e => e.GetProperty("symbol").GetString()).Distinct().Count() != 11)
         throw new ArgumentException("Every instrument needs an explicit outcome.");
@@ -181,7 +182,7 @@ try
         for (var date = first; date <= last; date = date.AddDays(1))
         {
             var result = PilotValidation.Validate(instrument, date, rows.GetValueOrDefault(date), proofByDate.GetValueOrDefault(date), now,
-                entry.GetProperty("status").GetString() != "AVAILABLE", instrumentByDate.GetValueOrDefault((id,date)));
+                entry.GetProperty("status").GetString() != "AVAILABLE", instrumentByDate.GetValueOrDefault((id,date)), benchmark);
             var exchangeState = proofByDate.GetValueOrDefault(date)?.Status switch
             {
                 ExchangeDayStatus.ObservedTrading => "EXCHANGE_OPEN",
@@ -189,7 +190,7 @@ try
                 ExchangeDayStatus.ExceptionalClosure => "EXCEPTIONAL_CLOSURE",
                 _ => "UNKNOWN"
             };
-            var instrumentState = result.Status switch { "AVAILABLE" => "TRADED", "SUSPENDED" => "SUSPENDED", "NO_TRADE" => "NO_TRADE", "MISSING" => "MISSING_DATA", _ => "UNKNOWN" };
+            var instrumentState = result.Status switch { "AVAILABLE" => id == benchmark ? "NOT_APPLICABLE" : "TRADED", "SUSPENDED" => "SUSPENDED", "NO_TRADE" => "NO_TRADE", "MISSING" => "MISSING_DATA", _ => "UNKNOWN" };
             observations.Add(new { symbol, date, result.Status, result.Reason, exchange_state=exchangeState, instrument_state=instrumentState,
                 boundary_state=JsonNamingPolicy.SnakeCaseUpper.ConvertName(InstrumentBoundaries.Classify(instrument,date).ToString()) });
             if (result.Status is "AVAILABLE" or "NO_TRADE" or "SUSPENDED") accountedOutcomes++;
@@ -215,7 +216,6 @@ try
     var revisions = PilotDatabase.ReadRevisions();
     var existing = before.Select(b => (b.Bar.InstrumentId,b.Bar.SessionDate,b.RevisionNumber)).ToHashSet();
     var added = revisions.Where(r => !existing.Contains((r.Bar.InstrumentId,r.Bar.SessionDate,r.RevisionNumber))).ToArray();
-    var benchmark = new InstrumentId(benchmarkConfig.GetProperty("id").GetGuid());
     var expected = (last.DayNumber-first.DayNumber+1)*11;
     var fullRequests = entries.All(e => e.GetProperty("status").GetString() == "AVAILABLE"
         && DateOnly.Parse(e.GetProperty("manifest").GetProperty("request_parameters").GetProperty("from").GetString()!,CultureInfo.InvariantCulture)<=first

@@ -60,6 +60,40 @@ public sealed class PilotTests
     }
 
     [Fact]
+    public void BenchmarkPriceAdmissionDoesNotCertifyEquityZeroVolume()
+    {
+        var date = new DateOnly(2026, 9, 25);
+        var stock = new Instrument(Stock, "Synthetic equity", null);
+        var zero = Bar(Stock, date, volume: 0);
+        Assert.Equal("UNKNOWN", PilotValidation.Validate(stock, date, zero, Proof(date), Known, benchmark: Index).Status);
+        var noTrade = new InstrumentSessionProof(Stock, date, MarketSessionStatus.NoTrade,
+            "https://independent.example/no-trade", Known);
+        Assert.Equal("NO_TRADE", PilotValidation.Validate(stock, date, zero, Proof(date), Known,
+            instrumentProof: noTrade, benchmark: Index).Status);
+        Assert.Equal("SUSPENDED", PilotValidation.Validate(stock, date, zero, Proof(date), Known,
+            instrumentProof: noTrade with { Status = MarketSessionStatus.Suspension }, benchmark: Index).Status);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1000)]
+    public void BenchmarkRequiresObservedPriceAndSessionButNotTradabilityVolume(long volume)
+    {
+        var date = new DateOnly(2026, 9, 25);
+        var index = new Instrument(Index, "Synthetic index", null);
+        var row = Bar(Index, date, volume: volume);
+        var result = PilotValidation.Validate(index, date, row, Proof(date), Known, benchmark: Index);
+        Assert.Equal("AVAILABLE", result.Status);
+        Assert.Same(row, result.Bar);
+        Assert.Equal(volume, result.Bar!.Volume);
+        Assert.Contains("not applicable", result.Reason);
+        Assert.Equal("SESSION_UNCONFIRMED", PilotValidation.Validate(index, date, row, null, Known, benchmark: Index).Status);
+        Assert.Null(PilotValidation.Validate(index, date, null, Proof(date), Known, benchmark: Index).Bar);
+        Assert.Equal("CLOSED", PilotValidation.Validate(index, date, row, Proof(date, ExchangeDayStatus.AnnouncedClosed), Known, benchmark: Index).Status);
+        Assert.Equal("SOURCE_ERROR", PilotValidation.Validate(index, date, row, Proof(date), Known, sourceError: true, benchmark: Index).Status);
+    }
+
+    [Fact]
     public void OldArchiveCannotRevertNewerResponseButFreshReversionAppends()
     {
         var date=new DateOnly(2026,9,25);

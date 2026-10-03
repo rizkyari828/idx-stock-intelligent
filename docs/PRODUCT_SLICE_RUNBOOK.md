@@ -1709,3 +1709,68 @@ were **0** and FullIdx remains **DISABLED**. This milestone produces no candidat
 migration, no code and no recommendation; the only new retained evidence is the
 substantiated configured-membership universe snapshot. Real Screener candidate
 readiness is still not established.
+
+### Local project-launch path correction (2026-10-03)
+
+`dotnet run --project src/IdxStockIntelligence.Api` previously launched with the API
+project as its working/content directory, missing repository `pilot/` references
+and `frontend/dist`. The API project now sets the native `RunWorkingDirectory` to
+the repository root. Use the same command from the repository root with the existing
+private `IDX_DATABASE_CONNECTION`; no `IDX_UI_ROOT` override is required for the
+repository's built frontend. Direct DLL launches still use their caller's working
+directory, including disposable acceptance fixtures. Screener reads the three fixed
+reference files there; it does not fall back to mutable `pilot/universe.json`.
+
+The reported service-error banner/503 was not reproduced: port 5080 was initially
+not listening. Before correction, both requested dates returned HTTP 200 BLOCKED
+but the project launch missed the retained universe snapshot. After correction,
+real read-only requests for Sep 30 and Oct 2 both return HTTP 200 BLOCKED with
+configured **10**, dataBlocked **10**, candidates **0**. Oct 2 retains
+`through=2026-10-02`, separately reports `targetSession=2026-09-30`, and reports
+`SESSION_UNCONFIRMED`; Sep 30 reports `INCOMPLETE_COVERAGE`. No completion or
+instrument evidence is invented. The production parser/hash validation accepts the
+unchanged M6 reference snapshot.
+
+One disposable HTTP regression checks the normal project launch against the retained
+references and default frontend root; it failed before the correction and passes
+after it. Verification: `dotnet build --no-restore` **0 warnings/errors**;
+`rtk proxy dotnet test` **305 total, 296 passed, 9 opt-in database skips**;
+`rtk proxy python3.13 -m unittest discover -s scripts -p test_screener_http.py -v`
+**12 tests, 11 passed, 1 opt-in browser skip**. A separate temporary headless Chrome
+check of the real 5080 React page (Oct 2, blank Known by, Discovery only) renders
+BLOCKED without the service-error banner and makes only local GET requests.
+Frontend code/tests/build and unrelated suites were not changed or rerun.
+
+All operational database/portfolio, retained reference/operation-ledger and frozen
+contract fingerprints remain unchanged. Provider calls **0**; FullIdx remains
+**DISABLED**; no migration, dependency, evidence-policy or contract change.
+
+### Benchmark admission correction and Oct 2 soak disposition (2026-10-03)
+
+The Oct 2 DAILY operation `ff959f1e-b462-4db0-94bb-8f1254d0ec58` fetched all
+eleven rows, but the shared pilot validator applied stock zero-volume/tradability
+rules to `JKSE.INDX`. Its zero volume made the run DEGRADED (10 accepted rows),
+soak_eligible=false. This conflicts with the frozen contract's index price semantics
+(D: index prices do not require stock-like volume) and the retained source review's
+verified JKSE identity/close evidence (`docs/EODHD_SEMANTICS_RIGHTS.md`).
+
+The worker now supplies the fixed configured benchmark ID to the shared validator.
+Only that benchmark may have an AVAILABLE observed price with zero volume;
+stock suspension/no-trade requirements remain unchanged. Benchmark tradability is
+reported NOT_APPLICABLE, not TRADED. Actual volume and UNKNOWN volume metadata
+remain preserved; no index volume, session, price clearance or Screener eligibility
+is manufactured. Soak qualification predicates and Screener policy are unchanged.
+
+Retained Oct 2 evidence re-evaluates to 11 accepted rows/SUCCEEDED in a disposable
+database without refetching. Both DAILY-in-owned-DB and OFFLINE_REPLAY remain
+non-qualifying. The original operational DEGRADED report is preserved: the frozen
+contract provides no retrospective qualification procedure. **Soak stays 1/10**
+(only Sep 30); operational Oct 2 benchmark admission was not replayed or promoted.
+
+Verification: focused PilotTests **10/10**; build **0 warnings/errors**; standard
+.NET discovery **308 total, 299 passed, 9 opt-in database skips**; disposable
+`python3.13 -m unittest discover -s scripts -p test_pilot_validation.py -v`
+**1 test passed**, covering DAILY and OFFLINE_REPLAY. Operational/reference/ledger
+fingerprints and all eleven retained payload hashes are unchanged; original
+retrieval/knownAt timestamps and frozen contract are preserved. Provider requests
+and units **0**; FullIdx remains **NOT ENABLED**. No dependency or migration added.
