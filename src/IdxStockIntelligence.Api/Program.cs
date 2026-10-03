@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using IdxStockIntelligence.Api;
 using IdxStockIntelligence.Application;
@@ -26,6 +27,7 @@ builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddSingleton<PortfolioDatabase>();
 builder.Services.AddSingleton<ScreenerService>();
 builder.Services.AddSingleton<StockDatabase>();
+builder.Services.AddSingleton<DecisionSnapshotService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -63,6 +65,45 @@ app.MapGet("/api/screener", async (HttpRequest request, ScreenerService service,
     }
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
     catch (ArgumentException error) { return Results.BadRequest(new { code = "INVALID_QUERY", error = error.Message }); }
+});
+
+// Prospective captures accept only intent; source data, clocks and policy stay server-owned.
+app.MapPost("/api/screener/decision-snapshots", async (HttpRequest request, DecisionSnapshotService service, CancellationToken ct) =>
+{
+    try
+    {
+        using var body = await JsonDocument.ParseAsync(request.Body, new() { MaxDepth = 8 }, ct);
+        var capture = await service.CaptureAsync(DecisionSnapshotRequest.Parse(body.RootElement), ct);
+        if (capture.Created) return Results.Created("/api/screener/decision-snapshots/" + capture.Run.Header.RunId, capture.Run);
+        return Results.Ok(capture.Run);
+    }
+    catch (JsonException) { return Results.BadRequest(new { code = "SNAPSHOT_REQUEST_INVALID", error = "SNAPSHOT_REQUEST_INVALID" }); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapGet("/api/screener/decision-snapshots/{id}", async (string id, HttpRequest request, DecisionSnapshotService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(id, "D", out var run) || run == Guid.Empty)
+            throw new ScreenerException(400, "SNAPSHOT_QUERY_INVALID");
+        return Results.Ok(await service.GetAsync(run, ct));
+    }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapGet("/api/screener/decision-snapshots", async (HttpRequest request, DecisionSnapshotService service, CancellationToken ct) =>
+{
+    try { return Results.Ok(await service.ListAsync(DecisionSnapshotListQuery.Parse(SnapshotQuery(request)), null, ct)); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapGet("/api/instruments/{id}/decision-snapshots", async (string id, HttpRequest request, DecisionSnapshotService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (!Guid.TryParseExact(id, "D", out var stock) || stock == Guid.Empty) throw new ScreenerException(400, "SNAPSHOT_QUERY_INVALID");
+        var query = DecisionSnapshotListQuery.Parse(SnapshotQuery(request), stock);
+        return Results.Ok(await service.ListAsync(query, stock, ct));
+    }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 
 app.MapPost("/api/portfolios", async (CreatePortfolio input, PortfolioDatabase db, CancellationToken ct) =>
@@ -118,6 +159,13 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapFallbackToFile("/stocks/{**path}", "index.html");
 await app.RunAsync();
+
+static Dictionary<string, string?> SnapshotQuery(HttpRequest request)
+{
+    if (request.Query.Any(p => p.Value.Count != 1)) throw new ScreenerException(400, "SNAPSHOT_QUERY_INVALID");
+    return request.Query.ToDictionary(p => p.Key, p => (string?)p.Value[0], StringComparer.Ordinal);
+}
+
 
 namespace IdxStockIntelligence.Api
 {

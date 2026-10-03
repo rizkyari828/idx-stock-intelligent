@@ -125,17 +125,7 @@ public static class ScreenerPresentation
         foreach (var id in discovery.Concat(result.HeldIds).Distinct())
         {
             ct.ThrowIfCancellationRequested();
-            var r = byId[id]; var f = r.Fields;
-            var rowStates = States(f);
-            if (r.TradingStatus is null) rowStates["tradingStatus"] = new("UNAVAILABLE", "STATUS_UNKNOWN");
-            rows.Add(new(r.InstrumentId, r.Symbol, r.DisplayName, r.Configured, r.Held, r.Mandate, r.DiscoveryRank,
-                EligibilityName(r.Eligibility.Status), r.Eligibility.Reasons, r.Setup.Status.ToString().ToUpperInvariant(),
-                r.Setup.Evaluated, r.Setup.Reasons, r.Setup.Episode, r.MarketDate, r.Close, Value(f, "changePercent"),
-                Value(f, "ema20"), Value(f, "ema50"), r.Trend, Value(f, "priorHigh20"), Value(f, "priorLow20"),
-                Value(f, "distanceToHighPercent"), r.Volume, Value(f, "volumeRatio20"), Value(f, "dailyValueProxyIdr"),
-                Value(f, "monetaryLiquidity20Idr"), Value(f, "atr14"), Value(f, "atrPercent"), Value(f, "rs20Pp"), Value(f, "rs60Pp"),
-                r.Stale, r.NoTrade, r.TradingStatus, r.DataQuality.ToString().ToUpperInvariant(), r.DataReasons, rowStates,
-                Provenance(r.Provenance, references, result.Cutoff)));
+            rows.Add(Row(byId[id], references, result.Cutoff));
         }
         var context = result.MarketContext;
         var states = States(context.Fields);
@@ -147,6 +137,21 @@ public static class ScreenerPresentation
                 Value(context.Fields, "close"), Value(context.Fields, "ema20"), Value(context.Fields, "ema50"), Value(context.Fields, "atr14"),
                 Value(context.Fields, "atrPercent"), context.Reasons, states, Provenance(context.Provenance, references, result.Cutoff)),
             new(query.View, query.Setup, query.Eligibility, query.Offset, query.Limit, filtered.Length), discovery, result.HeldIds, rows);
+    }
+
+    public static ScreenerRowDto Row(ScreenerRow r, SelectedScreenerReferences references, DateTimeOffset cutoff)
+    {
+        var f = r.Fields;
+        var rowStates = States(f);
+        if (r.TradingStatus is null) rowStates["tradingStatus"] = new("UNAVAILABLE", "STATUS_UNKNOWN");
+        return new(r.InstrumentId, r.Symbol, r.DisplayName, r.Configured, r.Held, r.Mandate, r.DiscoveryRank,
+                EligibilityName(r.Eligibility.Status), r.Eligibility.Reasons, r.Setup.Status.ToString().ToUpperInvariant(),
+                r.Setup.Evaluated, r.Setup.Reasons, r.Setup.Episode, r.MarketDate, r.Close, Value(f, "changePercent"),
+                Value(f, "ema20"), Value(f, "ema50"), r.Trend, Value(f, "priorHigh20"), Value(f, "priorLow20"),
+                Value(f, "distanceToHighPercent"), r.Volume, Value(f, "volumeRatio20"), Value(f, "dailyValueProxyIdr"),
+                Value(f, "monetaryLiquidity20Idr"), Value(f, "atr14"), Value(f, "atrPercent"), Value(f, "rs20Pp"), Value(f, "rs60Pp"),
+                r.Stale, r.NoTrade, r.TradingStatus, r.DataQuality.ToString().ToUpperInvariant(), r.DataReasons, rowStates,
+                Provenance(r.Provenance, references, cutoff));
     }
 
     public static string InputHash(string selectedDigest, ScreenerReadRequest request, ScreenerPortfolioHistory? history,

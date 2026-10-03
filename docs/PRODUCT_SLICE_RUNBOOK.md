@@ -1914,3 +1914,149 @@ UI or behavior is implemented here. The frozen Screener policy is unchanged;
 capture will preserve BLOCKED/PARTIAL output and remain PILOT-bounded. The existing
 soak 1/10 and disabled FullIdx gates are independent. Verification and forward
 outcomes are deferred; no database/provider/collector/soak actions were performed.
+
+## Prospective Decision Snapshot V0.1 — implemented (2026-10-03)
+
+The separate implementation milestone started from clean `bcc9872` on `main`
+(five commits ahead of `origin/main`). The preceding design-only entry describes
+that earlier milestone; API/persistence are now implemented against the frozen
+`docs/DECISION_SNAPSHOT_V0_1_CONTRACT.md`. Both frozen contracts remain unchanged.
+There is no Decision Snapshot UI, outcome tracking or historical verifier.
+
+### Migration and persistence
+
+`src/IdxStockIntelligence.Infrastructure/Migrations/0005_decision_snapshots.sql`
+adds immutable `decision_snapshot_run` and `decision_snapshot_row`, under the
+existing transactional advisory-lock/version convention. Apply only 0005 to an
+initialized version-4 operational database; do not reapply 0001. Disposable fresh
+0001–0005, version-4 upgrade and controlled rerun all passed before operational
+application. The version registry now contains **2, 4, 5**, following existing
+registry conventions. A final controlled operational rerun installed the tested
+restore guard without changing either snapshot table's contents.
+
+One run stores the typed factual result, existing inputHash/selectedDigest and
+selected-evidence manifest; rows cover the full configured population union
+positive holdings before filtering, shortlist or paging. Benchmark context stays
+on the run. The maximum is **210 rows**. There is no registry FK on row instrument
+IDs: absent mutable registry coverage must still allow honest DATA_BLOCKED capture.
+No accounting/canonical table, migration 0001–0004 or dependency was changed.
+
+Database triggers reject UPDATE, DELETE and TRUNCATE of either snapshot table.
+Rows must be inserted in the header's actual creation transaction; the guard checks
+both originating transaction ID and native header `xmin`, including protection
+against a transaction-ID coincidence after restore. Deferred checks reject
+incomplete populations, inconsistent dates/episode identities/membership and
+invalid portfolio projections. Full dump/restore and a restored legacy-ID collision
+are covered. Seven indexes (including primary/unique indexes) and seven noninternal
+triggers were verified.
+
+### API and chronology
+
+- `POST /api/screener/decision-snapshots`: JSON `requestId` UUID required;
+  `through` and `portfolioId` optional. Unknown/duplicate keys and caller-supplied
+  clocks, policy or results are rejected. First capture returns **201**; identical
+  normalized intent with the same requestId returns the original run with **200**;
+  conflicting intent returns **409**. Invalid/prohibited requests return **400**,
+  missing requested portfolio **404**, and service/reference/archive/integrity
+  failures **503**. Existing transport limits/content-type rules still apply.
+- `GET /api/screener/decision-snapshots/{runId}` returns `{header,result,rows}`.
+- `GET /api/screener/decision-snapshots` returns recent headers, optionally filtered
+  by `portfolioId`.
+- `GET /api/instruments/{instrumentId}/decision-snapshots` returns captured
+  instrument history. Both list APIs return `{items,nextCursor}`, use descending
+  `(capturedAt,runId)` keysets, default limit **20**, maximum **100**, and reject
+  cursors used with a different filter/context.
+
+Capture resolves one actual PostgreSQL clock: `capturedAt == knowledgeCutoff`.
+Through is that instant's Jakarta date; an explicit through must equal it. An
+earlier completed target session is allowed without backdating. `recordedAt` is
+assigned on database insertion. Existing historical GET Screener replay remains
+read-only and does not create prospective snapshots.
+
+Capture reuses the existing evaluator, episode machine, portfolio replay and hashes
+inside one caller-owned read/write REPEATABLE READ transaction. Selected canonical
+revision keys/hashes/clocks/raw-artifact IDs, selected reference/session identities,
+portfolio event/thesis IDs and explicit absence are retained. No raw provider body,
+archive filesystem path, internal transaction ID or private thesis text is exposed
+by public snapshot responses. Discovery-only holding fields are null; portfolio
+captures preserve factual holdings/mandates/permitted thesis metadata, including
+positive holdings outside PILOT and their not-evaluated setup semantics.
+
+Exact copied reference bytes are hashed/archived using the existing archiver under
+ignored `data/raw/decision-reference`. Evaluation uses the copied bundle, never a
+second read of changing live files. Archive byte length/hash are verified before
+capture and immediately before commit. Archive failure prevents persistence;
+deterministic orphan archives after a failed transaction may remain. Do not delete
+archives required by committed runs. Restore needs both PostgreSQL records and
+their ignored reference/raw archives; the database dump alone is insufficient for
+future evidence verification. Verification itself remains deferred.
+
+Existing evidence bounds remain intact, including the stricter **combined 4 MiB**
+reference-bundle bound. New serialization bounds are run result **32 KiB**, row
+result **8 KiB**, public response **2 MiB**, evidence manifest **32 MiB**. Capture
+has a **60-second** deadline and **15-second** command timeout. Concurrent identical
+requests commit one run; the loser rolls back and recovers the winner in a fresh
+transaction. Lost-response retries return stored output without re-evaluating live
+references or applying a new capture clock.
+
+### Executed verification
+
+- `rtk proxy dotnet build`: **PASS, 0 warnings/errors**.
+- `rtk proxy dotnet test --filter FullyQualifiedName~DecisionSnapshotTests`:
+  **37/37 passed**, 0 skipped/failed.
+- `rtk proxy dotnet test`: **348 total, 339 passed, 9 expected database opt-in
+  skips, 0 failed**.
+- `rtk proxy python3 -m unittest discover -s scripts -p test_screener_evidence.py -v`:
+  **1/1 harness test passed**, enabling canonical .NET discovery:
+  **348/348 passed, 0 skipped/failed**, also rerun against final migration 0005.
+- `rtk proxy python3 -m unittest discover -s scripts -p 'test_screener_*.py' -v`:
+  **13 discovered, 12 passed, 1 expected opt-in browser skip, 0 failed**;
+  includes the disposable-enabled canonical .NET run above and existing Screener
+  HTTP acceptance. No new browser suite was required or executed.
+- `rtk proxy python3 -m unittest discover -s scripts -p test_decision_snapshots.py -v`:
+  **19/19 passed, 0 skipped/failed**. Covers migrations/guards/restore,
+  complete configured-held population, COMPLETE/PARTIAL/BLOCKED and setup states,
+  missing registry/optional fields, clocks/corrections/future exclusion, keysets,
+  strict transport, concurrency, failure rollback, changed live inputs and archive
+  corruption/removal during evaluation.
+- `git diff --check`: **PASS**. Frontend/collector suites were not rerun; their
+  source, dependencies and behavior are unchanged. All owned disposable databases
+  and temporary API processes were cleaned up.
+
+### Real operational capture and safety
+
+After disposable acceptance and migration 0005, exactly one discovery-only capture
+used real retained PILOT evidence via a temporary loopback API; the normal port-5080
+process was not replaced. POST returned **201**, identical request retry **200**,
+run GET **200**. Existing GET Screener at the exact captured cutoff matched the
+snapshot's inputHash and summary.
+
+- Run: `3bc25cf2-901b-4c15-84b2-e265091f7f48`.
+- Request: `04693f9f-ed49-4ad8-a964-f14fe5e01a71`.
+- CapturedAt / knowledgeCutoff: `2026-10-03T04:13:45.712111+00:00`.
+- RecordedAt: `2026-10-03T04:13:45.838421+00:00`.
+- Through: **2026-10-03**; target session: **2026-10-02**; portfolio: **null**.
+- Status: **BLOCKED**; configured/dataBlocked/rows: **10/10/10**;
+  candidates/held: **0/0**. Missing evidence was not promoted or fabricated.
+- InputHash: `6c32994d484472bb08361905e29bf0f86d2a29c558c94ad91bf0d0e7380f9177`.
+- SelectedDigest: `38ba96fba61bd32c803d6b9c2cca2e1a713a8611dfbb691496e44c4c457ed377`.
+- Manifest: **86 selected bar links**, **3 reference archives**;
+  retained snapshot tables: **1 run, 10 rows**.
+
+All **11 pre-existing operational table fingerprints** and **208 protected file
+hashes** match the initial baseline, including pilot references/session proofs,
+retained operation/summary reports and both frozen contracts. Canonical history
+remains **86 rows**; portfolio economic/event/thesis data is unchanged. New snapshot
+table fingerprints also match before/after the final migration rerun. The rejected
+Oct 2 benchmark was not replayed, re-collected or retrospectively qualified.
+Soak remains **1/10**, qualifying date **2026-09-30**, after_market_date
+**2026-09-28**. Provider calls/units **0/0**; FullIdx **NOT ENABLED**.
+No collector, Screener policy, session proof, recommendation/action field,
+navigation/UI, outcome/verifier service, commit or push was introduced.
+
+To load the new endpoints in the normal local application, restart
+`dotnet run --project src/IdxStockIntelligence.Api` from repository root with the
+existing private `IDX_DATABASE_CONNECTION`; no provider token is needed. Keep the
+database and ignored evidence archives together in the established backup workflow.
+Implementation is uncommitted and ready for review. Real evidence remains
+insufficient for candidates; successful persistence does not change readiness.

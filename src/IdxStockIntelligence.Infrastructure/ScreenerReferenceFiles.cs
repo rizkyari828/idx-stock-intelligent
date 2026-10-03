@@ -7,20 +7,27 @@ namespace IdxStockIntelligence.Infrastructure;
 
 public sealed record ScreenerReferenceBundle(ScreenerReferenceDocument Reference,
     IReadOnlyList<SessionProof> Sessions, IReadOnlyList<InstrumentSessionProof> InstrumentSessions);
+public sealed record ScreenerReferenceCopy(ScreenerReferenceBundle Bundle, IReadOnlyList<byte[]?> Files);
 
 public static class ScreenerReferenceFiles
 {
     // Fixed local inputs only. No request path, URL fetch, registry lookup or assertion generation.
     public static async Task<EvidenceResult<ScreenerReferenceBundle>> LoadAsync(CancellationToken ct)
     {
-        var copied = new List<byte[]>();
+        var copied = await CopyAsync(ct);
+        return new(copied.Value?.Bundle, copied.Reason);
+    }
+
+    public static async Task<EvidenceResult<ScreenerReferenceCopy>> CopyAsync(CancellationToken ct)
+    {
+        var copied = new List<byte[]?>();
         var bytes = 0;
         try
         {
             foreach (var file in new[] { "pilot/screener-reference.json", "pilot/sessions.json", "pilot/instrument-sessions.json" })
             {
                 ct.ThrowIfCancellationRequested();
-                if (!File.Exists(file)) { copied.Add([]); continue; }
+                if (!File.Exists(file)) { copied.Add(null); continue; }
                 await using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read,
                     8192, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 using var memory = new MemoryStream();
@@ -34,7 +41,8 @@ public static class ScreenerReferenceFiles
                 }
                 copied.Add(memory.ToArray());
             }
-            return Parse(copied[0], copied[1], copied[2], ct);
+            var parsed = Parse(copied[0] ?? [], copied[1] ?? [], copied[2] ?? [], ct);
+            return new(parsed.Available ? new(parsed.Value!, copied) : null, parsed.Reason);
         }
         catch (IOException) { return new(null, "REFERENCE_FILES_UNAVAILABLE"); }
         catch (UnauthorizedAccessException) { return new(null, "REFERENCE_FILES_UNAVAILABLE"); }
