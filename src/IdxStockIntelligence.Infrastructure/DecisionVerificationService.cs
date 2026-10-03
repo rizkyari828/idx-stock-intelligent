@@ -16,7 +16,7 @@ public sealed class DecisionVerificationService(NpgsqlDataSource dataSource)
             ("screener-v0.1.0", 1) => ScreenerService.Evaluate,
             _ => null
         };
-    private sealed class MissingInput(string reason) : Exception(reason);
+    internal sealed class MissingInput(string reason) : Exception(reason);
     private static void Require(bool condition, string reason) { if (!condition) throw new MissingInput(reason); }
     private static bool Same(object a, object b, CancellationToken ct) => ScreenerReferences.Hash(a, ct) == ScreenerReferences.Hash(b, ct);
 
@@ -81,7 +81,7 @@ public sealed class DecisionVerificationService(NpgsqlDataSource dataSource)
         { ct.ThrowIfCancellationRequested(); throw new ScreenerException(503, "VERIFICATION_UNAVAILABLE"); }
     }
 
-    private static async Task<DecisionSnapshotManifest> ManifestAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, Guid id, CancellationToken ct)
+    internal static async Task<DecisionSnapshotManifest> ManifestAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, Guid id, CancellationToken ct)
     {
         await using var command = new NpgsqlCommand("SELECT evidence_manifest::text FROM decision_snapshot_run WHERE run_id=$1", connection, transaction) { CommandTimeout = 15 };
         command.Parameters.AddWithValue(id);
@@ -90,7 +90,7 @@ public sealed class DecisionVerificationService(NpgsqlDataSource dataSource)
         return JsonSerializer.Deserialize<DecisionSnapshotManifest>(json!, DecisionSnapshotService.JsonOptions) ?? throw new MissingInput("MANIFEST_INVALID");
     }
 
-    private static void ValidateManifest(DecisionSnapshotHeader h, DecisionSnapshotManifest m)
+    internal static void ValidateManifest(DecisionSnapshotHeader h, DecisionSnapshotManifest m)
     {
         Require(m.SchemaVersion == 1 && m.Request is not null && m.Request.BoundsReason() is null
             && m.Request.InstrumentIds.Distinct().Count() == m.Request.InstrumentIds.Count
@@ -120,7 +120,7 @@ public sealed class DecisionVerificationService(NpgsqlDataSource dataSource)
                 && p.ThesisIds.Distinct().Count() == p.ThesisIds.Count && p.EventIds.Concat(p.ThesisIds).All(id => id != Guid.Empty), "MANIFEST_PORTFOLIO_INVALID");
     }
 
-    private static void Authenticate(DecisionSnapshotManifest m, ScreenerDatabaseEvidence evidence, CancellationToken ct)
+    internal static void Authenticate(DecisionSnapshotManifest m, ScreenerDatabaseEvidence evidence, CancellationToken ct)
     {
         Require(evidence.Bars.Count == m.Bars.Count, "CANONICAL_REVISION_MISSING");
         var links = m.Bars.ToDictionary(b => (b.InstrumentId, b.SessionDate, b.RevisionNumber));
@@ -138,7 +138,7 @@ public sealed class DecisionVerificationService(NpgsqlDataSource dataSource)
             && link.KnownAt == l.KnownAt && link.ContentHash == l.ContentHash), "LISTING_INPUT_INTEGRITY_FAILED");
     }
 
-    private static async Task<ScreenerReferenceBundle> ArchivesAsync(IReadOnlyList<DecisionReferenceArchive> archives, CancellationToken ct)
+    internal static async Task<ScreenerReferenceBundle> ArchivesAsync(IReadOnlyList<DecisionReferenceArchive> archives, CancellationToken ct)
     {
         string[] kinds = ["screener-reference", "sessions", "instrument-sessions"];
         Require(archives.Count == 3 && archives.All(a => a is not null) && archives.Select(a => a.Kind).Distinct().Count() == 3

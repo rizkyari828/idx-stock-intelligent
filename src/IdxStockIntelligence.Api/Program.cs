@@ -29,6 +29,7 @@ builder.Services.AddSingleton<ScreenerService>();
 builder.Services.AddSingleton<StockDatabase>();
 builder.Services.AddSingleton<DecisionSnapshotService>();
 builder.Services.AddSingleton<DecisionVerificationService>();
+builder.Services.AddSingleton<OutcomeTrackingService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -104,6 +105,40 @@ app.MapPost("/api/screener/decision-snapshots/{id}/verify", async (string id, Ht
         return Results.Ok(await service.VerifyAsync(run, ct));
     }
     catch (JsonException) { return Results.BadRequest(new { code = "VERIFICATION_REQUEST_INVALID", error = "VERIFICATION_REQUEST_INVALID" }); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapPost("/api/screener/decision-snapshots/{id}/outcomes/evaluate", async (string id, HttpRequest request, OutcomeTrackingService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(id, "D", out var run) || run == Guid.Empty)
+            throw new ScreenerException(400, "OUTCOME_REQUEST_INVALID");
+        using var body = await JsonDocument.ParseAsync(request.Body, new() { MaxDepth = 8 }, ct);
+        var result = await service.EvaluateAsync(run, OutcomeRequest.Parse(body.RootElement).HorizonSessions, ct);
+        return Results.Json(result, statusCode: result.NewlyMaterializedCount > 0 ? 201 : 200);
+    }
+    catch (JsonException) { return Results.BadRequest(new { code = "OUTCOME_REQUEST_INVALID", error = "OUTCOME_REQUEST_INVALID" }); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapGet("/api/screener/decision-snapshots/{id}/outcomes", async (string id, HttpRequest request, OutcomeTrackingService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(id, "D", out var run) || run == Guid.Empty)
+            throw new ScreenerException(400, "OUTCOME_REQUEST_INVALID");
+        return Results.Ok(await service.ReadAsync(run, null, ct));
+    }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapGet("/api/screener/decision-snapshots/{id}/rows/{stock}/outcomes", async (string id, string stock, HttpRequest request, OutcomeTrackingService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(id, "D", out var run) || run == Guid.Empty
+            || !Guid.TryParseExact(stock, "D", out var instrument) || instrument == Guid.Empty)
+            throw new ScreenerException(400, "OUTCOME_REQUEST_INVALID");
+        return Results.Ok(await service.ReadAsync(run, instrument, ct));
+    }
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 app.MapGet("/api/screener/decision-snapshots", async (HttpRequest request, DecisionSnapshotService service, CancellationToken ct) =>

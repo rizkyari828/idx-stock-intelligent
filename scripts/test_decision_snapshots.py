@@ -208,7 +208,7 @@ class DecisionSnapshotAcceptance(screener.ScreenerHttpAcceptance):
     def test_database_update_delete_truncate_late_insert_and_completeness_guards(self):
         self.current_fixture();run=self.capture();rid=run["header"]["runId"]
         for statement in ("UPDATE decision_snapshot_run SET status=status", "UPDATE decision_snapshot_row SET close=close",
-                          "DELETE FROM decision_snapshot_row","DELETE FROM decision_snapshot_run", "TRUNCATE decision_snapshot_row",
+                          "DELETE FROM decision_snapshot_row","DELETE FROM decision_snapshot_run", "TRUNCATE decision_snapshot_row CASCADE",
                           "TRUNCATE decision_snapshot_run CASCADE"):
             with self.assertRaisesRegex(RuntimeError,"append-only"):self.sql(statement)
         columns=self.sql("SELECT string_agg(column_name,',' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_name='decision_snapshot_row'").split(',')

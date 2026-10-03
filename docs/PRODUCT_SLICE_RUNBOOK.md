@@ -2365,3 +2365,96 @@ capture targeting Oct 2 has no retained future horizon yet; its visible closes
 lack captured price-basis clearance. This milestone changes documentation only:
 no migration/table/API/code, evidence write, provider call, soak change or FullIdx
 activation. Both existing frozen contracts remain unchanged; soak remains 1/10.
+
+
+## Outcome Tracking V0.1 — implementation (2026-10-03)
+
+`outcome-v0.1.0` now supports on-demand assessment for the complete immutable
+captured population at +1/+5/+10/+20 independently confirmed completed exchange
+sessions strictly after targetSession. Weekends and sourced closures do not count;
+bars cannot manufacture sessions or slide an endpoint. Captured price/date/revision
+and capture-time clearance remain fixed. Later evidence can resolve forward gaps
+but cannot repair the original anchor.
+
+Apply `src/IdxStockIntelligence.Infrastructure/Migrations/0006_decision_snapshot_outcomes.sql`
+after schema 5 using the existing controlled SQL migration procedure. It adds only
+`decision_snapshot_outcome` and schema version 6; no source/portfolio/snapshot backfill.
+Composite capture-row FK/uniqueness, terminal-state/date/clock/manifest linkage guards
+and UPDATE/DELETE/TRUNCATE rejection enforce immutable terminal storage.
+
+The pure evaluator reuses canonical numeric/session/reference validation. AVAILABLE
+uses checked decimal `100m * (horizonClose / anchorClose - 1m)` without display rounding,
+requires ordinary IDR identity, supported endpoint trading and one source-matched
+whole-span STOCK_RAW / RAW_AS_TRADED / CLEARED interval containing both endpoint
+hashes. Dividends are excluded cash flows. Unknown action flags, missing bars,
+unknown status, missing calendar proof and absent comparability remain retryable.
+Typed authoritative endpoint status or incompatible source evidence can establish
+terminal DATA_UNAVAILABLE / BASIS_UNCERTAIN; missing capture-time proof establishes
+ANCHOR_UNAVAILABLE only once the exact forward horizon is independently proved.
+The existing reference model has no typed corporate-action event facts: generic
+UNKNOWN/UNRESOLVED coverage cannot manufacture an action or terminal basis outcome.
+
+Endpoints (same existing loopback/origin/body protections):
+
+- POST `/api/screener/decision-snapshots/{runId}/outcomes/evaluate`, strict body
+  `{"horizonSessions":1}` (1, 5, 10, 20 only). Returns 201 when any new terminal subset
+  commits, 200 otherwise. Caller clocks, prices, results, paths and filters are rejected.
+- GET `/api/screener/decision-snapshots/{runId}/outcomes`: full bounded four-horizon
+  grid, ordered by instrument/horizon, up to 840 cells.
+- GET `/api/screener/decision-snapshots/{runId}/rows/{instrumentId}/outcomes`: four
+  cells for a captured row. Unknown runs/rows return 404.
+
+Responses distinguish terminal/unresolved resolution and committed/unmaterialized
+cells, with original recording/knowledge clocks only for committed cells. Read-only
+terminal previews do not insert. Whole-run POSTs reuse existing terminal cells and
+atomically insert only new terminal cells; PENDING/SESSION_UNAVAILABLE/UNRESOLVED
+are never persisted. Existing complete terminal subsets can be recovered without
+live files. A native run/horizon advisory lock precedes the repeatable-read assessment;
+uniqueness/serialization failure retries at most once with a fresh view. Actual
+DB evaluation/recording clocks, copied bounded reference bytes, SHA/length-verified
+archives and exact original/horizon revision links are retained. Existing 15-second
+commands, 60-second deadline, 211-ID/80,000-row and 4 MiB reference bounds apply;
+per-cell manifests are capped at 64 KiB and operation manifests at 32 MiB.
+
+Verification executed:
+
+- `rtk proxy dotnet build`: PASS, zero warnings/errors.
+- Focused Outcome discovery: **31/31 PASS**.
+- Canonical root `rtk proxy dotnet test`: **382 passed, 10 expected DB opt-in skips**
+  (392 total, zero failures).
+- Existing disposable-enabled canonical discovery: **392/392 PASS**, wrapper 1/1.
+- `scripts/test_outcome_tracking.py`: **11/11 PASS** via standard unittest discovery;
+  includes delayed bar/session/basis, incremental/mixed subsets, actual later clocks,
+  terminal anchor/status/basis, exact zero/positive/negative returns, concurrency,
+  rollback, native lock timeout/recovery, immutable reads, later revision isolation, strict API/integrity and
+  migration fresh/upgrade/rerun/populated dump/restore acceptance.
+- Existing Decision Snapshot acceptance: **19/19 PASS**; truncate test now includes
+  CASCADE to exercise its append-only guard with the added dependent table.
+- Existing Decision Verification acceptance: **12 passed, 1 expected browser opt-in
+  skip**. Frontend/browser suites were not rerun; no frontend code changed.
+- `git diff --check`: PASS.
+
+After disposable acceptance, migration 0006 was applied to the operational database.
+Versions are **2, 4, 5, 6**. Real retained run
+`3bc25cf2-901b-4c15-84b2-e265091f7f48` was assessed at
+`2026-10-03T16:34:59.226584+00:00`: HTTP **200**, +1, **10 unresolved cells**,
+state **PENDING**, reason **HORIZON_NOT_REACHED**, no proved horizon date,
+**0 available / 0 terminal unavailable / 0 newly materialized**.
+Operational outcome row count **0 before / 0 after**. No future session or anchor
+clearance was fabricated. Decision Verification remains HTTP 200 **MATCH**, with
+unchanged inputHash/selectedDigest and no differences.
+
+Before/after fingerprints match **13 operational tables and 212 protected file
+hashes**: original 1 run / 10 rows, 86 canonical revisions, portfolios, references,
+sessions, operation reports, retained archives and all three frozen contracts.
+Only the additive schema/table changed. Provider calls/units **0/0**; FullIdx remains
+**NOT ENABLED**. Soak stays **1/10**, qualifying 2026-09-30, after_market_date
+2026-09-28. No collection, scheduler, outcome verifier, UI, new dependency or
+contract/setup-policy change. The temporary operational API was stopped; the normal
+local API requires its usual restart to expose the new routes.
+
+Remaining limits: on-demand current policy only, bounded PILOT horizon through
+2027-08-24, no adjusted/total/benchmark return, MFE/MAE, scheduler or outcome UI/
+verification. Real future data readiness and capture-time price clearance remain
+independent limitations. Backup/restore must retain outcomes together with original
+captures, exact canonical revisions/raw/listing records and reference archives.
