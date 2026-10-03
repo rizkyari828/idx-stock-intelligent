@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {checkScreener} from './check_screener_ui.mjs';
 import {checkStocks} from './check_stocks_ui.mjs';
+import {checkDecisions} from './check_decisions_ui.mjs';
 import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -31,13 +32,13 @@ async function shot(name){await evaluate('window.scrollTo(0,0)');await evaluate(
 async function file(format,content,name){await evaluate(`(()=>{const e=document.querySelector('#import-file');const data=new DataTransfer();data.items.add(new File([${JSON.stringify(content)}],${JSON.stringify(name)},{type:${JSON.stringify(format==='JSON'?'application/json':'text/csv')}}));e.files=data.files;e.dispatchEvent(new Event('change',{bubbles:true}));})()`);await until('!document.querySelector("#import-file").disabled');}
 const buttonText=text=>evaluate(`Array.from(document.querySelectorAll('main button')).find(e=>e.textContent.trim().startsWith(${JSON.stringify(text)})).click()`);
 try {
- if(mode!=='screener'&&mode!=='stocks')assert.equal((await request(`/portfolios/${portfolioId}`)).portfolio.name,'SYNTHETIC HISTORICAL RESTORE','UI acceptance requires the owned historical fixture');
+ if(mode!=='screener'&&mode!=='stocks'&&mode!=='decisions')assert.equal((await request(`/portfolios/${portfolioId}`)).portfolio.name,'SYNTHETIC HISTORICAL RESTORE','UI acceptance requires the owned historical fixture');
  await mkdir(output,{recursive:true});let pages;
  for(let i=0;i<100;i++){if(chromeError)throw chromeError;try{pages=await (await fetch(`http://127.0.0.1:${port}/json`)).json();break;}catch{await wait(50);}}
  assert.ok(pages,'Chrome startup');socket=new WebSocket(pages.find(p=>p.type==='page').webSocketDebuggerUrl);await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject;});
  socket.onmessage=event=>{const m=JSON.parse(event.data);if(m.method==='Runtime.exceptionThrown')exceptions.push(m.params.exceptionDetails);if(m.method==='Network.requestWillBeSent')requests.push(m.params.request);if(m.id){const cb=pending.get(m.id);pending.delete(m.id);m.error?cb.reject(m.error):cb.resolve(m.result);}};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await size(1440);await send('Page.navigate',{url:base});await until('!!document.querySelector(".portfolio-select button")');
- if(mode==='stocks'){await checkStocks({base,portfolioId,send,evaluate,until,click,set,submit,nav,size,noOverflow,shot,buttonText,requests,exceptions,output});}else if(mode==='screener'){await checkScreener({base,portfolioId,fixtureRoot,send,evaluate,until,click,set,submit,nav,size,noOverflow,shot,buttonText,requests,exceptions,output});}else {
+ if(mode==='decisions'){await checkDecisions({base,portfolioId,send,evaluate,until,click,set,submit,nav,size,noOverflow,shot,buttonText,requests,exceptions,output});}else if(mode==='stocks'){await checkStocks({base,portfolioId,send,evaluate,until,click,set,submit,nav,size,noOverflow,shot,buttonText,requests,exceptions,output});}else if(mode==='screener'){await checkScreener({base,portfolioId,fixtureRoot,send,evaluate,until,click,set,submit,nav,size,noOverflow,shot,buttonText,requests,exceptions,output});}else {
  await evaluate(`localStorage.setItem('idx-portfolio-id',${JSON.stringify(portfolioId)});localStorage.setItem('idx-theme','dark')`);await send('Page.reload',{ignoreCache:true});await until('!!document.querySelector(".holdings-table")');
  assert.match(await evaluate('document.querySelector("main").innerText'),/Valuation is incomplete/);assert.equal(await evaluate('document.querySelectorAll(".holdings-table tbody tr").length'),2);await shot('portfolio-1440');
  const initial=await request(`/portfolios/${portfolioId}`);const historyBefore=await request(`/portfolios/${portfolioId}/events`);

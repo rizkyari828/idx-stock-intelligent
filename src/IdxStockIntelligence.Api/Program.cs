@@ -158,6 +158,7 @@ app.MapPost("/api/portfolio-imports", async (ImportRequest input, PortfolioDatab
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapFallbackToFile("/stocks/{**path}", "index.html");
+app.MapFallbackToFile("/decisions/{**path:nonfile}", "index.html");
 await app.RunAsync();
 
 static Dictionary<string, string?> SnapshotQuery(HttpRequest request)

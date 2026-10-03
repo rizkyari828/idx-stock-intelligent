@@ -521,3 +521,15 @@ main:focus-visible { outline: none; } .data-reason { max-width: 160px; white-spa
 .stock-json {font-size:.75rem;white-space:pre-wrap;overflow-wrap:anywhere;max-height:30rem;overflow:auto}
 .break-word {overflow-wrap:anywhere}
 @media(max-width:768px){.stocks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.stocks-table,.stock-history-table{font-size:.85rem}.stock-detail-page .page-header{overflow-wrap:anywhere}}
+/* Retained Decision History: captured facts, bounded lists and full population. */
+.decisions-page {min-width:0}
+.decisions-page .page-header {margin-bottom:0}
+.decision-list-table,.decision-rows-table {width:100%;border-collapse:collapse;white-space:nowrap;font-variant-numeric:tabular-nums}
+.decision-list-table th,.decision-list-table td,.decision-rows-table th,.decision-rows-table td {padding:1rem;text-align:left;border-bottom:1px solid var(--border)}
+.decision-list-table td:nth-last-child(1) {min-width:15rem;white-space:normal;overflow-wrap:anywhere}
+.decision-rows-table {min-width:1200px}
+.decision-rows-table td:first-child {min-width:160px;white-space:normal}
+.decision-hash {font-family:var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;margin:0;padding:12px;background:var(--surface-raised);user-select:all}
+.decisions-page .panel-body {min-width:0;overflow-wrap:anywhere}
+.decisions-page .screener-facts {margin-top:0}
+@media(max-width:1200px){.table-scroll:has(.decision-list-table,.decision-rows-table)::before{content:'Scroll horizontally to see all columns →';display:block;position:sticky;left:0;padding:9px 20px;background:var(--surface);color:var(--text-secondary);font-size:var(--type-xs)}}

@@ -4,9 +4,10 @@ Requires .NET 10, PostgreSQL 17 (existing compose service), Python 3.12+ for
 acceptance and Node 22.12+ for current Vite. Run from repository root unless
 indicated. No provider token is needed. Keep connection strings outside Git.
 
-Current product status: **Stocks + Stock Detail V0.1 implemented**, alongside
-**Screener Milestone 6 data-readiness/evidence complete**. Stocks is a read-only
-local registry/history surface; the latest section records its verification. The
+Current product status: **Decision Snapshot History UI V0.1 implemented**, alongside
+**Stocks + Stock Detail V0.1** and prospective Decision Snapshot persistence, plus
+**Screener Milestone 6 data-readiness/evidence complete**. The latest section records
+the read-only Decision History verification. Stocks is a local registry/history surface. The
 production sidebar opens the read-only PILOT Screener independently of a portfolio.
 The Screener M6 section below records the read-only operational audit plus the
 authoritative-source review, the one substantiated PILOT configured-membership
@@ -2060,3 +2061,129 @@ existing private `IDX_DATABASE_CONNECTION`; no provider token is needed. Keep th
 database and ignored evidence archives together in the established backup workflow.
 Implementation is uncommitted and ready for review. Real evidence remains
 insufficient for candidates; successful persistence does not change readiness.
+
+## Decision Snapshot History UI V0.1 — completed (2026-10-03)
+
+Started from clean `e700cc0`, `main` six commits ahead of `origin/main`, with the
+Decision Snapshot persistence milestone already committed. The earlier persistence
+section's uncommitted/no-UI statements describe that milestone at completion;
+this separate milestone adds a read surface without changing its frozen model.
+
+### Routes and retained facts
+
+The enabled **Decision History** sidebar item opens `/decisions`; canonical detail
+identity is `/decisions/{runId}`. The list uses the existing recent-header GET,
+backend default **20**, original order and opaque keyset cursors. **Next page**
+advances the cursor; **Reset to latest** restarts without an offset or an unbounded
+history scan. Captured status, dates, policy, universe, portfolio context, row count,
+abbreviated inputHash and stable run ID remain visible. Loading, empty and service
+errors are distinct from a stored BLOCKED evaluation.
+
+Detail reads only the stored run API. It shows separate **Captured at**, **Known by**,
+**Through**, **Target market session** and **Recorded at**, exact UTC clocks, request
+and run IDs, history anchor, policy/universe snapshot, portfolio ID, all persisted
+rows, captured counts and benchmark context. Full hashes wrap in selectable
+monospace areas. There is no live Screener request or hash recomputation to populate
+capture facts; no capture/edit button, outcome result or verification badge.
+
+Every returned instrument survives, including DATA_BLOCKED, INELIGIBLE and positive
+holdings outside the configured universe. Real expansion buttons expose captured
+eligibility/setup reasons, episode identity/dates/ages/trigger, full technical
+values, availability and provenance, and factual holding/mandate/thesis metadata.
+Not evaluated stays distinct from evaluated NONE. Null values remain unavailable;
+genuine zero remains zero. Unknown membership is distinguished from known outside
+scope. The table scrolls horizontally; the expanded panel fits the viewport.
+
+**Open current Stock Detail** uses the stable instrument ID and explicitly warns
+that the destination may contain newer information. Stock Detail has a secondary
+**Decision history** section using the existing instrument endpoint with **limit=5**,
+independent of its current through/cutoff and portfolio controls. It shows captured
+clocks/session, eligibility/setup/close/status and links to the immutable run.
+No current portfolio values or private thesis text replace captured context.
+
+### Hosting, state and accessibility
+
+The only C# change is the narrow React host fallback
+`/decisions/{**path:nonfile}` to `index.html`. Direct list/detail URLs and refresh
+work. API routes keep their JSON/error responses; static assets retain their content
+types, missing `.js` files retain 404, and unrelated URLs remain 404. Snapshot DTOs,
+capture transactions, hashes, schema, migrations and chronology are unchanged.
+
+Existing shell navigation/back/forward conventions are reused. Read requests have
+abort ownership plus generation guards so late responses cannot overwrite newer
+route state. Invalid IDs, missing runs, service failures, retries and cursor reset
+have explicit states. Semantic headings/tables, real links/buttons, aria-expanded,
+accessible loading/errors, visible focus and existing reduced-motion styling are
+preserved. Chrome verified keyboard Tab reachability of navigation and links,
+Space expansion/collapse, changing aria-expanded, leaving controls without a trap,
+and browser back/forward.
+
+### Exact executed verification
+
+Node **24.19.0** from the existing bundled runtime satisfies the Node 22.12+ build
+requirement; no dependency was added or package/lockfile changed.
+
+- In `frontend`, `npm test`: **76/76 passed, 0 failed/skipped**, including **16**
+  new Decision History cases. Covers loading/empty/error, BLOCKED, order/cursors,
+  clocks/hashes, full 25-row population, null/zero/availability, all setup states,
+  outside held and unknown membership, portfolio metadata, stable links and stale
+  completion/404/service handling.
+- In `frontend`, `npm run build`: **PASS**.
+- `rtk proxy dotnet build`: **PASS, 0 warnings/errors**.
+- `rtk proxy dotnet test`: **348 total, 339 passed, 9 expected database opt-in
+  skips, 0 failed**. Executed because the API host fallback changed.
+- `IDX_TEST_BROWSER=1 IDX_TEST_NODE=<Node22+ executable> python3 -m unittest discover
+  -s scripts -p test_decision_history_ui.py -v`: **2/2 passed**, comprising focused
+  HTTP/direct-route/asset/error regression and production native Chrome acceptance.
+  The owned fixture contains BLOCKED/discovery and PARTIAL/portfolio captures,
+  WARMUP/unavailable fields, evaluated NONE/WATCH/CONFIRMED, DATA_BLOCKED and
+  outside-universe held/not-evaluated rows. Cursor paging, expansion, direct/reload/
+  back/forward, keyboard, current Stock Detail/history links and API-unavailable
+  recovery passed at **1440/1366/1280/1024/768/390**. Snapshot table contents are
+  unchanged across browser browsing; browser traffic is GET-only with zero external
+  requests and zero runtime exceptions.
+- Existing Stocks acceptance with browser enabled: **5/5 passed**, including
+  four HTTP cases and native Chrome regression at all six required widths.
+- Real retained-capture HTTP/Chrome smoke: **PASS**, including direct list/detail
+  and refresh against the final non-file fallback, at **1440 and 390**.
+- `git diff --check`: **PASS**. Full persistence, collector and broader browser
+  suites were not rerun; this task did not change their implementations.
+
+The initial browser check exposed the missing direct-route fallback; route-isolation
+acceptance then exposed file-like URLs being captured by the unconstrained fallback.
+Both were fixed at the host boundary and the final affected checks passed. Headless
+keyboard checks use explicit focus emulation; production controls remain native
+buttons and links. Desktop/mobile screenshots were inspected. All owned disposable
+databases, temporary API processes and Chrome profiles were cleaned up.
+
+### Real operational smoke and safety
+
+Read only the existing run `3bc25cf2-901b-4c15-84b2-e265091f7f48`; no new capture.
+`/decisions` displays it, its direct detail URL and refresh return the React page,
+and run GET returns **HTTP 200**. All **10 persisted rows** render. Captured state
+remains **BLOCKED**, through **2026-10-03**, target session **2026-10-02**, portfolio
+**null**, configured/dataBlocked **10/10**, candidates **0**. BLOCKED has no
+application-error banner. Discovery-only context, distinct chronology labels and
+both exact hashes match the retained run:
+
+- InputHash: `6c32994d484472bb08361905e29bf0f86d2a29c558c94ad91bf0d0e7380f9177`.
+- SelectedDigest: `38ba96fba61bd32c803d6b9c2cca2e1a713a8611dfbb691496e44c4c457ed377`.
+
+The smoke used a temporary loopback API against real retained data; the normal
+port-5080 process was not replaced. Browser requests were **GET only**, with **0**
+capture POSTs, writes, live Screener calls or external requests. Provider calls/units
+are **0/0** throughout the milestone.
+
+Before/after fingerprints cover **13 operational tables**, including both snapshot
+tables, and **211 protected file hashes** (pilot/reference/session/operation/summary
+files, reference archives and both frozen contracts). They match. Retained captures
+remain **1 run / 10 rows**, canonical history **86 rows**, portfolio data unchanged,
+schema versions **2, 4, 5**. Soak remains **1/10**, qualifying date **2026-09-30**,
+after_market_date **2026-09-28**; FullIdx **NOT ENABLED**. No new migration,
+persistence/policy change, provider collection, outcome tracking or verifier service.
+
+Remaining limits: forward-only history cursors with reset; Stock Detail shows only
+the latest five captures; no UI capture action, history export, outcome or verification
+workflow. Real evidence remains insufficient for candidates. Captured hashes provide
+linkage, not a verified badge. Restart the local API and reload the built frontend
+to use the new routes; no operational data modification is required.

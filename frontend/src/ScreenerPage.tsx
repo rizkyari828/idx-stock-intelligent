@@ -5,14 +5,14 @@ import { Badge, Dialog, Empty, Icon, LoadingSkeleton, Metric, Notice, PageHeader
 import { defaultControls, initialState, number, ScreenerSession, setupLabel, type Context, type Controls, type FieldStates, type MarketContext, type Provenance, type ScreenerResponse, type ScreenerRow, type ScreenerState } from './screener.js';
 
 const raw = (value: unknown): string => value === null ? 'Unavailable' : Array.isArray(value) ? value.join(', ') || 'None' : typeof value === 'boolean' ? value ? 'Yes' : 'No' : String(value);
-function Facts({ values }: { values: Record<string, unknown> }) {
+export function Facts({ values }: { values: Record<string, unknown> }) {
  return <dl className="screener-facts">{Object.entries(values).map(([name,value])=><div key={name}><dt>{name}</dt><dd>{raw(value)}</dd></div>)}</dl>;
 }
-function Reasons({ values }: { values: string[] }) { return values.length ? <ul className="screener-reasons">{values.map(reason=><li key={reason}>{reason}</li>)}</ul> : <p className="muted">No reasons reported.</p>; }
-function Availability({ fields }: { fields: FieldStates }) {
+export function Reasons({ values }: { values: string[] }) { return values.length ? <ul className="screener-reasons">{values.map(reason=><li key={reason}>{reason}</li>)}</ul> : <p className="muted">No reasons reported.</p>; }
+export function Availability({ fields }: { fields: FieldStates }) {
  return <section aria-label="Feature availability"><h3>Feature availability</h3>{Object.keys(fields).length ? <dl className="screener-facts">{Object.entries(fields).map(([name,state])=><div key={name}><dt>{name}</dt><dd>{state.availability} · {state.reason ?? 'No reason reported'}</dd></div>)}</dl> : <p>No unavailable fields reported.</p>}</section>;
 }
-function ProvenanceDetails({ value }: { value: Provenance }) {
+export function ProvenanceDetails({ value }: { value: Provenance }) {
  const { currentEvidence, ...observation }=value;
  return <section aria-label="Provenance"><h3>Observation provenance</h3><Facts values={observation}/><h3>Selected current evidence</h3><p className="muted">May differ from the last usable observation above. Rejected selected evidence stays visible.</p>{currentEvidence ? <Facts values={currentEvidence}/> : <p>Unavailable</p>}</section>;
 }
