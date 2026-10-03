@@ -533,3 +533,17 @@ main:focus-visible { outline: none; } .data-reason { max-width: 160px; white-spa
 .decisions-page .panel-body {min-width:0;overflow-wrap:anywhere}
 .decisions-page .screener-facts {margin-top:0}
 @media(max-width:1200px){.table-scroll:has(.decision-list-table,.decision-rows-table)::before{content:'Scroll horizontally to see all columns →';display:block;position:sticky;left:0;padding:9px 20px;background:var(--surface);color:var(--text-secondary);font-size:var(--type-xs)}}
+
+/* Outcome states describe evidence, not wins/losses or application errors. */
+.outcome-panel {min-width:0}
+.outcome-matrix,.outcome-summary {width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.outcome-matrix {min-width:1000px;table-layout:fixed}
+.outcome-matrix th,.outcome-matrix td,.outcome-summary th,.outcome-summary td {padding:1rem;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+.outcome-matrix td,.outcome-matrix th {overflow-wrap:anywhere}
+.outcome-matrix summary {cursor:pointer;min-height:44px}
+.outcome-state {display:inline;font-size:var(--type-sm);color:var(--text)}
+.outcome-reason { display:block;font-size:var(--type-xs);overflow-wrap:anywhere}
+.outcome-values { display:block;font-variant-numeric:tabular-nums}
+.outcome-matrix .screener-facts {grid-template-columns:1fr}
+.outcome-matrix summary:focus-visible {outline:2px solid var(--text);outline-offset:4px}
+.outcome-summary {white-space:nowrap}

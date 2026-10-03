@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noEmit": false, "outDir": ".test-output" },
-  "include": ["src/reconciliationDraft.ts", "src/instrumentRegistration.ts", "src/snapshotCsv.ts", "src/view.ts", "src/view.test.ts", "src/PortfolioTable.tsx", "src/ui.tsx", "src/screener.ts", "src/ScreenerPage.tsx", "src/screener.test.tsx", "src/stocks.ts", "src/StocksPage.tsx", "src/stocks.test.tsx", "src/decisions.ts", "src/DecisionHistoryPage.tsx", "src/decisions.test.tsx"]
+  "include": ["src/reconciliationDraft.ts", "src/instrumentRegistration.ts", "src/snapshotCsv.ts", "src/view.ts", "src/view.test.ts", "src/PortfolioTable.tsx", "src/ui.tsx", "src/screener.ts", "src/ScreenerPage.tsx", "src/screener.test.tsx", "src/stocks.ts", "src/StocksPage.tsx", "src/stocks.test.tsx", "src/decisions.ts", "src/DecisionHistoryPage.tsx", "src/decisions.test.tsx", "src/outcomes.ts", "src/OutcomePanel.tsx", "src/outcomes.test.tsx"]
 }

@@ -2458,3 +2458,62 @@ Remaining limits: on-demand current policy only, bounded PILOT horizon through
 verification. Real future data readiness and capture-time price clearance remain
 independent limitations. Backup/restore must retain outcomes together with original
 captures, exact canonical revisions/raw/listing records and reference archives.
+
+
+### Outcome History UI V0.1 (2026-10-04)
+
+Decision Detail now includes an additive **Outcomes** section for every captured
+row across **+1 / +5 / +10 / +20 completed sessions**. Neutral cells distinguish
+UNRESOLVED from AVAILABLE, ANCHOR_UNAVAILABLE, DATA_UNAVAILABLE and BASIS_UNCERTAIN;
+reasons, preview/committed status, horizon dates/closes and available **Price return**
+are visible. Genuine zero remains zero; missing returns remain unavailable. Price
+return excludes cash dividends. Keyboard-expandable cell details show exact public
+DTO facts and separate capture/target, read assessment, committed known/recorded
+clocks. Internal manifests, archive paths and provider payloads are not exposed.
+
+Opening a capture performs only outcome GETs. Explicit **Evaluate +N** uses the
+existing run/horizon POST against retained evidence, then refreshes the run read.
+Zero newly materialized outcomes is normal success. Busy controls, abort/generation
+guards and a 65-second client deadline protect duplicate clicks and stale routes;
+errors retain captured content. A failed refresh after a completed POST is identified
+separately. Four-horizon counts summarize the full population, with no performance
+analytics, frontend return calculation, live Stock lookup, scheduler or outcome
+verification. Existing captured rows, Stock links and Decision Verification remain
+available. No backend/API/DTO, migration, dependency or frozen-contract change.
+
+Verification executed against the production frontend:
+
+- `npm test` (bundled Node 24): **100/100 PASS**, zero failures/skips; includes
+  17 Outcome checks for states/returns/clocks, explicit evaluation, errors/timeouts,
+  duplicate clicks, stale routes and zero-new results with existing terminal records.
+- `npm run build`: **PASS**, TypeScript and Vite (35 modules).
+- Standard discovery `scripts/test_outcome_history_ui.py`, `IDX_TEST_BROWSER=1`:
+  **1/1 PASS** on owned disposable PostgreSQL/HTTP/Chrome fixtures. Covers unresolved
+  and mixed states, positive/negative/zero available returns, previews/committed
+  cells, explicit +1/+5 and refresh, unchanged capture, keyboard/focus/details,
+  read error/retry, back navigation and no automatic evaluation/external requests.
+- Existing `scripts/test_decision_history_ui.py`, `IDX_TEST_BROWSER=1`:
+  **2/2 PASS**, including production browser and direct routes/assets/API errors.
+- Both browser flows passed **1440/1366/1280/1024/768/390**; the matrix scrolls
+  horizontally while retaining all horizons. Desktop/mobile screenshots inspected.
+- `git diff --check`: **PASS**. Backend .NET/HTTP and separate Stock suites were
+  not rerun: no backend DTO or shared production component was changed.
+
+Real retained run `3bc25cf2-901b-4c15-84b2-e265091f7f48`, target **2026-10-02**,
+captured at `2026-10-03T04:13:45.712111+00:00`, passed production Chrome smoke on
+Oct 4 Jakarta time. Before/after reads contained **10 rows × 4 horizons**, all
+**40 UNRESOLVED**, 0 available/terminal unavailable/materialized. Exactly one
+explicit **Evaluate +1** returned the normal zero-new notice; its ten cells remain
+**PENDING / HORIZON_NOT_REACHED**. No +5/+10/+20 POST was performed. The refreshed
+read cutoff was `2026-10-03T17:19:32.892441+00:00`; original capture chronology was
+unchanged. Operational outcome rows: **0 before / 0 after**. Verification before
+and after: **MATCH**. All **14 table fingerprints / 212 protected file SHA-256s**
+match, including portfolios, canonical revisions, snapshots, session/reference
+proofs, durable operations, archives and three frozen contracts. Temporary API and
+Chrome were stopped. Provider calls/units **0/0**, FullIdx **NOT ENABLED**, soak
+**1/10**, qualifying **2026-09-30**, after_market_date **2026-09-28** unchanged.
+
+Remaining limits: on-demand evidence readiness, existing bounded PILOT policy,
+price return only; no total/benchmark returns, analytics, scheduler, outcome
+verification or full Stock Detail outcomes. Terminal previews may change until
+explicit evaluation records them; the UI does not certify missing evidence.
