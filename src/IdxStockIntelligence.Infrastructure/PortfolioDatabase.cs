@@ -503,21 +503,44 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         }
     }
 
-    public async Task<IReadOnlyList<object>> InstrumentsAsync(int offset, int limit, CancellationToken ct, DateOnly? through = null)
+    public async Task<IReadOnlyList<object>> InstrumentsAsync(int offset, int limit, CancellationToken ct, DateOnly? through = null,
+        string? search = null, DateTimeOffset? cutoff = null)
     {
         ValidatePage(offset, limit);
+        if (search?.Length > 200) throw new ArgumentException("Registry search exceeds 200 characters.");
         await using var connection = await dataSource.OpenConnectionAsync(ct);
         await using var command = Command(connection, """
-            SELECT i.instrument_id,i.issuer_name,i.instrument_type,coalesce(h.symbol,i.issuer_name),h.symbol
+            SELECT i.instrument_id,i.issuer_name,i.instrument_type,coalesce(h.symbol,l.symbol,i.issuer_name),
+                CASE WHEN h.symbol IS NOT NULL THEN 'REGISTRY_HISTORY' WHEN l.symbol IS NOT NULL THEN 'RETAINED_LISTING' ELSE 'UNAVAILABLE' END,
+                r.instrument_id,r.session_date,r.revision_number,r.known_at,r.canonical_content_sha256,
+                r.ingestion_run_id,r.raw_artifact_id,r.source_id,r.raw_hash,r.fetched_at,r.retrieved_at,
+                r.session_reference,r.session_known_at,r.quality_status,r.open::text,r.high::text,r.low::text,
+                r.close::text,r.volume,r.adjusted_close::text,r.volume_unit,r.volume_basis,r.market_segment
             FROM instrument i LEFT JOIN LATERAL (SELECT symbol FROM instrument_history
                 WHERE instrument_id=i.instrument_id AND valid_from <= $1 AND (valid_to IS NULL OR valid_to >= $1)
                 ORDER BY valid_from DESC LIMIT 1) h ON true
-            ORDER BY coalesce(h.symbol,i.issuer_name) COLLATE "C",i.instrument_id OFFSET $2 LIMIT $3
-            """, ProductQuery.Date(through), offset, limit);
+            LEFT JOIN LATERAL (SELECT nullif(trim(evidence->>'symbol'),'') AS symbol FROM instrument_listing_evidence
+                WHERE instrument_id=i.instrument_id AND known_at <= $6 ORDER BY known_at DESC LIMIT 1) l ON true
+            LEFT JOIN LATERAL (SELECT b.*,a.source_id,a.content_sha256 AS raw_hash,a.fetched_at FROM daily_bar_revision b
+                JOIN raw_artifact a USING(raw_artifact_id) WHERE b.instrument_id=i.instrument_id
+                AND b.session_date <= $1 AND b.known_at <= $5 AND a.fetched_at <= $5
+                AND (b.retrieved_at IS NULL OR b.retrieved_at <= $5)
+                AND (b.session_known_at IS NULL OR b.session_known_at <= $5)
+                ORDER BY b.session_date DESC,b.known_at DESC,b.revision_number DESC LIMIT 1) r ON true
+            WHERE position(lower($4) in lower(coalesce(h.symbol,l.symbol,i.issuer_name))) > 0
+                OR position(lower($4) in lower(i.issuer_name)) > 0
+            ORDER BY coalesce(h.symbol,l.symbol,i.issuer_name) COLLATE "C",i.instrument_id OFFSET $2 LIMIT $3
+            """, ProductQuery.Date(through), offset, limit, search?.Trim() ?? "", ProductQuery.Cutoff(cutoff), DateTimeOffset.UtcNow);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var rows = new List<object>();
-        while (await reader.ReadAsync(ct)) rows.Add(new { id = reader.GetGuid(0), name = reader.GetString(1),
-            type = reader.GetString(2), symbol = reader.GetString(3), hasEffectiveSymbol = !reader.IsDBNull(4) });
+        while (await reader.ReadAsync(ct))
+        {
+            var observation = reader.IsDBNull(5) ? null : StockHistoryRow.From(ScreenerEvidenceDatabase.ReadBar(reader, 5));
+            rows.Add(new { id = reader.GetGuid(0), name = reader.GetString(1), type = reader.GetString(2),
+                symbol = reader.GetString(3), hasEffectiveSymbol = reader.GetString(4) == "REGISTRY_HISTORY", symbolSource = reader.GetString(4),
+                marketDate = observation?.Date, close = observation?.Close,
+                quality = observation?.Evidence.CanonicalQuality ?? "UNKNOWN" });
+        }
         return rows;
     }
 

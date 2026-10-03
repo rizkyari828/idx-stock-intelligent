@@ -25,6 +25,7 @@ var connectionString = builder.Configuration["IDX_DATABASE_CONNECTION"]
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddSingleton<PortfolioDatabase>();
 builder.Services.AddSingleton<ScreenerService>();
+builder.Services.AddSingleton<StockDatabase>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -93,8 +94,10 @@ app.MapPost("/api/instruments", async (RegisterInstrument input, PortfolioDataba
     await db.RegisterInstrumentAsync(input.Id, input.Name, input.Symbol, input.Type, input.ValidFrom, ct);
     return Results.Ok(input);
 });
-app.MapGet("/api/instruments", async (int? offset, int? limit, DateOnly? through, PortfolioDatabase db, CancellationToken ct) =>
-    Results.Ok(await db.InstrumentsAsync(offset ?? 0, limit ?? 100, ct, through)));
+app.MapGet("/api/instruments", async (int? offset, int? limit, DateOnly? through, string? search, DateTimeOffset? cutoff, PortfolioDatabase db, CancellationToken ct) =>
+    Results.Ok(await db.InstrumentsAsync(offset ?? 0, limit ?? 100, ct, through, search, cutoff)));
+app.MapGet("/api/instruments/{id:guid}/history", async (Guid id, DateOnly? through, DateTimeOffset? cutoff, int? limit, StockDatabase db, CancellationToken ct) =>
+    Results.Ok(await db.HistoryAsync(id, ProductQuery.Date(through), ProductQuery.Cutoff(cutoff), limit ?? 60, ct)));
 app.MapGet("/api/portfolios/{id:guid}/export", async (Guid id, string? format, PortfolioDatabase db, CancellationToken ct) =>
 {
     var document = await db.ExportAsync(id, ct);
@@ -113,6 +116,7 @@ app.MapPost("/api/portfolio-imports", async (ImportRequest input, PortfolioDatab
     Results.Ok(await db.ImportAsync(input, ct)));
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.MapFallbackToFile("/stocks/{**path}", "index.html");
 await app.RunAsync();
 
 namespace IdxStockIntelligence.Api

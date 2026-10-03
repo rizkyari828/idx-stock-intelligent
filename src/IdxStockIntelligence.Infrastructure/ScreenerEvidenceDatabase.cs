@@ -51,13 +51,7 @@ public static class ScreenerEvidenceDatabase
         {
             ct.ThrowIfCancellationRequested();
             if (bars.Count == ScreenerReadRequest.MaximumRows) return new(null, "BAR_BOUND_EXCEEDED");
-            bars.Add(new(reader.GetGuid(0), reader.GetFieldValue<DateOnly>(1), reader.GetInt64(2),
-                reader.GetFieldValue<DateTimeOffset>(3), reader.GetString(4), reader.GetGuid(5), reader.GetGuid(6),
-                reader.GetString(7), reader.GetString(8), reader.GetFieldValue<DateTimeOffset>(9),
-                reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
-                reader.IsDBNull(11) ? null : reader.GetString(11), reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
-                reader.GetString(13), reader.GetString(14), reader.GetString(15), reader.GetString(16), reader.GetString(17),
-                reader.GetInt64(18), reader.IsDBNull(19) ? null : reader.GetString(19), reader.GetString(20), reader.GetString(21), reader.GetString(22)));
+            bars.Add(ReadBar(reader));
         }
         await reader.NextResultAsync(ct);
         var listings = new List<ScreenerListingEvidence>();
@@ -95,4 +89,12 @@ public static class ScreenerEvidenceDatabase
         }
         return new(new(bars, listings), null);
     }
+
+    internal static ScreenerBarEvidence ReadBar(NpgsqlDataReader reader, int offset = 0) => new(reader.GetGuid(offset + 0), reader.GetFieldValue<DateOnly>(offset + 1), reader.GetInt64(offset + 2),
+                reader.GetFieldValue<DateTimeOffset>(offset + 3), reader.GetString(offset + 4), reader.GetGuid(offset + 5), reader.GetGuid(offset + 6),
+                reader.GetString(offset + 7), reader.GetString(offset + 8), reader.GetFieldValue<DateTimeOffset>(offset + 9),
+                reader.IsDBNull(offset + 10) ? null : reader.GetFieldValue<DateTimeOffset>(offset + 10),
+                reader.IsDBNull(offset + 11) ? null : reader.GetString(offset + 11), reader.IsDBNull(offset + 12) ? null : reader.GetFieldValue<DateTimeOffset>(offset + 12),
+                reader.GetString(offset + 13), reader.GetString(offset + 14), reader.GetString(offset + 15), reader.GetString(offset + 16), reader.GetString(offset + 17),
+                reader.GetInt64(offset + 18), reader.IsDBNull(offset + 19) ? null : reader.GetString(offset + 19), reader.GetString(offset + 20), reader.GetString(offset + 21), reader.GetString(offset + 22));
 }

@@ -504,3 +504,20 @@ main:focus-visible { outline: none; } .data-reason { max-width: 160px; white-spa
  .screener-table td:first-child { min-width: 120px; max-width: 140px; }
  .screener-table .symbol-description { max-width: 110px; }
 }
+/* Read-only local stock research, using the workspace's existing tokens. */
+.stock-link {text-decoration:underline;text-underline-offset:.2em}
+.stocks-search {max-width:38rem}
+.stocks-table,.stock-history-table {width:100%;border-collapse:collapse;white-space:nowrap}
+.stocks-table th,.stocks-table td,.stock-history-table th,.stock-history-table td {padding:1rem;text-align:left;border-bottom:1px solid var(--border)}
+.stocks-table td:nth-child(2) {white-space:normal;min-width:12rem}
+.stock-features .metric {display:flex;flex-direction:column;align-items:flex-start;gap:.5rem;padding:0;border:0;overflow-wrap:anywhere}
+.stock-features {display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem}
+.stocks-metrics {grid-template-columns:repeat(5,minmax(0,1fr))}
+.stock-chart {display:block;width:100%;height:auto;min-height:100px;max-height:320px;color:var(--text)}
+.stock-chart text {fill:currentColor;stroke:none;font-size:16px}
+.chart-axis {stroke:currentColor;opacity:.3;fill:none}
+.chart-point {fill:var(--accent);stroke:none}
+.chart-line {stroke:var(--accent);stroke-width:2;fill:none}
+.stock-json {font-size:.75rem;white-space:pre-wrap;overflow-wrap:anywhere;max-height:30rem;overflow:auto}
+.break-word {overflow-wrap:anywhere}
+@media(max-width:768px){.stocks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.stocks-table,.stock-history-table{font-size:.85rem}.stock-detail-page .page-header{overflow-wrap:anywhere}}

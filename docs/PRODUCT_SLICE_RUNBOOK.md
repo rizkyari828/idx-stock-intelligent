@@ -4,9 +4,11 @@ Requires .NET 10, PostgreSQL 17 (existing compose service), Python 3.12+ for
 acceptance and Node 22.12+ for current Vite. Run from repository root unless
 indicated. No provider token is needed. Keep connection strings outside Git.
 
-Current Screener status: **Milestone 6 data-readiness/evidence complete**. The
+Current product status: **Stocks + Stock Detail V0.1 implemented**, alongside
+**Screener Milestone 6 data-readiness/evidence complete**. Stocks is a read-only
+local registry/history surface; the latest section records its verification. The
 production sidebar opens the read-only PILOT Screener independently of a portfolio.
-The final section below records the read-only operational audit plus the
+The Screener M6 section below records the read-only operational audit plus the
 authoritative-source review, the one substantiated PILOT configured-membership
 universe snapshot, and the honest BLOCKED candidate result. Implementation and
 evidence-review completion does not certify real candidate readiness. Earlier dated
@@ -1774,3 +1776,129 @@ Verification: focused PilotTests **10/10**; build **0 warnings/errors**; standar
 fingerprints and all eleven retained payload hashes are unchanged; original
 retrieval/knownAt timestamps and frozen contract are preserved. Provider requests
 and units **0**; FullIdx remains **NOT ENABLED**. No dependency or migration added.
+
+## Stocks + Stock Detail V0.1 (2026-10-03)
+
+Stocks now opens without a selected portfolio. It searches locally retained symbol
+or issuer names, orders by display symbol then stable UUID, and pages 20 rows at a
+time. It includes the locally retained benchmark; it does not discover or collect
+FullIdx. UNKNOWN type, unavailable price, original market date, stale observations
+and canonical quality remain visible. Effective registry symbol history takes
+priority. Where it is absent, the latest retained listing symbol known now is a
+**current display identity only**, labelled `RETAINED_LISTING`; otherwise the
+issuer name is displayed with `UNAVAILABLE` symbol source. This never infers type,
+board/status, currency or historical Screener eligibility.
+
+Open `/stocks/{instrumentId}` directly, click a Stocks symbol, use the Stock Detail
+link beside a Screener symbol, or use Open Stock Detail in the existing Portfolio
+holding dialog. Existing symbol/holding dialogs remain available. UUID routes,
+browser back and explicit invalid/missing-ID states are supported. Stock Detail
+keeps current registry metadata separate from knowledge-dated evaluation evidence.
+Currency is UNKNOWN when absent from the registry.
+
+Through defaults to Jakarta today. Blank Known by resolves on the history API;
+the returned exact UTC cutoff is displayed and reused for Screener and optional
+portfolio reads. Draft edits cancel/invalidate old results and require Apply
+context; Now resolves a fresh cutoff. Aborted/older requests cannot publish over a
+newer context. Selected portfolio context is factual: held shares, cost, market
+value/P&L when available, mandate and thesis version/status; otherwise Not held.
+The Stocks portfolio picker only opens existing portfolios.
+
+### Read APIs and data semantics
+
+- `GET /api/instruments` retains its array and existing identity fields. Added
+  optional `search` (literal case-insensitive substring, max 200 characters) and
+  `cutoff`; existing `through`, `offset` (0..10000) and `limit` (1..200, default
+  100) remain. Added `symbolSource`, `marketDate`, nullable `close`, and `quality`.
+- `GET /api/instruments/{id}/history?through=YYYY-MM-DD&cutoff=<offset ISO8601>&limit=60`
+  returns current display metadata/registry date, resolved through/cutoff, requested
+  limit and `MARKET_DATE_ASCENDING` rows. Limit is 1..120; default 60. Unknown UUID
+  returns 404; invalid dates/cutoffs/limits return 400 under existing query rules.
+- History selects the latest **visible** revision per market date after checking
+  canonical knownAt, raw fetchedAt, retrievedAt and session-knownAt against cutoff,
+  and market date against through. It takes the latest bounded dates, then presents
+  them ascending. Invalid selected revisions remain present with null OHLC/volume,
+  an unavailable reason and unchanged raw evidence; no superseded-price fallback.
+- List and detail reuse the same canonical evidence decoder/validation. History
+  uses a read-only repeatable-read transaction, positional SQL, cancellation and
+  15-second commands. No migration, new persistence or provider access is involved.
+- The native SVG close chart uses market-date spacing and observed points, breaks
+  at unavailable selected observations, and requires at least two usable prices.
+  The table is authoritative; missing sessions are not synthesized. Observed
+  prices/volume do not establish certified price comparability or volume basis.
+- Technical values, availability/reasons, eligibility, setup/episode and benchmark
+  context come from the existing PILOT Screener API/evaluator. No second indicator
+  engine or state machine exists. WARMUP/UNAVAILABLE/DATA_BLOCKED stay intact;
+  outside-scope instruments say Not evaluated by current Screener universe, not
+  setup NONE. Genuine observed zero stays zero, including index volume; it is not
+  converted into equity tradability or volume certification.
+- Expand Data & Provenance for selected revision, quality, raw OHLC, source, hash,
+  retrieval/knowledge/session clocks, volume metadata and Screener references.
+  Missing historical identity/reference/basis remains UNKNOWN. A Screener or
+  portfolio read failure is local to that section; retained history remains visible.
+
+### Run and verify
+
+Build the frontend with the existing Node 22.12+ workflow above, then start/restart
+`dotnet run --project src/IdxStockIntelligence.Api` from repository root with the
+existing private `IDX_DATABASE_CONNECTION`. Open http://127.0.0.1:5080/stocks.
+No provider token is needed. No operational process was replaced during acceptance;
+the real smoke used a temporary loopback API running the new build against the
+operational database and cleaned up afterward.
+
+Executed verification:
+
+- `rtk proxy dotnet build`: **PASS, 0 warnings/errors**.
+- `rtk proxy dotnet test`: **311 total, 302 passed, 9 expected database opt-in
+  skips, 0 failed**. Three new .NET cases cover canonical invalid/zero preservation.
+- `rtk proxy python3 -m unittest discover -s scripts -p test_screener_evidence.py -v`:
+  **1 harness test passed**, enabling standard .NET discovery: **311/311 passed,
+  0 skipped/failed**. Owned PostgreSQL database removed; operational fingerprints
+  unchanged.
+- In `frontend`, `npm test`: **60/60 passed, 0 skipped/failed**, including ten new
+  Stocks cases; `npm run build`: **PASS**. The locked dependencies were reinstalled
+  with `npm ci --ignore-scripts` to restore a missing local Vite native binding;
+  package manifests/lockfile remain unchanged.
+- `IDX_TEST_BROWSER=1 IDX_TEST_NODE=<Node22+ executable> python3 -m unittest discover
+  -s scripts -p test_stocks_http.py -v`: **5/5 passed**, four focused HTTP cases plus
+  real production Chrome acceptance. All required widths **1440/1366/1280/1024/768/390**
+  pass for list, pilot detail, unknown/no-price detail and provenance. Search,
+  stable routes/back, one-observation chart absence, stale history, WARMUP, context
+  invalidation, held/unheld historical replay, Screener/Portfolio links, invalid
+  and missing UUIDs, GET-only traffic and zero external requests are verified.
+  The final chart/presentation change was followed by another successful focused
+  browser case. Disposable APIs/databases and Chrome profiles were cleaned up.
+
+### Real operational smoke and safety
+
+Read-only `through=2026-10-03`, blank cutoff, exact resolved cutoff reused by Screener:
+
+| Instrument | HTTP | Retained dates | Latest date | Latest observed close | Quality | Screener context |
+|---|---|---:|---|---:|---|---|
+| ANTM.JK | 200 | 8 | 2026-10-02 | 3140 | DEGRADED | BLOCKED / DATA_BLOCKED; setupEvaluated=false |
+| BBCA.JK | 200 | 8 | 2026-10-02 | 6100 | DEGRADED | BLOCKED / DATA_BLOCKED; setupEvaluated=false |
+| JKSE.INDX | 200 | 6 | 2026-09-30 | 6071.1382 | DEGRADED | BLOCKED benchmark context |
+
+All three keep UNKNOWN registry type/currency and `RETAINED_LISTING` display symbol
+source. Technical context is UNAVAILABLE (`REFERENCE_NOT_KNOWN`), not fabricated
+WARMUP/zero. Latest dates remain older than through. The retained rejected Oct 2
+benchmark has not been operationally replayed/admitted. A separate native Chrome
+smoke of all three real detail pages passed, including ANTM at 390px: UNKNOWN,
+STALE, reference-unavailable and DATA_BLOCKED states render without a service-error
+banner, console exceptions, browser writes or external requests.
+
+All **11 operational table fingerprints** and **15 pilot/reference/operation file
+hashes**, including Screener references/session proofs, match the initial baseline.
+Canonical rows remain **86**; portfolio/event/thesis data is unchanged. Frozen
+contract SHA-256 remains
+`93d2b02f221cb87ea8d25b32f6d0394ecc3a9ef9f067bb9c6fc559c1379fef26`.
+Soak remains **1/10**, only **2026-09-30**, after_market_date **2026-09-28**.
+Provider calls/units **0/0**, FullIdx **NOT ENABLED**. No new dependency, migration,
+policy, recommendation/action field, commit or push.
+
+Remaining limits: registry currency/type/effective symbol history remain incomplete;
+retained display identities do not solve historical reference readiness. Technical/
+setup context stays within the existing frozen PILOT scope/horizon. History is a
+bounded retained-observation view, not complete exchange-session coverage or a
+certified comparable-price series. Context is shared across existing read APIs;
+there is no new combined cross-API transactional snapshot or persistence model.
