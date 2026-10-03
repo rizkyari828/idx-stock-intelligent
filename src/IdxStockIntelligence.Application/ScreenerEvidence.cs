@@ -31,6 +31,19 @@ public sealed record ScreenerBarEvidence(Guid InstrumentId, DateOnly SessionDate
     string Open, string High, string Low, string Close, long Volume, string? AdjustedClose,
     string VolumeUnit, string VolumeBasis, string MarketSegment)
 {
+    // Authenticate the stored content even when admission/quality validation deliberately rejects it.
+    public bool ContentHashMatches()
+    {
+        try
+        {
+            string Number(string text) => ExactDecimal(text).ToString("G29", CultureInfo.InvariantCulture);
+            return ContentHash == PilotValidation.ContentHash([SessionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                Number(Open), Number(High), Number(Low), Number(Close), Volume.ToString(CultureInfo.InvariantCulture),
+                AdjustedClose is null ? null : Number(AdjustedClose), VolumeUnit, VolumeBasis, MarketSegment]);
+        }
+        catch (Exception e) when (e is FormatException or OverflowException) { return false; }
+    }
+
     public EvidenceResult<DailyBarRevision> Validate()
     {
         if (CanonicalQuality is not ("VALID" or "DEGRADED" or "STALE")) return new(null, "CANONICAL_QUALITY_UNAVAILABLE");

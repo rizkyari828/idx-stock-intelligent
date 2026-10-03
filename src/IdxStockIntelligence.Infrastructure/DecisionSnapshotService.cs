@@ -106,15 +106,8 @@ public sealed class DecisionSnapshotService(NpgsqlDataSource dataSource)
                 var query = request.Resolve(now);
                 var evaluated = await ScreenerService.EvaluateAsync(connection, transaction, copied.Value!.Bundle, query, token);
                 var result = evaluated.Result;
-                var presentation = ScreenerPresentation.Map(result, query, evaluated.InputHash, evaluated.References, token);
-                var positions = evaluated.Projection?.Positions.ToDictionary(p => p.InstrumentId);
-                var theses = evaluated.History?.Theses.GroupBy(t => t.InstrumentId).ToDictionary(g => g.Key, g => g.MaxBy(t => t.Version)!);
-                var rows = result.Rows.OrderBy(r => r.InstrumentId).Select(r => DecisionSnapshotProjection.Row(
-                    ScreenerPresentation.Row(r, evaluated.References, query.Cutoff), evaluated.History is not null,
-                    positions?.GetValueOrDefault(r.InstrumentId), theses?.GetValueOrDefault(r.InstrumentId))).ToArray();
+                var (output, rows, status) = Project(evaluated, query, token);
                 if (rows.Length > 210) throw new ScreenerException(503, "SNAPSHOT_BOUND_EXCEEDED");
-                var output = new DecisionSnapshotResult(result.Reasons, result.Summary, result.RankedCandidateIds,
-                    result.AllViewIds, result.ShortlistIds, result.HeldIds, presentation.MarketContext);
                 var manifest = new DecisionSnapshotManifest(1, evaluated.Request,
                     result.Rows.Where(r => r.Configured).Select(r => r.InstrumentId).Order().ToArray(), result.HeldIds,
                     rows.Select(r => r.InstrumentId).ToArray(),
@@ -139,7 +132,7 @@ public sealed class DecisionSnapshotService(NpgsqlDataSource dataSource)
                 Add(insert, now, NpgsqlDbType.TimestampTz); Add(insert, query.Through, NpgsqlDbType.Date);
                 Add(insert, result.TargetSession, NpgsqlDbType.Date); Add(insert, result.UniverseSnapshotId, NpgsqlDbType.Text);
                 Add(insert, request.PortfolioId, NpgsqlDbType.Uuid); Add(insert, evaluated.InputHash, NpgsqlDbType.Text);
-                Add(insert, evaluated.SelectedDigest, NpgsqlDbType.Text); Add(insert, presentation.Status, NpgsqlDbType.Text);
+                Add(insert, evaluated.SelectedDigest, NpgsqlDbType.Text); Add(insert, status, NpgsqlDbType.Text);
                 Add(insert, (short)rows.Length, NpgsqlDbType.Smallint); Add(insert, JsonSerializer.Serialize(request.Intent, JsonOptions), NpgsqlDbType.Jsonb);
                 Add(insert, System.Text.Encoding.UTF8.GetString(outputJson), NpgsqlDbType.Jsonb);
                 Add(insert, System.Text.Encoding.UTF8.GetString(manifestJson), NpgsqlDbType.Jsonb);
@@ -147,7 +140,7 @@ public sealed class DecisionSnapshotService(NpgsqlDataSource dataSource)
                 await InsertRowsAsync(connection, transaction, runId, rows, token);
                 var run = new DecisionSnapshotRun(new(runId, request.RequestId, 1, "PROSPECTIVE_CAPTURE", now, now, recorded,
                     query.Through, result.TargetSession, ScreenerReadRequest.Anchor, ScreenerReadRequest.PolicyId, "PILOT",
-                    result.UniverseSnapshotId, request.PortfolioId, evaluated.InputHash, evaluated.SelectedDigest, presentation.Status, rows.Length), output, rows);
+                    result.UniverseSnapshotId, request.PortfolioId, evaluated.InputHash, evaluated.SelectedDigest, status, rows.Length), output, rows);
                 Bytes(run, 2 * 1024 * 1024);
                 await VerifyArchivesAsync(archives, token);
                 await transaction.CommitAsync(token);
@@ -200,6 +193,22 @@ public sealed class DecisionSnapshotService(NpgsqlDataSource dataSource)
         await transaction.CommitAsync(ct);
         return stored;
     }
+    internal static async Task<DecisionSnapshotRun?> ReadRunAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, Guid id, CancellationToken ct)
+        => (await ReadAsync(connection, transaction, id, false, ct))?.Run;
+
+    internal static (DecisionSnapshotResult Output, DecisionSnapshotRow[] Rows, string Status) Project(ScreenerEvaluationRead evaluated, ScreenerQuery query, CancellationToken ct)
+    {
+        var result = evaluated.Result;
+        var presentation = ScreenerPresentation.Map(result, query, evaluated.InputHash, evaluated.References, ct);
+        var positions = evaluated.Projection?.Positions.ToDictionary(p => p.InstrumentId);
+        var theses = evaluated.History?.Theses.GroupBy(t => t.InstrumentId).ToDictionary(g => g.Key, g => g.MaxBy(t => t.Version)!);
+        var rows = result.Rows.OrderBy(r => r.InstrumentId).Select(r => DecisionSnapshotProjection.Row(
+            ScreenerPresentation.Row(r, evaluated.References, query.Cutoff), evaluated.History is not null,
+            positions?.GetValueOrDefault(r.InstrumentId), theses?.GetValueOrDefault(r.InstrumentId))).ToArray();
+        return (new(result.Reasons, result.Summary, result.RankedCandidateIds, result.AllViewIds, result.ShortlistIds,
+            result.HeldIds, presentation.MarketContext), rows, presentation.Status);
+    }
+
     private static async Task<Stored?> ReadAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, Guid id, bool byRequest, CancellationToken ct)
     {
         await using var command = Command($"""

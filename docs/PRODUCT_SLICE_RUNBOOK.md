@@ -4,7 +4,8 @@ Requires .NET 10, PostgreSQL 17 (existing compose service), Python 3.12+ for
 acceptance and Node 22.12+ for current Vite. Run from repository root unless
 indicated. No provider token is needed. Keep connection strings outside Git.
 
-Current product status: **Decision Snapshot History UI V0.1 implemented**, alongside
+Current product status: **Decision Verification V0.1 implemented**, alongside
+**Decision Snapshot History UI V0.1**,
 **Stocks + Stock Detail V0.1** and prospective Decision Snapshot persistence, plus
 **Screener Milestone 6 data-readiness/evidence complete**. The latest section records
 the read-only Decision History verification. Stocks is a local registry/history surface. The
@@ -2187,3 +2188,159 @@ the latest five captures; no UI capture action, history export, outcome or verif
 workflow. Real evidence remains insufficient for candidates. Captured hashes provide
 linkage, not a verified badge. Restart the local API and reload the built frontend
 to use the new routes; no operational data modification is required.
+
+
+## Decision Verification V0.1 — completed (2026-10-03)
+
+Started from clean `3625510` on `main`, seven commits ahead of `origin/main`.
+The earlier sections' deferred-verifier statements describe their own milestones.
+This separate milestone implements on-demand reproduction of an immutable capture;
+both frozen contracts and migration 0005 remain unchanged. No verification history,
+new table, migration, dependency, outcome tracking or provider recovery was added.
+
+### States, endpoint and chronology
+
+`POST /api/screener/decision-snapshots/{runId}/verify` accepts exactly an empty JSON
+object `{}` and no query parameters. No policy, evidence, result, date, path or clock
+override is accepted. Existing same-origin JSON and 64 KiB transport rules apply.
+It performs computation in a **READ ONLY / REPEATABLE READ** transaction. POST does
+not create a capture or persist a verification result.
+
+| State | Meaning |
+|---|---|
+| MATCH | Exact retained inputs authenticate, original policy is available, both hashes and the complete typed analytical projection reproduce |
+| INPUT_NOT_AVAILABLE | Required retained records/archive bytes are missing, invalid, corrupt or cannot be authenticated |
+| POLICY_VERSION_UNAVAILABLE | No explicitly allowlisted policy/storage-projection implementation can execute this capture |
+| DIFFERENT_RESULT | Inputs and implementation are available, but replay differs in a hash or typed captured result |
+
+All four are successful **HTTP 200** outcomes. Malformed ID/body/query returns
+**400 VERIFICATION_REQUEST_INVALID**; missing capture **404 SNAPSHOT_NOT_FOUND**;
+database, deadline or invalid stored runtime projection failures return
+**503 VERIFICATION_UNAVAILABLE**. Existing snapshot service bounds keep their
+existing error codes. Caller cancellation propagates rather than becoming an
+unavailable-evidence outcome.
+
+The response contains runId/state, actual current UTC `verifiedAt`, original
+`capturedAt`/policyId, stored and nullable recomputed inputHash/selectedDigest,
+concise detail, and bounded differences plus `differencesTruncated`. It exposes no
+archive paths, internal transaction IDs, manifests, private thesis text or provider
+payloads. `verifiedAt` is this execution time, never a replacement capture clock.
+
+### Exact retained evidence and shared replay
+
+The resolver explicitly binds `(screener-v0.1.0, storage schema 1)` to the existing
+shared evaluation core. Unknown policy/projection pairs do not fall back. Add future
+frozen implementations explicitly; do not change behavior under an old policy ID.
+
+Verification reads exact `(instrumentId, sessionDate, revisionNumber)` bar keys and
+listing `(instrumentId, knownAt)` keys from the stored manifest. It checks retained
+identities, hashes, clocks and rawArtifactId, and recomputes the existing canonical
+content hash from price/volume content. An unchanged hash column cannot conceal
+changed content. Admission/quality validation remains separate: an authenticated
+selected REJECTED revision remains selected, without substitution. An exact missing
+revision is unavailable even when another revision for its date exists.
+
+The three fixed-kind reference archives are read from the existing internal,
+content-addressed root. Expected byte length and SHA-256 are verified before parsing
+those copied bytes with the existing parser. The archived bundle's original-cutoff
+selection must agree with retained universe/instrument/session/status linkage.
+Explicit missing-file markers and empty selections retain absence; live files are
+never consulted to fill them. There is no arbitrary archive traversal or recovery.
+
+For portfolio captures, only retained event/thesis IDs, the immutable portfolio
+header and original chronology are read. Missing required IDs fail closed. Later
+events, corrections and thesis versions never enter verification, even if supplied
+with an old knowledge date. Discovery-only captures require no portfolio input.
+
+Replay reuses `ScreenerEvaluator`, features/episodes, `PortfolioLedger.Project`,
+`ScreenerReferences.SelectedDigest`, `ScreenerPresentation.InputHash` and the same
+capture projection. It does not call today's GET Screener or create another engine.
+Both hashes, typed run result/header analytical values, complete ordered population
+and every typed row projection are compared. Dictionaries are maps; arrays retain
+contract order; decimals and UTC instants use exact CLR equality. Display formatting
+and JSON property order are not differences. No competing result hash was added.
+
+Bounds remain 211 selected IDs including benchmark, 80,000 bars, existing anchored
+horizon, 210 persisted rows, 10,000 portfolio events, 2,000 theses, 4 MiB/10,000-record
+reference bundle and 32 MiB manifest. Commands use **15 seconds**, operation deadline
+**60 seconds**, with cancellation. Diagnostics stop at **100** differences, explicitly
+mark truncation, and bound field/value text to 241/161 characters including ellipsis.
+
+### Decision Detail audit UI
+
+A separate **Audit / Verification** section has an explicit **Verify retained
+capture** button. Loading, all four outcomes, service errors/retry, full stored and
+recomputed hashes, separate clocks and bounded diagnostics render independently.
+No page-load verification occurs; navigating away aborts and ignores late results.
+Reload discards the on-demand result. Captured tables/fields remain unchanged,
+including when DIFFERENT_RESULT is reported. Stock Detail keeps its existing history
+links and has no per-row verification controls.
+
+MATCH means deterministic reproduction only. It does not certify external provider
+claims, evidence readiness, a prediction, recommendation or trade outcome. MATCH
+can legitimately reproduce a captured BLOCKED result with zero candidates.
+
+### Exact executed verification
+
+- `rtk proxy dotnet build`: **PASS, zero warnings/errors**.
+- Focused standard .NET `DecisionVerificationTests`: **13 total, 12 passed,
+  1 expected database opt-in skip, zero failures**. Covers policy/projection binding,
+  typed round-trip, decimal scale/UTC/map equality, ordered reasons/ID arrays,
+  population/per-row differences, truncation, cancellation and content integrity.
+- Standard root `dotnet test`: **361 total, 351 passed, 10 expected database opt-in
+  skips, zero failures**.
+- Existing disposable standard-discovery harness `test_screener_evidence.py`:
+  **1/1 passed**, with **361/361 .NET cases passed, zero skips/failures**, including
+  the exact-key SQL reader preserving an invalid selected revision and absence.
+- `test_decision_verification.py`, browser enabled: **13/13 passed, zero skips**;
+  12 owned HTTP/database cases plus native Chrome. MATCH/blocked/portfolio,
+  late old-knownAt imports, later portfolio corrections/theses/live file changes,
+  missing/corrupt/length/hash/malformed archives, selected canonical content/key
+  loss, listing/session identity, malformed manifest links, missing event/thesis,
+  explicit absence, unsupported policy, typed DIFFERENT_RESULT/hash diagnostics,
+  HTTP errors and snapshot immutability all passed. Final focused transport/runtime
+  error regression also passed **1/1**, including invalid stored DTO -> 503.
+- Frontend `npm test`: **83/83 passed, zero skips/failures**; seven new verification
+  cases. Frontend production build **PASS**, using installed Node **24.19.0**.
+- Existing Decision History HTTP/native Chrome regression: **2/2 passed**.
+- Existing capture/persistence regression `test_decision_snapshots.py`: **19/19
+  passed**, including transactions, concurrency, immutable guards and restore.
+- Verification and existing History browser acceptance covered
+  **1440/1366/1280/1024/768/390**, visible keyboard focus/action, observable progress,
+  explicit-only POST, successful unavailable/different states, error/retry,
+  unchanged captured table, reload and no external requests/runtime exceptions.
+- `git diff --check`: **PASS**. Collector/provider and unrelated product suites
+  were not rerun; their implementations are unchanged. All owned databases and
+  temporary API/Chrome processes/profiles were cleaned up.
+
+### Real operational verification and safety
+
+The existing run `3bc25cf2-901b-4c15-84b2-e265091f7f48` returned **HTTP 200 / MATCH**,
+with **zero differences** and no truncation. It remains the same **BLOCKED** capture,
+through **2026-10-03**, target **2026-10-02**, discovery-only, **10 rows**. Original
+capture clock is `2026-10-03T04:13:45.712111+00:00`; the final direct verification
+clock was `2026-10-03T13:36:17.894539+00:00`. Stored and recomputed values agree:
+
+- InputHash: `6c32994d484472bb08361905e29bf0f86d2a29c558c94ad91bf0d0e7380f9177`.
+- SelectedDigest: `38ba96fba61bd32c803d6b9c2cca2e1a713a8611dfbb691496e44c4c457ed377`.
+
+A temporary loopback API reused the real retained evidence; the normal port-5080
+process was not replaced. Production Chrome verified explicit MATCH, loading,
+service-error/retry, keyboard/focus, separate clocks and unchanged captured content
+at all six widths. Only compute-only verify POSTs were issued; no capture POST,
+live Screener evaluation, provider recovery or external browser requests.
+
+Before/after fingerprints match **13 operational tables and 211 protected file
+hashes**, including both snapshot tables, canonical/portfolio data, pilot references,
+sessions, operation/summary reports, retained reference archives and both contracts.
+Retained state is **1 run / 10 snapshot rows**, **86 canonical revisions**; schema
+versions **2, 4, 5** unchanged. Provider calls/units **0/0**. FullIdx **NOT ENABLED**;
+soak **1/10**, qualifying **2026-09-30**, after_market_date **2026-09-28** unchanged.
+No operational evidence was changed to force MATCH.
+
+Remaining limits: on-demand computation only, no persisted audit history or batch
+verification, no missing-input recovery, and only the current explicitly bound
+policy/projection pair. Backup/restore must preserve original canonical/portfolio
+records and decision reference archives together. Real candidate readiness remains
+blocked independently of reproducibility. Restart the normal local API with its
+existing private connection string and reload the production frontend to use Verify.

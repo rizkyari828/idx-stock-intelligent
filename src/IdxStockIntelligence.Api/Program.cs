@@ -28,6 +28,7 @@ builder.Services.AddSingleton<PortfolioDatabase>();
 builder.Services.AddSingleton<ScreenerService>();
 builder.Services.AddSingleton<StockDatabase>();
 builder.Services.AddSingleton<DecisionSnapshotService>();
+builder.Services.AddSingleton<DecisionVerificationService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -88,6 +89,21 @@ app.MapGet("/api/screener/decision-snapshots/{id}", async (string id, HttpReques
             throw new ScreenerException(400, "SNAPSHOT_QUERY_INVALID");
         return Results.Ok(await service.GetAsync(run, ct));
     }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+// Computation only: no policy, chronology, result or evidence override is accepted.
+app.MapPost("/api/screener/decision-snapshots/{id}/verify", async (string id, HttpRequest request, DecisionVerificationService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(id, "D", out var run) || run == Guid.Empty)
+            throw new ScreenerException(400, "VERIFICATION_REQUEST_INVALID");
+        using var body = await JsonDocument.ParseAsync(request.Body, new() { MaxDepth = 8 }, ct);
+        if (body.RootElement.ValueKind != JsonValueKind.Object || body.RootElement.EnumerateObject().Any())
+            throw new ScreenerException(400, "VERIFICATION_REQUEST_INVALID");
+        return Results.Ok(await service.VerifyAsync(run, ct));
+    }
+    catch (JsonException) { return Results.BadRequest(new { code = "VERIFICATION_REQUEST_INVALID", error = "VERIFICATION_REQUEST_INVALID" }); }
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 app.MapGet("/api/screener/decision-snapshots", async (HttpRequest request, DecisionSnapshotService service, CancellationToken ct) =>

@@ -50,9 +50,18 @@ public sealed class ScreenerService(NpgsqlDataSource dataSource)
         var database = await ScreenerEvidenceDatabase.ReadAsync(connection, transaction, request, ct);
         if (!database.Available) throw new ScreenerException(503, database.Reason!);
         var references = ScreenerReferences.Select(bundle.Reference, bundle.Sessions, bundle.InstrumentSessions, request, ct);
-        var result = ScreenerEvaluator.Evaluate(request, database.Value!, references, history, ct);
-        var digest = ScreenerReferences.SelectedDigest(request, database.Value!, references, ct);
+        return Evaluate(request, database.Value!, references, history, ct);
+    }
+
+    // Capture, GET and retained-input verification share the same analytical core.
+    public static ScreenerEvaluationRead Evaluate(ScreenerReadRequest request, ScreenerDatabaseEvidence database,
+        SelectedScreenerReferences references, ScreenerPortfolioHistory? history, CancellationToken ct)
+    {
+        var projection = history is null ? null : PortfolioLedger.Project(history.Events, request.Cutoff,
+            request.Through, history.Portfolio.AllowNegativeCash);
+        var result = ScreenerEvaluator.Evaluate(request, database, references, history, ct);
+        var digest = ScreenerReferences.SelectedDigest(request, database, references, ct);
         var hash = ScreenerPresentation.InputHash(digest, request, history, projection, ct);
-        return new(request, database.Value!, references, history, projection, result, digest, hash);
+        return new(request, database, references, history, projection, result, digest, hash);
     }
 }

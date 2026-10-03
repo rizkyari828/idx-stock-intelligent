@@ -54,11 +54,16 @@ public static class PilotValidation
 
     public static string ContentHash(DailyBar bar)
     {
-        var content = JsonSerializer.Serialize(new[] { bar.SessionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        return ContentHash(new[] { bar.SessionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             bar.Open.ToString("G29", CultureInfo.InvariantCulture), bar.High.ToString("G29", CultureInfo.InvariantCulture),
             bar.Low.ToString("G29", CultureInfo.InvariantCulture), bar.Close.ToString("G29", CultureInfo.InvariantCulture),
             bar.Volume.ToString(CultureInfo.InvariantCulture), bar.AdjustedClose?.ToString("G29", CultureInfo.InvariantCulture),
             bar.VolumeUnit, bar.VolumeBasis, bar.MarketSegment });
+    }
+
+    internal static string ContentHash(string?[] values)
+    {
+        var content = JsonSerializer.Serialize(values);
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
     }
 }

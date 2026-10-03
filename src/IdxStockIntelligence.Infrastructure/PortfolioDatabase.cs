@@ -49,11 +49,13 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
         r.IsDBNull(13) ? null : r.GetString(13), r.IsDBNull(14) ? null : r.GetGuid(14));
     private const string EventColumns = "event_id,portfolio_id,event_type,instrument_id,trade_date,known_at,event_order,quantity,price,fees,cash_amount,external_reference,source,note,supersedes";
 
-    private static async Task<List<PortfolioEvent>> HistoryAsync(NpgsqlConnection connection, Guid id, DateTimeOffset cutoff, CancellationToken ct)
+    private static async Task<List<PortfolioEvent>> HistoryAsync(NpgsqlConnection connection, Guid id, DateTimeOffset cutoff, CancellationToken ct, Guid[]? retainedIds = null)
     {
         // ponytail: replay <=10,000 events per portfolio; add audited checkpoints when this bound matters.
         await using var command = Command(connection,
-            $"SELECT {EventColumns} FROM portfolio_event WHERE portfolio_id=$1 AND known_at<=$2 ORDER BY event_order LIMIT 10001", id, cutoff);
+            $"SELECT {EventColumns} FROM portfolio_event WHERE portfolio_id=$1 AND known_at<=$2" +
+            (retainedIds is null ? "" : " AND event_id=ANY($3)") + " ORDER BY event_order LIMIT 10001",
+            retainedIds is null ? [id, cutoff] : [id, cutoff, retainedIds]);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var events = new List<PortfolioEvent>();
         while (await reader.ReadAsync(ct)) events.Add(ReadEvent(reader));
@@ -266,17 +268,20 @@ public sealed class PortfolioDatabase(NpgsqlDataSource dataSource)
     }
 
     internal static async Task<ScreenerPortfolioHistory> ScreenerHistoryAsync(NpgsqlConnection connection,
-        Guid id, DateTimeOffset cutoff, CancellationToken ct)
+        Guid id, DateTimeOffset cutoff, CancellationToken ct, DecisionPortfolioLink? retained = null)
     {
         var portfolio = await ReadPortfolioAsync(connection, id, false, ct);
         if (portfolio.CreatedAt > cutoff) throw new KeyNotFoundException("Portfolio did not exist at cutoff.");
-        return new(portfolio, await HistoryAsync(connection, id, cutoff, ct), await AllThesesAsync(connection, id, ct, cutoff));
+        return new(portfolio, await HistoryAsync(connection, id, cutoff, ct, retained?.EventIds.ToArray()),
+            await AllThesesAsync(connection, id, ct, cutoff, retained?.ThesisIds.ToArray()));
     }
 
     private static async Task<List<ThesisVersion>> AllThesesAsync(NpgsqlConnection connection, Guid id, CancellationToken ct,
-        DateTimeOffset? cutoff = null)
+        DateTimeOffset? cutoff = null, Guid[]? retainedIds = null)
     {
-        await using var command = Command(connection, $"SELECT {ThesisColumns} FROM thesis_version WHERE portfolio_id=$1 AND known_at<=$2 ORDER BY instrument_id,version LIMIT 2001", id, cutoff ?? DateTimeOffset.MaxValue);
+        await using var command = Command(connection, $"SELECT {ThesisColumns} FROM thesis_version WHERE portfolio_id=$1 AND known_at<=$2" +
+            (retainedIds is null ? "" : " AND thesis_id=ANY($3)") + " ORDER BY instrument_id,version LIMIT 2001",
+            retainedIds is null ? [id, cutoff ?? DateTimeOffset.MaxValue] : [id, cutoff ?? DateTimeOffset.MaxValue, retainedIds]);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var rows = new List<ThesisVersion>();
         while (await reader.ReadAsync(ct)) rows.Add(ReadThesis(reader));
