@@ -1902,3 +1902,15 @@ setup context stays within the existing frozen PILOT scope/horizon. History is a
 bounded retained-observation view, not complete exchange-session coverage or a
 certified comparable-price series. Context is shared across existing read APIs;
 there is no new combined cross-API transactional snapshot or persistence model.
+
+## Prospective Decision Snapshot V0.1 — design only (2026-10-03)
+
+`docs/DECISION_SNAPSHOT_V0_1_CONTRACT.md` freezes a proposed immutable run plus
+configured/held-union rows, actual server cutoff/recording clocks, existing
+Screener inputHash and retained selected-evidence linkage. Decision: conditional
+GO for a separate implementation milestone after review and owner resolution of
+the pre-existing pasted command block in the Screener contract. No schema, API,
+UI or behavior is implemented here. The frozen Screener policy is unchanged;
+capture will preserve BLOCKED/PARTIAL output and remain PILOT-bounded. The existing
+soak 1/10 and disabled FullIdx gates are independent. Verification and forward
+outcomes are deferred; no database/provider/collector/soak actions were performed.
