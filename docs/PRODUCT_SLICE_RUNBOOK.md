@@ -2344,3 +2344,24 @@ policy/projection pair. Backup/restore must preserve original canonical/portfoli
 records and decision reference archives together. Real candidate readiness remains
 blocked independently of reproducibility. Restart the normal local API with its
 existing private connection string and reload the production frontend to use Verify.
+
+
+## Outcome Tracking V0.1 — design only (2026-10-03)
+
+`docs/OUTCOME_TRACKING_V0_1_CONTRACT.md` freezes `outcome-v0.1.0`: one immutable
+terminal outcome per captured row and +1/+5/+10/+20 confirmed exchange-session
+horizon, assessed across the full captured population. It uses the exact captured
+close only with captured anchor proof,
+whole-span raw-price comparability, actual later evaluation/recording clocks and
+explicit missingness. Whole-run evaluation returns all cells but atomically inserts
+only newly terminal outcomes. Missing forward bars/session/basis/status evidence
+remains unresolved and retryable; unavailable is terminal only with original
+capture-time anchor failure or positive authoritative disqualifying evidence.
+Committed terminal results remain immutable; unresolved cells stay in the research
+denominator and may resolve when retained evidence arrives. Benchmark-relative
+returns, MFE/MAE,
+total return, outcome UI, scheduling and verification are deferred. The real Oct 3
+capture targeting Oct 2 has no retained future horizon yet; its visible closes
+lack captured price-basis clearance. This milestone changes documentation only:
+no migration/table/API/code, evidence write, provider call, soak change or FullIdx
+activation. Both existing frozen contracts remain unchanged; soak remains 1/10.
