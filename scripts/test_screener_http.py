@@ -17,6 +17,7 @@ import tempfile
 import time
 import unittest
 from urllib.parse import urlencode
+from urllib.request import urlopen
 import uuid
 
 import test_product_slice as product
@@ -234,6 +235,26 @@ class ScreenerHttpAcceptance(unittest.TestCase):
         self.screen(portfolioId=p, expected=404)
         (self.pilot / "screener-reference.json").write_text("{")
         self.assertEqual("REFERENCE_MALFORMED", self.screen(expected=503)["code"])
+
+    def test_project_startup_uses_repository_references_and_frontend(self):
+        self.stop()
+        env, connection, _ = evidence.environment(type(self).database)
+        env["IDX_DATABASE_CONNECTION"] = connection
+        env.pop("IDX_UI_ROOT", None)
+        self.process = subprocess.Popen(["dotnet", "run", "--project", "src/IdxStockIntelligence.Api",
+                                         "--no-build", "--no-restore", "--", "--urls", type(self).base],
+                                        cwd=ROOT, env=env, stdout=self.log, stderr=self.log)
+        self.wait_for(lambda: self.request("/api/instruments") == [], "Project API startup")
+        snapshot = json.loads((ROOT / "pilot/screener-reference.json").read_text())["universes"][0]
+        for through in ("2026-09-30", "2026-10-02"):
+            result = self.request("/api/screener?" + urlencode(dict(through=through, cutoff=snapshot["knownAt"],
+                                  universe="PILOT", view="all", offset=0, limit=20)))
+            self.assertEqual("BLOCKED", result["status"])
+            self.assertEqual(snapshot["snapshotId"], result["universeSnapshotId"])
+            self.assertEqual(len(snapshot["memberIds"]), result["summary"]["configured"])
+            self.assertEqual(through, result["through"])
+        with urlopen(type(self).base + "/", timeout=5) as response:
+            self.assertIn('<div id="root">', response.read().decode())
 
     def test_filter_page_held_union_nulls_and_quality(self):
         self.fixture(); p = self.portfolio()
