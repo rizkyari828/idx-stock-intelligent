@@ -60,5 +60,15 @@
     "known_at": "2026-10-01T02:26:01.344831+00:00",
     "evidence_type": "Independent full-day session II closing report",
     "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp."
+  },
+  {
+    "date": "2026-10-02",
+    "status": "ObservedTrading",
+    "reference": "https://economy.okezone.com/read/2026/10/02/278/3245623/ihsg-hari-ini-ditutup-rebound-ke-6-036-sempat-anjlok-ke-5-900",
+    "published_at": "2026-10-02T16:23:22+07:00",
+    "completed_at": "2026-10-02T16:23:22+07:00",
+    "known_at": "2026-10-03T01:04:19.701437+00:00",
+    "evidence_type": "Independent full-day closing report",
+    "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp. Retained source: data/raw/session-proof/2026-10-02-20261003T010419Z/closing.html"
   }
 ]
