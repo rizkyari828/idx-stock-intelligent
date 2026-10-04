@@ -2517,3 +2517,57 @@ Remaining limits: on-demand evidence readiness, existing bounded PILOT policy,
 price return only; no total/benchmark returns, analytics, scheduler, outcome
 verification or full Stock Detail outcomes. Terminal previews may change until
 explicit evaluation records them; the UI does not certify missing evidence.
+
+## Research / Evaluation V0.1 — design only (2026-10-04)
+
+[Research / Evaluation contract](RESEARCH_EVALUATION_V0_1_CONTRACT.md) freezes
+`research-evaluation-v0.1.0` for a later bounded, read-only descriptive view of
+prospective captured observations and committed outcomes visible at an explicit
+knowledge/recording cutoff. An observation is `(runId, instrumentId)`, not a trade.
+Raw captures remain distinct; episode-key/diversity counts expose correlation.
+Episode-deduplicated returns and inferential statistics are deferred; V0.1 permits
+no confidence intervals, p-values, strategy rankings or parameter optimization.
+
+Primary cohorts use exclusive first-match precedence: DATA_BLOCKED, INELIGIBLE,
+then NOT_EVALUATED when setupEvaluated=false, otherwise NONE/WATCH/CONFIRMED/FAILED.
+Each selected observation receives exactly one cohort; every observation is
+classified and cohort N values sum to selected N. Blocked/ineligible rows are
+never also counted as NOT_EVALUATED.
+
+Per-horizon N/R/A/T/U denominators and AVAILABLE coverage `100*A/N` accompany
+median, secondary mean, extrema and positive-return proportion `100*P/A`.
+Unresolved and terminal unavailable cells stay in population accounting. Live
+unmaterialized previews never enter return metrics; absent committed evidence
+stays research-unresolved without inventing historical preview reasons. Small
+samples remain visible with factual warnings. Captured market context, held
+context and membership use fixed separate partitions; no future labels or
+continuous-feature buckets. Dataset hash/pinned pagination and a lossless private
+JSON export define reproducibility, including the explicit limitation that
+cutoff represents persisted application/domain knowledge chronology, not exact
+historical PostgreSQL commit visibility or MVCC state at a sub-transaction instant.
+recordedAt is not a commit timestamp. Inclusion is deterministic for the same
+persisted chronology/query; future exact commit tracking is outside V0.1.
+No new persistence is needed.
+
+The task and latest operational note report **1 run / 10 rows / 0 terminal
+outcomes / 40 unresolved cells**. Research would show **N=10, A=0, T=0, R=0, U=10**
+and **0% AVAILABLE coverage per horizon**, with null return metrics. These are
+ten observations, not forty independent samples. Factual copy: **“No committed
+AVAILABLE outcomes at this cutoff.”** No research/strategy maturity classification
+is frozen. A=1..4/5..19/20..29/>=30 warnings mean very small/small/limited/descriptive
+only; they are sample warnings, not validity or maturity states. This design
+review did not requery or change operational data.
+
+Recommended implementation order: **Outcome Verification V0.1 -> Research typed
+query / deterministic aggregation -> Research read API / dataset identity / export
+-> Research Dashboard -> later explanatory AI**. Research consumes Outcome
+Tracking facts, so verifying immutable evidence first gives the integrity chain
+**Decision Snapshot -> Decision Verification -> Outcome Tracking -> Outcome
+Verification -> Research Evaluation**. This is sequencing only, not a new
+inclusion gate; Outcome Verification is not implemented by this task.
+
+FullIdx remains **DISABLED**, soak **1/10**; Screener/Outcome
+policies and all existing frozen contracts are unchanged. This milestone adds
+only documentation: no API/UI/code, migration, dependency, collection or evaluation.
+Finalization commits only these two documentation files; no push.
+Documentation checks only; no new build/test pass is claimed.
