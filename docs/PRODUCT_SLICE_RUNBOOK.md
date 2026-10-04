@@ -2571,3 +2571,28 @@ policies and all existing frozen contracts are unchanged. This milestone adds
 only documentation: no API/UI/code, migration, dependency, collection or evaluation.
 Finalization commits only these two documentation files; no push.
 Documentation checks only; no new build/test pass is claimed.
+
+## Outcome Verification V0.1 — design only (2026-10-04)
+
+[Outcome Verification contract](OUTCOME_VERIFICATION_V0_1_CONTRACT.md) freezes
+read-only exact replay of one committed `(runId, instrumentId, horizonSessions)`
+row under **outcome-v0.1.0 / schema 1**, using original capture/evaluation clocks,
+exact retained revisions/proofs and authenticated copied archives. No latest/live
+evidence replacement. Precedence after request/key resolution: unsupported binding
+-> POLICY_VERSION_UNAVAILABLE; missing/corrupt required input -> INPUT_NOT_AVAILABLE;
+completed differing replay -> DIFFERENT_RESULT; otherwise MATCH. MATCH certifies
+reproducibility only, including reproduced terminal unavailability. Unmaterialized
+cells return 404 and have no verification state.
+
+Existing manifests suffice for implemented Outcome branches; **no migration**.
+Typed corporate-action event facts remain an existing evidence limit; the verifier
+cannot infer events from coverage flags or add frozen-policy branches. Reported
+**1 run / 10 rows / 40 unresolved cells / 0 committed outcomes** means there is no
+real subject yet, not an implementation blocker. Future acceptance uses disposable
+fixtures; no synthetic operational writes. These facts were not re-queried here.
+
+Implement Outcome Verification before Research typed aggregation/API/export,
+Dashboard and later explanatory AI. Decision Verification is independent;
+Research inclusion/denominators do not depend on verification state. FullIdx remains
+**DISABLED**, soak **1/10** unaffected. This milestone changes documentation only:
+no code/API/UI, migration, verification persistence, providers, commit or push.
