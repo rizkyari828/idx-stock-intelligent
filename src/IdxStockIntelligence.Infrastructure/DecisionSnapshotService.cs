@@ -13,14 +13,14 @@ public sealed class DecisionSnapshotService(NpgsqlDataSource dataSource)
     public static JsonSerializerOptions JsonOptions { get; } = new(ScreenerReferences.JsonOptions)
     { Converters = { new JsonStringEnumConverter(allowIntegerValues: false) } };
     private const string ArchiveRoot = "data/raw/decision-reference";
-    private const string HeaderSql = """
+    internal const string HeaderSql = """
         jsonb_build_object('runId',r.run_id,'requestId',r.request_id,'schemaVersion',r.schema_version,
             'captureKind',r.capture_kind,'capturedAt',r.captured_at,'knowledgeCutoff',r.knowledge_cutoff,
             'recordedAt',r.recorded_at,'through',r.through,'targetSession',r.target_session,'historyAnchor',r.history_anchor,
             'policyId',r.policy_id,'universe',r.universe,'universeSnapshotId',r.universe_snapshot_id,
             'portfolioId',r.portfolio_id,'inputHash',r.input_hash,'selectedDigest',r.selected_digest,'status',r.status,'rowCount',r.row_count)
         """;
-    private const string RowSql = """
+    internal const string RowSql = """
         jsonb_build_object('instrumentId',s.instrument_id,'symbol',s.symbol,'configured',s.configured,'held',s.held,
             'discoveryRank',s.discovery_rank,'eligibility',s.eligibility,'setup',s.setup,'setupEvaluated',s.setup_evaluated,
             'episodeId',s.episode_id,'marketDate',s.market_date,'close',s.close,'shares',s.shares,'investedCost',s.invested_cost,

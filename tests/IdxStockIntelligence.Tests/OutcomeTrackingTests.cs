@@ -35,7 +35,7 @@ public sealed class OutcomeTrackingTests
         return Seal(r);
     }
     private static InstrumentSnapshot Seal(InstrumentSnapshot r) => r with { ContentHash = ScreenerReferences.SnapshotHash(r) };
-    private static (DecisionSnapshotHeader H, DecisionSnapshotRow Row, OutcomeInputs Inputs) Fixture(decimal end = 110, decimal anchorClose = 100)
+    internal static (DecisionSnapshotHeader H, DecisionSnapshotRow Row, OutcomeInputs Inputs) Fixture(decimal end = 110, decimal anchorClose = 100)
     {
         var start = Bar(Base, anchorClose); var endpoint = Bar(Base.AddDays(3), end);
         var old = Reference(Capture.AddMinutes(-1), start); var future = Reference(Later.AddMinutes(-1), start, endpoint);

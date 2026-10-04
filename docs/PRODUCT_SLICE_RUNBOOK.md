@@ -2596,3 +2596,68 @@ Dashboard and later explanatory AI. Decision Verification is independent;
 Research inclusion/denominators do not depend on verification state. FullIdx remains
 **DISABLED**, soak **1/10** unaffected. This milestone changes documentation only:
 no code/API/UI, migration, verification persistence, providers, commit or push.
+
+## Outcome Verification V0.1 — implementation (2026-10-04)
+
+Implemented `POST /api/screener/decision-snapshots/{runId}/rows/{instrumentId}/outcomes/{horizonSessions}/verify`
+with an empty `{}` body and no query parameters. The unit is one committed
+terminal outcome at +1/+5/+10/+20. Invalid requests return 400; absent snapshot,
+row or committed outcome returns 404, including unresolved/unmaterialized cells.
+After existence checks, precedence is **POLICY_VERSION_UNAVAILABLE ->
+INPUT_NOT_AVAILABLE -> DIFFERENT_RESULT -> MATCH**; all four states return 200.
+Database/runtime/deadline failures return 503. MATCH means exact reproducibility
+under retained evidence, not prediction, trade or strategy validity.
+
+The pure replay core resolves only **outcome-v0.1.0 / schema 1**, with the original
+**screener-v0.1.0 / schema 1 / prospective PILOT** capture interpretation. It
+authenticates both manifests, capture/anchor linkage, exact canonical revisions,
+session/calendar sequence and original listing/status/price-basis evidence.
+Frozen selection rules run only inside the exact SHA-256/length-authenticated
+retained archives. There is no live-file, latest-revision, substitute-archive or
+provider fallback. AVAILABLE and all three terminal unavailable states replay
+through the existing frozen Outcome evaluator, with exact checked decimal return
+comparison. Structured differences are deterministic and capped at 100 with a
+truncation indicator; paths, payloads and internal exceptions are not returned.
+
+Original capture cutoff, outcomeKnownAt and recordedAt remain distinct from
+current verifiedAt. recordedAt is domain recording chronology, not PostgreSQL
+commit time. One **REPEATABLE READ / READ ONLY** transaction supplies retained
+database facts; authenticated archive copies are reused within the same attempt.
+Command timeout is **15 seconds**, overall deadline **60 seconds**. Bounds remain
+**64 KiB outcome manifest / 32 MiB capture manifest**, with existing archive and
+canonical-input limits. No writes, verification persistence, migration, dependency
+or UI were added. Decision Verification is not a prerequisite; Research inclusion
+and denominators remain independent. All five frozen contracts are unchanged.
+
+Validation: `dotnet build` passed with **0 warnings / 0 errors**. Focused pure
+Outcome Verification tests passed **34/34**. Standard `dotnet test`: **426 total,
+416 passed, 10 expected database opt-in skips, 0 failed**. Disposable DB-enabled
+standard discovery: **426/426 passed, 0 skipped**. HTTP/database acceptance:
+Outcome Verification **15/15**, Outcome Tracking **11/11**, Decision Verification
+**12 passed / 1 opt-in native Chrome smoke skipped**, Decision Snapshot **19/19**.
+Fixtures cover four terminal MATCH states, policy precedence, corrupt/missing
+inputs, typed differences, original chronology, strict request handling, bounded
+database failure and future-evidence isolation. Disposable fixtures never write
+synthetic outcomes into the operational database. Frontend files did not change;
+frontend tests were not required or run.
+
+Read-only operational smoke used retained run
+`3bc25cf2-901b-4c15-84b2-e265091f7f48`, instrument
+`17d3a141-b1c3-5f52-be80-63b116929fa6`, horizon **+1**. POST `{}` returned
+**HTTP 404 / OUTCOME_NOT_FOUND**. Actual state remained **1 run / 10 captured rows /
+40 unresolved cells / 0 committed outcome rows before and after**. Decision
+Verification returned **MATCH before and after**. All **14 table fingerprints /
+2,043 protected file SHA-256s** matched, covering canonical, portfolio,
+snapshot/outcome, reference/session, operation, archive and frozen-contract data.
+Database schema versions remain **2, 4, 5, 6**. Temporary API processes and owned
+disposable databases were cleaned up. Provider calls/units **0/0**, FullIdx
+**NOT ENABLED**, soak **1/10**, qualifying session **2026-09-30** unchanged.
+
+Remaining limits: no genuine terminal outcome exists yet, so real MATCH acceptance
+awaits independently materialized prospective evidence. Existing typed
+corporate-action event facts are still unavailable; replay preserves the frozen
+source-convention/basis branches and cannot infer split/rights/merger events from
+coverage flags or reason strings. Cash dividends remain price-only. Verification
+does not repair evidence, recompute provider payloads or reconstruct historical
+MVCC visibility. Next: Research typed query / deterministic aggregation, then
+read API / dataset identity / export, Dashboard and later explanatory AI.

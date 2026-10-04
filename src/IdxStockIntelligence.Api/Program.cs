@@ -30,6 +30,7 @@ builder.Services.AddSingleton<StockDatabase>();
 builder.Services.AddSingleton<DecisionSnapshotService>();
 builder.Services.AddSingleton<DecisionVerificationService>();
 builder.Services.AddSingleton<OutcomeTrackingService>();
+builder.Services.AddSingleton<OutcomeVerificationService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -105,6 +106,22 @@ app.MapPost("/api/screener/decision-snapshots/{id}/verify", async (string id, Ht
         return Results.Ok(await service.VerifyAsync(run, ct));
     }
     catch (JsonException) { return Results.BadRequest(new { code = "VERIFICATION_REQUEST_INVALID", error = "VERIFICATION_REQUEST_INVALID" }); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapPost("/api/screener/decision-snapshots/{runId}/rows/{instrumentId}/outcomes/{horizonSessions}/verify",
+    async (string runId, string instrumentId, string horizonSessions, HttpRequest request, OutcomeVerificationService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(runId, "D", out var run)
+            || !Guid.TryParseExact(instrumentId, "D", out var instrument)
+            || !int.TryParse(horizonSessions, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var horizon))
+            throw new ScreenerException(400, "OUTCOME_VERIFICATION_REQUEST_INVALID");
+        using var body = await JsonDocument.ParseAsync(request.Body, new() { MaxDepth = 8 }, ct);
+        OutcomeVerification.ValidateRequest(run, instrument, horizon, body.RootElement);
+        return Results.Ok(await service.VerifyAsync(run, instrument, horizon, ct));
+    }
+    catch (JsonException) { return Results.BadRequest(new { code = "OUTCOME_VERIFICATION_REQUEST_INVALID", error = "OUTCOME_VERIFICATION_REQUEST_INVALID" }); }
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 app.MapPost("/api/screener/decision-snapshots/{id}/outcomes/evaluate", async (string id, HttpRequest request, OutcomeTrackingService service, CancellationToken ct) =>

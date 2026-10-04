@@ -16,8 +16,59 @@ public sealed record DecisionVerificationResult(Guid RunId, DecisionVerification
     string StoredSelectedDigest, string? RecomputedSelectedDigest, IReadOnlyList<DecisionDifference> Differences,
     bool DifferencesTruncated, string? Detail);
 
+public class RetainedInputUnavailableException(string reason) : Exception(reason);
+
 public static class DecisionVerification
 {
+    private static void Require(bool condition, string reason) { if (!condition) throw new RetainedInputUnavailableException(reason); }
+    public static void ValidateManifest(DecisionSnapshotHeader h, DecisionSnapshotManifest m)
+    {
+        Require(m.SchemaVersion == 1 && m.Request is not null && m.Request.BoundsReason() is null
+            && m.Request.InstrumentIds.Distinct().Count() == m.Request.InstrumentIds.Count
+            && m.Request.Through == h.Through && m.Request.HistoryAnchor == h.HistoryAnchor && m.Request.Cutoff == h.KnowledgeCutoff
+            && h.CapturedAt == h.KnowledgeCutoff && h.RecordedAt >= h.CapturedAt && h.CaptureKind == "PROSPECTIVE_CAPTURE" && h.Universe == "PILOT", "MANIFEST_CHRONOLOGY_INVALID");
+        Require(m.Bars is not null && m.Listings is not null && m.ConfiguredIds is not null && m.HeldIds is not null
+            && m.EvaluatedInstrumentIds is not null && m.Universes is not null && m.Instruments is not null
+            && m.Sessions is not null && m.InstrumentSessions is not null && m.Archives is not null, "MANIFEST_INVALID");
+        var r = m.Request!;
+        var ids = r.InstrumentIds.Append(r.BenchmarkId).ToHashSet();
+        Require(m.Bars!.All(b => b is not null) && m.Listings!.All(l => l is not null), "MANIFEST_EVIDENCE_INVALID");
+        Require(m.Bars!.Count <= ScreenerReadRequest.MaximumRows && m.Listings!.Count <= ids.Count
+            && m.Bars.Select(b => (b.InstrumentId, b.SessionDate)).Distinct().Count() == m.Bars.Count
+            && m.Listings.Select(l => l.InstrumentId).Distinct().Count() == m.Listings.Count
+            && m.Bars.All(b => b is not null && ids.Contains(b.InstrumentId) && b.SessionDate >= r.HistoryAnchor && b.SessionDate <= r.Through
+                && b.KnownAt <= r.Cutoff && b.RevisionNumber > 0 && b.RawArtifactId != Guid.Empty && ScreenerReferences.IsHash(b.ContentHash))
+            && m.Listings.All(l => l is not null && ids.Contains(l.InstrumentId) && l.KnownAt <= r.Cutoff && ScreenerReferences.IsHash(l.ContentHash)), "MANIFEST_EVIDENCE_INVALID");
+        Require(m.Universes!.Count + m.Instruments!.Count + m.Sessions!.Count + m.InstrumentSessions!.Count
+            <= ScreenerReferences.MaximumRecords, "MANIFEST_REFERENCE_BOUND_EXCEEDED");
+        foreach (var set in new[] { m.ConfiguredIds!, m.HeldIds!, m.EvaluatedInstrumentIds! })
+            Require(set.Count <= 210 && set.Distinct().Count() == set.Count && set.All(id => id != Guid.Empty), "MANIFEST_POPULATION_INVALID");
+        Require(m.ConfiguredIds!.Count <= 10 && m.HeldIds!.Count <= 200
+            && (m.Portfolio?.PortfolioId == h.PortfolioId) && (h.PortfolioId is not null || m.Portfolio is null), "MANIFEST_PORTFOLIO_INVALID");
+        if (m.Portfolio is { } p)
+            Require(p.EventIds is not null && p.ThesisIds is not null && p.EventIds.Count <= PortfolioLedger.MaximumEvents
+                && p.ThesisIds.Count <= PortfolioExchange.MaxTheses && p.EventIds.Distinct().Count() == p.EventIds.Count
+                && p.ThesisIds.Distinct().Count() == p.ThesisIds.Count && p.EventIds.Concat(p.ThesisIds).All(id => id != Guid.Empty), "MANIFEST_PORTFOLIO_INVALID");
+    }
+
+    public static void Authenticate(DecisionSnapshotManifest m, ScreenerDatabaseEvidence evidence, CancellationToken ct)
+    {
+        Require(evidence.Bars.Count == m.Bars.Count, "CANONICAL_REVISION_MISSING");
+        var links = m.Bars.ToDictionary(b => (b.InstrumentId, b.SessionDate, b.RevisionNumber));
+        foreach (var b in evidence.Bars)
+        {
+            ct.ThrowIfCancellationRequested();
+            Require(links.TryGetValue((b.InstrumentId, b.SessionDate, b.RevisionNumber), out var link)
+                && link.KnownAt == b.KnownAt && link.ContentHash == b.ContentHash && link.RawArtifactId == b.RawArtifactId
+                && b.FetchedAt <= m.Request.Cutoff && (b.RetrievedAt is null || b.RetrievedAt <= m.Request.Cutoff)
+                && (b.SessionKnownAt is null || b.SessionKnownAt <= m.Request.Cutoff) && b.ContentHashMatches(), "CANONICAL_REVISION_INTEGRITY_FAILED");
+        }
+        Require(evidence.Listings.Count == m.Listings.Count, "LISTING_INPUT_MISSING");
+        var listings = m.Listings.ToDictionary(l => l.InstrumentId);
+        Require(evidence.Listings.All(l => listings.TryGetValue(l.InstrumentId, out var link)
+            && link.KnownAt == l.KnownAt && link.ContentHash == l.ContentHash), "LISTING_INPUT_INTEGRITY_FAILED");
+    }
+
     public const int MaximumDifferences = 100;
     public static DecisionVerificationResult Unavailable(DecisionSnapshotHeader h, DecisionVerificationState state, string detail)
         => new(h.RunId, state, DateTimeOffset.UtcNow, h.CapturedAt, h.PolicyId, h.InputHash, null,
