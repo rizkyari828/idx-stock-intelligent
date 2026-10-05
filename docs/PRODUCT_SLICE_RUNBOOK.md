@@ -2737,3 +2737,95 @@ for separate review; the pure component does not emit that false notice or infer
 that committed outcomes have been verified. Next: **Research stored-only bounded
 database reader + database integration tests**, then API / dataset identity /
 export, Dashboard and later explanatory AI.
+
+## Research Stored-Only Bounded Database Reader V0.1 — implementation (2026-10-05)
+
+Implemented `ResearchService.ReadAsync(ResearchQuery, CancellationToken)` in
+Infrastructure. The service reads only persisted `decision_snapshot_run`,
+`decision_snapshot_row` and `decision_snapshot_outcome` facts, then delegates
+classification, filtering, reconciliation, diversity and metrics to the existing
+pure Research component. It returns the complete bounded result; no page-level
+aggregation, current-state enrichment, Outcome preview or verification dependency.
+
+Server time is resolved once, and the explicit query cutoff stays fixed for the
+attempt. Inclusive Jakarta dates become UTC timestamp bounds with an exclusive
+next-midnight end; the indexed captured_at column remains directly searchable.
+Capture capturedAt, knowledgeCutoff and recordedAt must each be <= cutoff.
+Omitted portfolioId means **discovery-only** (`portfolio_id IS NULL`); a supplied
+ID selects exactly that retained context. COMPLETE, PARTIAL, BLOCKED and empty
+runs remain eligible. Supported capture binding is **screener-v0.1.0 / schema 1 /
+PROSPECTIVE_CAPTURE / PILOT**, with **outcome-v0.1.0 / schema 1** outcomes.
+Incompatible base bindings fail before drilldowns can conceal them.
+
+One set-based run read uses **LIMIT 1001**, followed by one bounded row/outcome
+read using **LIMIT 10001** and the selected run-ID set. No per-observation query.
+The service validates declared evaluated-instrument IDs against actual captured
+rows, run row counts, required captured JSON fields, episode linkage and frozen
+stored terminal state/reason vocabulary. Raw base bounds remain **1,000 runs /
+10,000 observations**, including empty runs, before cohort/instrument/episode
+filters. Retained materialization is capped at **32 MiB**, with bounded individual
+projections and declaration arrays; overflow returns no partial result.
+
+The Outcome **LEFT JOIN** uses the exact run/instrument/requested-horizon key.
+Both **outcomeKnownAt <= cutoff AND recordedAt <= cutoff** are inside the join.
+Missing or later outcomes leave every captured observation intact as U, with
+**NO_COMMITTED_OUTCOME_AS_OF_CUTOFF** and null outcome fields. AVAILABLE consumes
+the stored priceReturnPct; the other three terminal states retain their stored
+reason and null return. No return, session horizon or market evidence is replayed.
+Neither Decision nor Outcome verification verdict is queried or filtered.
+
+PostgreSQL unbounded numeric columns do not guarantee decimal representability.
+Captured/anchor/horizon closes and returns are read as numeric text; episode
+decimals also pass a strict materialization converter. Following the existing
+ScreenerEvidence pattern, decimal parsing is accepted only when normalized
+original text equals lossless plain decimal text. This rejects range overflow,
+rounding-required precision/scale and non-finite values, while preserving exact
+negative values, genuine zero, tiny signs and value-equivalent trailing zeroes.
+No Npgsql decimal conversion, float intermediary, tolerance or hidden rounding.
+
+All reads and pure aggregation share one **REPEATABLE READ / READ ONLY**
+transaction. Database commands have **15-second** timeouts; the complete attempt
+has a linked **60-second** deadline and respects caller cancellation. Service
+failures expose only sanitized Research codes; policy and bound failures retain
+their existing explicit codes. This is current snapshot consistency plus stored
+domain chronology, not reconstruction of historical PostgreSQL commit visibility.
+
+Validation: `dotnet build` passed **0 warnings / 0 errors**. Focused pure Research
+tests passed **72/72**, and owned disposable Research database tests passed
+**46/46**, both with **0 skips**. Standard `dotnet test`: **544 total, 488 passed,
+56 expected database opt-in skips, 0 failed**. The existing
+`python3.13 -m unittest discover -s scripts -p test_screener_evidence.py -v`
+ownership wrapper ran canonical DB-enabled `dotnet test`: **544/544 passed,
+0 skipped**, with wrapper **1/1 passed**. The focused database run took **4.784s**;
+the DB-enabled .NET suite took **5.297s** on this host. These are acceptance timings,
+not production-scale benchmark claims. Whitespace checks passed.
+
+Disposable cases cover empty/all-unresolved and mixed states, all cutoff clocks,
+Jakarta midnight, exact context and horizon selection, numeric failures,
+structural corruption, unsupported bindings, repeated episodes, live-state
+isolation, cancellation and read-only behavior. **1,000 runs / 10,000 rows pass;
+1,001 runs / 10,001 rows fail even with restrictive drilldowns**. Representative
+EXPLAIN checks exercised existing run/date/context and row/outcome query shapes;
+the selective row join used index access, with no new index required. A coordinated
+concurrent Outcome commit after snapshot establishment leaves the in-flight
+result **A=0,U=1**, while a subsequent request sees **A=1,U=0** at the same domain
+cutoff. Synthetic/corruption fixtures exist only in owned schemas, with real LIKE
+types/checks/indexes and deliberately no production immutability/evidence triggers.
+
+Owned databases/schemas were cleaned up. Focused acceptance preserved **14
+operational table fingerprints**, including Decision Snapshot and Outcome tables,
+and protected pilot/operation files; the existing full-suite wrapper also checked
+its operational table/file fingerprints. No operational outcome fabrication,
+archive access or provider recovery. Provider calls/units **0/0**. Real service
+smoke was safely skipped: no existing direct Research service invoker is available,
+and no temporary production API was added. Separate read-only inspection confirmed
+**1 run / 10 rows / 0 committed outcomes**, schema markers **2,4,5,6**;
+the service itself was tested only against disposable data.
+
+No API/Program.cs registration, pagination, datasetId/pin, export, Dashboard, AI,
+migration, index, persistence or dependency was added. Pure Research and all five
+frozen contracts are unchanged. FullIdx remains disabled and soak 1/10 at the last
+reviewed baseline, with protected operational files unchanged. The stale frozen
+Research verifier notice remains a separate factual documentation follow-up.
+Next: **Research dataset identity + narrow read API + pinned deterministic
+pagination**.
