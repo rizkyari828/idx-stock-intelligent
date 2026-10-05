@@ -17,7 +17,10 @@ read-only operational audit plus the authoritative-source review, the one
 substantiated PILOT configured-membership universe snapshot, and the honest
 BLOCKED candidate result. Implementation and evidence-review completion does not
 certify real candidate readiness. Earlier dated sections retain their milestone
-results and scope at the time.
+results and scope at the time. The latest Pilot Evidence Readiness audit (below)
+confirms the operational PILOT blocker is an external authoritative-evidence gap,
+not an implementation defect, so all ten configured candidates remain
+`DATA_BLOCKED`.
 
 ## Schema and startup
 
@@ -2973,3 +2976,155 @@ invents verification verdicts. All five frozen contracts are unchanged. Next:
 **Research Dashboard V0.1** (existing shell, horizon tabs sharing one explicit
 cutoff/datasetId, pinned full export) while evidence readiness proceeds
 separately.
+
+## Pilot Evidence Readiness V0.1 — read-only audit (2026-10-05)
+
+Read-only investigation of why the PILOT prospective capture path produces
+`DATA_BLOCKED` observations, starting from clean `main` at
+`910b64ee6fb8d9759f4eb8b788b9e5d676c90c2c` (Research Delivery V0.1), 8 ahead / 0
+behind `origin/main`. No code, test, migration, index, reference attestation,
+collector, provider or operational write was made. This section records the
+audit only.
+
+### Root-cause classification
+
+- **PRIMARY: `EXTERNAL_SOURCE_OR_ENTITLEMENT_BLOCKER`.** The frozen Screener
+  requires knowledge-dated, effective-dated authoritative attestations of
+  ordinary-share identity/board/mechanism/trading status and price-basis
+  (`RAW_AS_TRADED`/`CLEARED`) continuity. The accessible zero-cost sources
+  (EODHD bars, KSEI current-only pages, retained listing boundaries) do **not**
+  provide board/mechanism/trading intervals or selected-hash price-basis
+  clearance. `idx.co.id`, `e-ipo.co.id` and `eodhd.com/exchange/INDX` were
+  previously unreachable to the fetcher (403/404), and the contract forbids
+  inferring classification/status from bars or the mutable registry. This cannot
+  be repaired in code.
+- **SECONDARY: `MISSING_BUT_SUPPORTED_EVIDENCE`.** Only 8 distinct retained bar
+  dates exist per equity (6 for the benchmark) versus the hard 21-continuous
+  requirement. The collector can fetch a wider range from the same zero-cost
+  provider, but `pilot.py:241-244` refuses any bootstrap window containing an
+  unproven civil date, and `pilot/sessions.json` currently proves only 10 dates.
+  Extending history therefore also requires external, independently sourced
+  session proofs; it is not an internal defect.
+- **Not present:** `IMPLEMENTATION_DEFECT`, `CONFIGURATION_DEFECT`,
+  `COLLECTOR_OR_PARSER_DEFECT`, `UNSUPPORTED_V0_1_SEMANTICS`,
+  `DATA_CORRUPTION_OR_INTEGRITY_FAILURE`. The Screener evaluator and reference
+  loader fail closed exactly as frozen; no fallback or inference path exists.
+
+### Exact DATA_BLOCKED reason chain
+
+Stored capture `3bc25cf2-901b-4c15-84b2-e265091f7f48` (captured 2026-10-03,
+`through=2026-10-03`, status `BLOCKED`, 10 rows) and a live read-only
+`GET /api/screener?through=2026-10-02&view=all` (HTTP 200, status **BLOCKED**,
+`reasons=["INCOMPLETE_COVERAGE","RAW_PRICE_RETURNS"]`, targetSession 2026-10-02)
+agree. Every configured candidate is `DATA_BLOCKED`, `setup=NONE`,
+`setupEvaluated=false`:
+
+| Instrument | Usable listing | Exact eligibility reasons |
+| --- | --- | --- |
+| RAJA `17d3a141…` | VERIFIED + retrieved | `REFERENCE_NOT_KNOWN`, `STATUS_UNKNOWN`, `INSUFFICIENT_HISTORY` |
+| VKTR `b2bfad81…` | VERIFIED + retrieved | `REFERENCE_NOT_KNOWN`, `STATUS_UNKNOWN`, `INSUFFICIENT_HISTORY` |
+| PTRO `f7d72ea1…` | VERIFIED + retrieved | `REFERENCE_NOT_KNOWN`, `STATUS_UNKNOWN`, `INSUFFICIENT_HISTORY` |
+| BBCA `81808734…`, BBRI `517ffb58…`, ANTM `b698ea22…`, ENRG `34caad60…`, DSSA `6419190e…`, GOTO `dfdddd0f…` | VERIFIED but `retrieved_at NULL` | `REFERENCE_NOT_KNOWN`, `LISTING_UNKNOWN`, `STATUS_UNKNOWN`, `INSUFFICIENT_HISTORY` |
+| LPIN `bd4c12c4…` | PARTIAL, year-only, no `listed_from` | `REFERENCE_NOT_KNOWN`, `LISTING_UNKNOWN`, `STATUS_UNKNOWN`, `INSUFFICIENT_HISTORY` |
+
+Reason counts: `REFERENCE_NOT_KNOWN` **10**, `STATUS_UNKNOWN` **10**,
+`INSUFFICIENT_HISTORY` **10**, `LISTING_UNKNOWN` **7**. The benchmark
+`JKSE.INDX` has no instrument snapshot either, so `marketContext` is
+`UNKNOWN`/`UNKNOWN` with `REFERENCE_NOT_KNOWN`.
+
+Dimension mapping (verified in code):
+
+- `REFERENCE_NOT_KNOWN` — `pilot/screener-reference.json` has
+  `"instruments":[]`; `ScreenerReferences.Instrument` returns this for every ID
+  (`ScreenerReferences.cs:176`). The universe snapshot
+  `pilot-universe-2026-10-02` **is** present and was used, so this is not a
+  missing-file or working-directory problem.
+- `LISTING_UNKNOWN` — `ScreenerEvaluator.Facts` clears listing only for a single
+  `VERIFIED` row with `RetrievedAt != null` (`ScreenerEvaluator.cs:207`); six
+  legacy `instrument_listing_evidence` rows retained listing dates without
+  retrieval metadata, and LPIN has no exact day.
+- `STATUS_UNKNOWN` — no reference `trading` interval (`TRADING` +
+  `CONTINUOUS`) exists; `instrument-sessions.json` is `[]`, so nothing can
+  certify trading status (`ScreenerEvaluator.cs:220-241`).
+- `INSUFFICIENT_HISTORY` — the continuous-sequence counter resets on any gap and
+  requires 21 (`ScreenerEvaluator.cs:130-138`); each equity has 8 dates
+  (2026-08-24, 08-26, 09-23, 09-24, 09-25, 09-29, 09-30, 10-02) and the
+  benchmark 6 (missing 2026-09-29). Eight can never clear a hard 21.
+
+### Evidence coverage (before / after)
+
+No repository or operational change was made, so before and after are identical.
+
+| Dimension | Coverage |
+| --- | --- |
+| Configured equities / benchmark | 10 / 1 |
+| Universe snapshots | 1 / 1 |
+| Instrument reference snapshots | **0 / 11** |
+| Usable listing boundaries (VERIFIED + retrieved) | **3 / 10** equities (RAJA, VKTR, PTRO) |
+| Exchange sessions | 8 `ObservedTrading` + 2 closures proven in `pilot/sessions.json`; 2026-09-28 unproven |
+| Bar/lookback (21 required) | **8 dates** per equity, 6 benchmark; 0 reach 21 |
+| Price-basis (`RAW_AS_TRADED`+`CLEARED`+selected hashes) | **0 / 11** |
+| Volume basis/segment cleared | **0 / 11** (all `SPLIT_ADJUSTED` / `UNKNOWN`) |
+| Capture-ready | **0 / 10** equities, **10 / 10** `DATA_BLOCKED` |
+
+### Source feasibility classification
+
+| Evidence | Source / integration | Chronology | Zero-cost | Class |
+| --- | --- | --- | --- | --- |
+| Daily bars | EODHD `/api/eod`, collector | fetched/known retained; DEGRADED quality | free 20/day, panel 11 | WORKING |
+| Exchange-session proofs | `pilot/sessions.json`, manual independent URLs | dated `known_at` | manual | MANUAL_FALLBACK_ONLY |
+| Configured membership | `pilot/universe.json` pinned | dated snapshot | n/a | WORKING |
+| Listing boundaries | `instrument_listing_evidence` + `instrument-boundaries.json` | some with retained retrieval; 6 legacy without | manual | WORKING_WITH_LIMITS |
+| Ordinary identity/class/currency | KSEI current pages | current-only, no effective interval | public | WORKING_WITH_LIMITS |
+| Board/mechanism/status | IDX/e-IPO (403), no integrated source | absent | — | SOURCE_UNAVAILABLE |
+| Price-basis continuity/event coverage | no authoritative selected-hash source | absent | — | SOURCE_UNAVAILABLE |
+| Volume basis/segment | provider split-adjusted, no JK segment | absent | — | SOURCE_UNAVAILABLE |
+| Instrument reference snapshot | manual curation from authoritative sources | currently `instruments:[]` | manual | MANUAL_FALLBACK_ONLY |
+| Historical Sep-15 all-IDX replay | — | not retained | — | NOT_SUPPORTED_BY_V0_1 |
+
+### Provider, zero-cost and safety
+
+Retained ledger from the last collector operation (2026-10-03) confirms the
+account is **free**: `subscriptionType=free`, `dailyRateLimit=20`, `apiRequests
+11` after the run, `extraLimit=464`; the fixed panel costs 11 units, inside the
+16-unit per-run ceiling. No paid plan, no fallback, no entitlement change.
+Provider calls/units for this milestone: **0 / 0** (the retained ledger was
+sufficient; no account probe or fetch was issued). The live Screener read was a
+local loopback HTTP GET. **14** operational table fingerprints (including the
+Decision Snapshot and Outcome tables) and all protected pilot/operation file
+hashes were unchanged before/after. FullIdx **DISABLED**, soak **1/10**, schema
+versions **2,4,5,6** unchanged.
+
+### Why no code or commit of code
+
+Under the fix/no-fix gate the primary category is **E**, so the repository is
+left unchanged: coding around an external attestation gap would only fabricate
+clearance. The secondary history gap is **D**, but the collector's frozen
+fail-closed session gate blocks a wide bootstrap without additional independent
+session proofs, which are external evidence. Existing coverage already proves
+the intended behavior and recovery: `ScreenerEvaluatorTests` exercise
+`REFERENCE_NOT_KNOWN`/`LISTING_UNKNOWN`/`STATUS_UNKNOWN`/`INSUFFICIENT_HISTORY`
+and their clearance when valid reference/session/basis evidence is supplied
+(e.g. `ScreenerEvaluatorTests.cs:59-122`, `:124-140`, `:182-183`, `:441-523`;
+`ScreenerEvidenceTests.cs:53-206`). No new fixture was required beyond the live
+reproduction. No fresh prospective capture was created because the primary
+blocker is external and a new run would only reproduce `BLOCKED`; the existing
+historical Decision Snapshot run is unchanged.
+
+Historical immutability and prospective-only behavior are preserved: no old
+Decision Snapshot/row/outcome, manifest, or Research dataset was modified; no
+evidence was backdated; no synthetic operational Outcome was created; no
+provider fallback was introduced. The stale frozen Research notice about Outcome
+Verification remains a separate documentation follow-up.
+
+### Remaining evidence gaps and next step
+
+Blocking, external: knowledge-dated authoritative board/mechanism/trading-status
+intervals and selected-hash `RAW_AS_TRADED`/`CLEARED` price-basis attestations;
+a complete volume basis/segment; and independent session proofs for the missing
+2026-08/09 dates. Recommended next readiness action: obtain those attestations
+through an accessible official route, then append a new `knownAt`-dated
+instrument/universe snapshot and continue the prospective soak; a fresh capture
+should become non-`DATA_BLOCKED` once the reference dimensions and 21-session
+continuity are satisfied. This milestone confirms a more fundamental data-source
+gate, so evidence readiness remains ahead of **Fundamental Facts V0.1**.
