@@ -31,6 +31,7 @@ builder.Services.AddSingleton<DecisionSnapshotService>();
 builder.Services.AddSingleton<DecisionVerificationService>();
 builder.Services.AddSingleton<OutcomeTrackingService>();
 builder.Services.AddSingleton<OutcomeVerificationService>();
+builder.Services.AddSingleton<ResearchService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -174,6 +175,41 @@ app.MapGet("/api/instruments/{id}/decision-snapshots", async (string id, HttpReq
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 
+// Read-only research delivery: one committed-only dataset per request, pinned by datasetId.
+app.MapGet("/api/research/outcomes", async (HttpRequest request, ResearchService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Any(p => p.Value.Count != 1)) throw new ScreenerException(400, "RESEARCH_QUERY_INVALID");
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(60));
+        var token = deadline.Token;
+        var now = DateTimeOffset.UtcNow;
+        var delivery = ResearchDelivery.Parse(
+            request.Query.ToDictionary(p => p.Key, p => (string?)p.Value[0], StringComparer.Ordinal), now);
+        var result = await service.ReadAsync(delivery.Query, token);
+        token.ThrowIfCancellationRequested();
+        var preimage = ResearchDelivery.Preimage(result);
+        var datasetId = ResearchDelivery.DatasetId(preimage, token);
+        if (delivery.DatasetId is not null && !string.Equals(delivery.DatasetId, datasetId, StringComparison.Ordinal))
+            throw new ScreenerException(409, "RESEARCH_DATASET_CHANGED");
+        token.ThrowIfCancellationRequested();
+        var bytes = delivery.Export
+            ? ResearchDelivery.ExportBytes(result, preimage, datasetId)
+            : ResearchDelivery.PageBytes(ResearchDelivery.Page(result, delivery, preimage, datasetId, now));
+        return Results.Bytes(bytes, "application/json");
+    }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+    { return ResearchError(503, "RESEARCH_UNAVAILABLE"); }
+    catch (InvalidOperationException error) when (error.Message is "RESEARCH_POLICY_VERSION_UNAVAILABLE")
+    { return ResearchError(409, "RESEARCH_POLICY_VERSION_UNAVAILABLE"); }
+    catch (InvalidOperationException error) when (error.Message is "RESEARCH_BOUND_EXCEEDED")
+    { return ResearchError(503, "RESEARCH_BOUND_EXCEEDED"); }
+    catch (InvalidOperationException)
+    { return ResearchError(503, "RESEARCH_UNAVAILABLE"); }
+});
+
 app.MapPost("/api/portfolios", async (CreatePortfolio input, PortfolioDatabase db, CancellationToken ct) =>
     Results.Ok(await db.CreateAsync(input.Name, input.AllowNegativeCash, ct)));
 app.MapPost("/api/portfolios/{id:guid}/events", async (Guid id, EventInput input, PortfolioDatabase db, CancellationToken ct) =>
@@ -234,6 +270,8 @@ static Dictionary<string, string?> SnapshotQuery(HttpRequest request)
     if (request.Query.Any(p => p.Value.Count != 1)) throw new ScreenerException(400, "SNAPSHOT_QUERY_INVALID");
     return request.Query.ToDictionary(p => p.Key, p => (string?)p.Value[0], StringComparer.Ordinal);
 }
+
+static IResult ResearchError(int status, string code) => Results.Json(new { code, error = code }, statusCode: status);
 
 
 namespace IdxStockIntelligence.Api

@@ -4,17 +4,20 @@ Requires .NET 10, PostgreSQL 17 (existing compose service), Python 3.12+ for
 acceptance and Node 22.12+ for current Vite. Run from repository root unless
 indicated. No provider token is needed. Keep connection strings outside Git.
 
-Current product status: **Decision Verification V0.1 implemented**, alongside
-**Decision Snapshot History UI V0.1**,
-**Stocks + Stock Detail V0.1** and prospective Decision Snapshot persistence, plus
-**Screener Milestone 6 data-readiness/evidence complete**. The latest section records
-the read-only Decision History verification. Stocks is a local registry/history surface. The
-production sidebar opens the read-only PILOT Screener independently of a portfolio.
-The Screener M6 section below records the read-only operational audit plus the
-authoritative-source review, the one substantiated PILOT configured-membership
-universe snapshot, and the honest BLOCKED candidate result. Implementation and
-evidence-review completion does not certify real candidate readiness. Earlier dated
-sections retain their milestone results and scope at the time.
+Current product status: **Research Delivery V0.1 implemented** (dataset identity,
+pinned pagination, deterministic JSON export), alongside **Research stored-only
+bounded database reader**, pure Research aggregation, Decision Verification V0.1,
+**Decision Snapshot History UI V0.1**, **Stocks + Stock Detail V0.1** and
+prospective Decision Snapshot persistence, plus **Screener Milestone 6
+data-readiness/evidence complete**. The latest section records the Research
+delivery implementation and read-only operational smoke. Stocks is a local
+registry/history surface. The production sidebar opens the read-only PILOT
+Screener independently of a portfolio. The Screener M6 section below records the
+read-only operational audit plus the authoritative-source review, the one
+substantiated PILOT configured-membership universe snapshot, and the honest
+BLOCKED candidate result. Implementation and evidence-review completion does not
+certify real candidate readiness. Earlier dated sections retain their milestone
+results and scope at the time.
 
 ## Schema and startup
 
@@ -2829,3 +2832,144 @@ reviewed baseline, with protected operational files unchanged. The stale frozen
 Research verifier notice remains a separate factual documentation follow-up.
 Next: **Research dataset identity + narrow read API + pinned deterministic
 pagination**.
+
+## Research Delivery V0.1 — implementation (2026-10-05)
+
+Implemented the frozen read-only **`GET /api/research/outcomes`** route in
+`Program.cs` plus one pure Application component, `ResearchDelivery.cs`. The
+`ResearchService` stored-only reader is unchanged and is the only data source;
+delivery never re-aggregates and never queries Outcome Verification, Decision
+Verification or Outcome Tracking previews.
+
+### Query contract
+
+Strict allowlisted, single-occurrence keys: `captureFrom`, `captureTo`
+(required ISO dates), `cutoff`, `portfolioId`, `horizonSessions` (1/5/10/20,
+default 5), `cohort`, `groupBy`, `instrumentId` XOR `episodeId`, plus
+delivery-only `limit` (1..100, default 50), `cursor`, `datasetId` and `format`
+(`PAGE` default, `EXPORT_JSON`). Unknown keys, repeated keys, array syntax
+(`captureFrom[]`), blank values, literal `null`, malformed dates/timestamps/UUIDs,
+unfrozen enum spellings, arbitrary sort/policy/outcome-state parameters,
+conflicting drilldowns and uppercase/short hashes return **400
+`RESEARCH_QUERY_INVALID`**. Semantic normalization reuses `ResearchQuery`
+directly; the API does not re-implement cohort, horizon or drilldown rules.
+
+### Cutoff, identity and pinning
+
+An omitted cutoff resolves server-now exactly once and is returned in
+`dataset.cutoff` (UTC); every later page/export request must send it explicitly.
+Pagination and export never re-resolve time. `datasetId` is the lowercase
+SHA-256 of a **versioned research projection** hashed with
+`ScreenerReferences.Hash(..., omitContentHash: false)`. The preimage contains the
+projection/evaluation versions and explicit `screener-v0.1.0`/`outcome-v0.1.0`
+bindings; the full normalized query (UTC cutoff, Jakarta range, explicit
+`DISCOVERY`/`PORTFOLIO` context, horizon, cohort, groupBy, nullable drilldown);
+every selected run with original capture/knowledge/recording clocks,
+policy/universe/context/status/rowCount and unchanged inputHash/selectedDigest;
+base/selected/filtered-out/empty-run counts and base cohort counts; and the
+complete selected observation projection including cohort, partition, explicit
+research resolution/reason, all nullable committed outcome values and zero-based
+ordinals on runs, observations, reason arrays and market-context reasons. UUIDs
+are lowercase D, dates ISO, timestamps UTC round-trip `O`, decimals invariant
+G29 (real zero `"0"`), enums exact, nulls explicit. Page size, cursor, format,
+generatedAt and cosmetic formatting are excluded, so they never move the
+identity; a qualifying committed Outcome, changed selected value/state/reason,
+membership, query or cutoff always does.
+
+First requests may omit `datasetId`; the response exposes it. Continuations
+require explicit cutoff + datasetId + cursor; export requires explicit cutoff +
+datasetId and rejects cursor/limit. A recomputed complete dataset that does not
+match the supplied pin returns **409 `RESEARCH_DATASET_CHANGED`** with no page or
+export body, including the reviewed late-commit case where an Outcome committed
+after the first request qualifies at the same domain cutoff. Unsupported
+retained policy/schema returns **409 `RESEARCH_POLICY_VERSION_UNAVAILABLE`**
+before any pin comparison. Runtime population/materialization, PAGE and export
+bounds return **503 `RESEARCH_BOUND_EXCEEDED`**; database/deadline/integrity
+failures return **503 `RESEARCH_UNAVAILABLE`**, all with the existing
+`{code,error}` envelope and no internal detail.
+
+### Pagination, page and export
+
+Canonical order is `capturedAt` UTC, then runId lowercase D, then instrumentId
+lowercase D. The cursor is a max-512-character base64url keyset carrying the last
+`(capturedAt, runId, instrumentId)` plus the datasetId context; malformed,
+truncated, oversized, charset-invalid, missing-row, foreign-dataset,
+foreign-query/horizon/portfolio and final-key cursors are rejected
+deterministically instead of restarting pagination. PAGE returns complete
+whole-dataset summaries, the complete selected-run manifest, freshness clocks
+(with `generatedAt` marked response time) and one observation page; summaries,
+counts, warnings, diversity and datasetId are identical on every page.
+`nextCursor` appears only while rows remain.
+
+`format=EXPORT_JSON` returns one deterministic lossless envelope:
+`datasetId`, the complete hash preimage (query, versions, runs, all selected
+observation cells with explicit unresolved markers), whole-dataset
+summary/coverage/warnings and all 28+1 fixed cohort/group summaries. Exported
+decimal text is exact invariant G29 (`"0"` for real zero, `1E-28` for the tiny
+fixture), never float-converted or display-rounded; unresolved cells keep explicit
+null outcomes and `NO_COMMITTED_OUTCOME_AS_OF_CUTOFF`. The envelope contains no
+volatile runtime timestamp, so identical pinned exports produce identical bytes
+and SHA-256. PAGE is bounded at **2 MiB UTF-8**, export at **32 MiB UTF-8**, and
+oversized output fails with no partial/truncated body.
+
+### Privacy, bounds and operational safety
+
+The transport projection contains only approved research fields: no portfolio
+name, shares/cost/average cost, mandate/thesis/rank metadata, notes, archive
+paths, credentials, SQL or raw payloads. `portfolioId` selects context without
+exporting private portfolio detail. Base population bounds remain **1,000 runs /
+10,000 observations / 32 MiB materialization** before filters; cursor is capped
+at **512 characters**. No Research persistence, dataset/cursor/export table,
+cache, migration 0007, index, dependency, Dashboard, AI, CSV/Parquet export or
+new analytical metric was added. One **REPEATABLE READ / READ ONLY** request per
+call keeps the service's 15-second command timeout and 60-second overall
+deadline (covering hashing/serialization checks) and propagates client
+cancellation. `datasetId` detects changes between requests; it does not claim to
+reconstruct a historical PostgreSQL MVCC snapshot.
+
+Validation: `dotnet build` passed **0 warnings / 0 errors**. Focused pure
+`ResearchEvaluationTests` passed **72/72** and new `ResearchDeliveryTests` passed
+**15/15** (normalization/strict vocabulary, identity stability and change,
+ordered hashing, null/zero distinction, cursor integrity, page continuation, page
+vs export identity, decimal preservation, privacy shape and bound failures).
+Focused owned disposable `ResearchDatabaseTests` passed **46/46**. Standard
+`dotnet test`: **559 total, 503 passed, 56 expected database opt-in skips, 0
+failed**. The existing wrapper
+`python3.13 -m unittest discover -s scripts -p test_screener_evidence.py -v`
+ran DB-enabled canonical `dotnet test`: **559/559 passed, 0 skipped**, wrapper
+**1/1**. New disposable HTTP/database acceptance
+`python3.13 -m unittest discover -s scripts -p test_research_delivery.py -v`
+passed **6/6**, covering strict query parsing, first/continuation pages, identity
+stability across defaults/offsets/parameter order/page size/page/format, changed
+pin and late commit **409 `RESEARCH_DATASET_CHANGED`**, lossless deterministic
+export with complete population and decimal/null preservation, privacy
+exclusions, read-only behavior, future-evidence/verifier-table isolation, empty
+and all-unresolved datasets, unsupported binding precedence, cursor tampering
+and PAGE/export/cursor bounds.
+
+Read-only operational smoke (current actual state, not assumed): one discovery
+run captured **2026-10-03**, **10 captured rows**, **0 committed outcome rows**,
+schema versions **2,4,5,6**. For horizons +1/+5/+10/+20 the API returned
+**HTTP 200**, `N=10 A=0 T=0 R=0 U=10`, each page 10 rows with no cursor; the
+pinned JSON export returned **HTTP 200, 18,322 bytes, 10 observations**, no
+`generatedAt`. **14** operational table fingerprints (including Decision
+Snapshot and Outcome tables) and all protected pilot/operation file hashes were
+unchanged before/after; no writes, capture, outcome, archive, snapshot or
+FullIdx/soak change occurred. Temporary API process stopped, no disposable
+database left behind. Provider calls/units **0/0**; FullIdx remains **DISABLED**
+and soak **1/10** at the last reviewed baseline.
+
+Remaining limitations: no genuine committed outcome exists yet, so real
+AVAILABLE delivery awaits independently materialized prospective evidence; the
+export is a deterministic snapshot of one domain-chronology query, not a
+transaction-snapshot reconstruction or a backup of the evidence graph; a changed
+database cannot silently regenerate an already saved export. Parallel
+**evidence-readiness** work (blocked capture, DATA_BLOCKED observations, absent
+instrument reference snapshots) remains a separate workstream and was not
+repaired or fabricated here. The frozen Research contract's stale notice that
+Outcome Verification is unimplemented is carried forward unchanged for a
+separately reviewed narrow factual correction; delivery neither emits it nor
+invents verification verdicts. All five frozen contracts are unchanged. Next:
+**Research Dashboard V0.1** (existing shell, horizon tabs sharing one explicit
+cutoff/datasetId, pinned full export) while evidence readiness proceeds
+separately.
