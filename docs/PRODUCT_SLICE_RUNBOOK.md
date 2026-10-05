@@ -2661,3 +2661,79 @@ coverage flags or reason strings. Cash dividends remain price-only. Verification
 does not repair evidence, recompute provider payloads or reconstruct historical
 MVCC visibility. Next: Research typed query / deterministic aggregation, then
 read API / dataset identity / export, Dashboard and later explanatory AI.
+
+## Research Typed Query + Pure Aggregation V0.1 — implementation (2026-10-05)
+
+Implemented the pure Application component in `ResearchEvaluation.cs` under
+**research-evaluation-v0.1.0 / schema 1**. It accepts narrow typed queries and
+captured projections, with explicitly supplied cutoff and execution clock; it
+does not resolve current time internally. Inclusive Jakarta capture dates,
+nonzero UUID context/drilldown, exact enum tokens and the exclusive instrument /
+episode drilldown normalize deterministically. One horizon is selected from
+**+1/+5/+10/+20**, default **+5**. Absent portfolio context selects discovery
+captures only. Canonical dates/UUIDs/UTC timestamps, explicit defaults/nulls and
+invariant G29 decimal text prepare the projection for later identity work.
+
+Observations retain **(runId, instrumentId)** identity; the requested horizon
+adds horizonSessions to the cell key. All repeated captures remain separately
+weighted, including held/outside-configured and blocked/ineligible rows.
+First-match primary cohorts are **DATA_BLOCKED, INELIGIBLE, NOT_EVALUATED, NONE,
+WATCH, CONFIRMED, FAILED**. Impossible combinations, duplicate identities,
+incomplete run populations and unsupported capture/outcome bindings fail closed.
+Only frozen market trend/volatility, held context and membership partitions are
+supported. Base/selected/filtered-out counts, empty runs and base cohort counts
+are retained; **1,000 base runs / 10,000 base observations** are bounded before
+cohort or drilldown filters. Zero-sized cohort/partition buckets remain explicit.
+
+Committed outcomes qualify on both original outcomeKnownAt and recordedAt <=
+cutoff; capture inclusion similarly checks capture/knowledge/recording clocks.
+AVAILABLE contributes its exact stored return, the three terminal unavailable
+states contribute T and their state breakdown, and no qualifying committed row
+contributes U with **NO_COMMITTED_OUTCOME_AS_OF_CUTOFF** and null outcome fields.
+Unresolved cells stay in N. **N=A+T+U=R+U, R=A+T, T=T_anchor+T_data+T_basis,
+A=P+Z+M** reconcile. No preview, session resolution, return recalculation or
+verification verdict participates. These are persisted domain-chronology
+semantics, not historical PostgreSQL transaction-commit visibility.
+
+Mean accumulates checked decimal in capturedAt UTC / canonical runId ordinal /
+canonical instrumentId ordinal order; median is primary, numerically sorted,
+with checked even-middle addition. Extrema/sign counts, **100m*P/A** and
+**100m*A/N** retain exact zero and tiny signed values. Empty denominators produce
+null metrics, without rounding, floating point or tolerance. The pure boundary
+accepts decimal values only: the future database reader must reject malformed or
+non-representable PostgreSQL numeric before constructing these records, following
+the existing strict numeric pattern in `ScreenerEvidence.cs`. Checked overflow
+aborts rather than discarding observations. No winRate or advanced analytics.
+
+Overall and AVAILABLE diversity independently count runs, instruments, target
+sessions/null targets, episode-linked/unlinked observations, distinct episode
+keys, extra episode captures and additional instrument/session captures.
+Distinct overall totals are recomputed, not summed from subgroup totals.
+Warnings report frozen sample bands, dependence, unresolved coverage and selective
+availability; no independence, maturity or strategy-validity claim is inferred.
+Private position costs/thesis/rank fields are absent from the Research observation.
+
+Validation: `dotnet build` passed with **0 warnings / 0 errors**. Focused
+`dotnet test --filter-class IdxStockIntelligence.Tests.ResearchEvaluationTests`
+passed **72/72, 0 skipped**. Standard `dotnet test` passed **498 total, 488 passed,
+10 expected database opt-in skips, 0 failed**. Tests cover normalization,
+cohort/partition reconciliation, retained projection copying, exact signs and
+nulls, separate mean/median overflow, canonical ordering, repeated captures,
+chronology isolation, population bounds and verification independence.
+Required fixture **[-10,0,5,15] + one of each unavailable state + one unresolved**:
+**N=8,A=4,T=3,R=7,U=1; T_anchor=T_data=T_basis=1; P=2,Z=1,M=1;
+mean=median=2.5%, min=-10%, max=15%, positive proportion=50%, coverage=50%**.
+Whitespace checks passed. Shared models/helpers and frontend files did not change.
+
+No Research database reader, API, pagination, dataset hash/pin, export, Dashboard,
+AI, persistence, migration, index or dependency was added. No operational
+database, archive, portfolio, reference/session or provider access was needed;
+provider calls/units **0/0**. Reviewed operational baseline remains last observed
+**0 committed outcomes**, schema versions **2,4,5,6**, FullIdx **disabled**, soak
+**1/10**; this pure milestone did not re-query or modify that operational state.
+All five frozen contracts remain unchanged. The obsolete Research contract
+notice that Outcome Verification is unimplemented is a narrow factual correction
+for separate review; the pure component does not emit that false notice or infer
+that committed outcomes have been verified. Next: **Research stored-only bounded
+database reader + database integration tests**, then API / dataset identity /
+export, Dashboard and later explanatory AI.
