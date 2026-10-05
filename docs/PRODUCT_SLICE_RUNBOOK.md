@@ -3128,3 +3128,15 @@ instrument/universe snapshot and continue the prospective soak; a fresh capture
 should become non-`DATA_BLOCKED` once the reference dimensions and 21-session
 continuity are satisfied. This milestone confirms a more fundamental data-source
 gate, so evidence readiness remains ahead of **Fundamental Facts V0.1**.
+
+## Agent Execution Rules V0.1 — governance checkpoint (2026-10-05)
+
+Repository-level execution guidance now starts at `AGENTS.md` and links to
+`docs/AGENT_EXECUTION_RULES.md`. Subsequent milestone prompts should reference
+these reusable workflow, evidence, chronology, scope, safety, testing and commit
+rules, supplying only the objective, actual baseline, task-specific scope,
+acceptance criteria and final report requirements. Existing `.ai/RULES.md` and
+architecture guidance remain applicable; frozen contracts still define product
+meaning. No product semantics, code, schema, configuration or frozen contracts
+changed. Documentation/diff review and whitespace checks suffice; no application
+test suite is needed for this checkpoint.

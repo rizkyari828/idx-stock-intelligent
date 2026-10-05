@@ -1,70 +1,36 @@
 # AGENTS.md — IDX Stock Intelligence
 
-Read this before coding.
-
-Canonical .NET test command: `dotnet test` from the repository root
-(with RTK: `rtk proxy dotnet test`). Python:
-`PYTHONPATH=collectors/python/src python3 -m unittest discover -s collectors/python/tests -v`.
-Offline pilot procedures: `docs/LOCAL_PILOT_WORKFLOW.md`. Never use an executable
-test runner as the primary substitute for standard discovery.
-
-## Mission
-
 Build the smallest trustworthy personal IDX EOD decision-support system.
-
-Correctness, chronology, reproducibility, and low operating cost are more important than feature count.
+Correctness, chronology, reproducibility and low operating cost precede feature count.
 
 ## Mandatory reading order
 
-1. `README.md`
-2. `docs/ARCHITECTURE.md`
-3. `docs/PHASE0_DATA_SPIKE.md`
-4. `docs/LOCAL_AI_INFRA_INTEGRATION.md`
-5. `.ai/RULES.md`
-6. task-specific prompt
+Before substantive work, read:
 
-Do not recursively read the entire repository unless necessary.
+1. [Execution rules](docs/AGENT_EXECUTION_RULES.md).
+2. `README.md`, `docs/ARCHITECTURE.md`, `docs/PHASE0_DATA_SPIKE.md`,
+   `docs/LOCAL_AI_INFRA_INTEGRATION.md` and `.ai/RULES.md`, in that order.
+3. The task-specific prompt, milestone-relevant frozen contracts and relevant
+   sections of `docs/PRODUCT_SLICE_RUNBOOK.md`.
 
-## Default current phase
+The execution rules govern how work is performed; frozen contracts govern product
+meaning. Existing architecture and AI guardrails continue to apply. Historical
+phase notes do not veto explicitly authorized milestone scope.
 
-PHASE 0 — DATA & RIGHTS FEASIBILITY SPIKE.
+## Required execution discipline
 
-Do not build unless explicitly requested:
+- Inspect actual branch, HEAD, status and diff; do not trust an expected baseline.
+- Stop on unrelated dirty changes. Never overwrite, reset or revert user work.
+- Preserve frozen semantics; semantic changes require an explicitly authorized
+  additive version. Implementation convenience is not authorization.
+- Never silently broaden scope or add speculative infrastructure.
+- Never fabricate market/evidence facts or backdate acquired knowledge.
+- Follow the execution rules for evidence, operational safety, proportional
+  testing, diff review, scoped commits and factual reporting.
+- Never push unless the user explicitly authorizes it; never commit secrets or
+  market datasets.
 
-- web UI
-- realtime services
-- broker-flow engine
-- theme engine
-- autonomous learning agents
-- Telegram notifications
-- microservices
-- Redis/Kafka
-
-## Core rules
-
-- Python fetches/parses.
-- .NET owns canonical production logic.
-- PostgreSQL stores canonical history, revisions, ledger, and snapshots.
-- Local AI is optional.
-- Missing data is UNKNOWN, never zero.
-- Stale data keeps its original date.
-- Corrections create revisions.
-- Historical replay is strictly as-of.
-- Never invent bars for suspension or no-trade.
-- Average buy price is not technical support.
-- A losing swing must not silently become INVEST.
-- No automatic production-rule promotion.
-
-## Efficient working rules
-
-- Identify exact scope, then search for symbols/files before reading code.
-- Inspect the smallest relevant context and expand only when blocked.
-- Do not read generated datasets, raw artifacts, logs, binaries, `bin/`, or `obj/`.
-- Never speculate about provider fields, units, permissions, adjustment behavior, or revision semantics.
-- Avoid scope creep and broad abstractions.
-- Add or update tests for important invariants and run them before claiming completion.
-- Preserve user work and never commit secrets or market datasets.
-
-Unless explicitly instructed, also do not build authentication or an AI recommendation system.
-
-Additional invariants: pre-IPO absence is not a gap; holiday, no-trade, suspension, and missing-provider-row are distinct; provider fallback is never silent; deterministic decisions precede LLM explanation.
+Canonical .NET discovery: `dotnet test` from the root (`rtk proxy dotnet test`).
+Python: `PYTHONPATH=collectors/python/src python3 -m unittest discover -s collectors/python/tests -v`.
+Never substitute an executable runner for standard discovery. Offline pilot
+procedures: `docs/LOCAL_PILOT_WORKFLOW.md`.
