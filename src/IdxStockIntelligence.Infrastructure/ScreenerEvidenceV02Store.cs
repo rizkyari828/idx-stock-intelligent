@@ -17,7 +17,7 @@ public static class ScreenerEvidenceV02Store
 {
     public const int CommandTimeoutSeconds = 15;
 
-    private const string SelectList = "evidence_id, subject_id, claim, policy_id, schema_version, " +
+    internal const string SelectList = "evidence_id, subject_id, claim, policy_id, schema_version, " +
         "revision_series_id, revision_number, supersedes_revision_number, authority_tier, effective_from, effective_to, " +
         "effective_at, published_at, retrieved_at, known_at, recorded_at, source_id, source_reference, raw_artifact_id, payload, payload_sha256, evidence_class, payload_schema_version, scope_kind, scope_exchange_id";
 
@@ -46,7 +46,7 @@ public static class ScreenerEvidenceV02Store
         return await AppendStoredAsync(connection, transaction, record, ct);
     }
 
-    private static async Task ValidateReferencesAsync(NpgsqlConnection connection, NpgsqlTransaction transaction,
+    internal static async Task ValidateReferencesAsync(NpgsqlConnection connection, NpgsqlTransaction transaction,
         ScreenerEvidenceRecord record, ScreenerEvidencePayload payload, CancellationToken ct)
     {
         const string missing = "PERSISTED_EVIDENCE_INPUT_UNAVAILABLE";
@@ -308,7 +308,7 @@ public static class ScreenerEvidenceV02Store
         Enum.TryParse<ScreenerScopeKind>(value, false, out var scope) && Enum.IsDefined(scope) && scope.ToString() == value
             ? scope : throw new EvidenceBindingException("PERSISTED_EVIDENCE_MALFORMED");
 
-    private static ScreenerEvidenceRecord Read(NpgsqlDataReader reader)
+    internal static ScreenerEvidenceRecord Read(NpgsqlDataReader reader)
     {
         var record = new ScreenerEvidenceRecord(
             reader.GetGuid(0),

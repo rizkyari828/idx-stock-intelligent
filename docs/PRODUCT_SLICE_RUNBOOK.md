@@ -3140,3 +3140,37 @@ architecture guidance remain applicable; frozen contracts still define product
 meaning. No product semantics, code, schema, configuration or frozen contracts
 changed. Documentation/diff review and whitespace checks suffice; no application
 test suite is needed for this checkpoint.
+
+## Screener V0.2 Slice 3B — stored-only as-of reader (2026-10-06)
+
+`ScreenerEvidenceAsOfReader.ReadAsync` reads one subject/claim/evaluation date
+at a supplied knowledge cutoff. It uses a read-only repeatable-read transaction
+(15-second commands, 60-second read deadline); callers combining claims must
+share that transaction. SQL loads candidates, never semantic winners. The typed
+Slice 3A.6 codec, reference authentication and Slice 2 validity, admission,
+resolution and factual equality rules reconstruct ordered facts, quality,
+diagnostics and retained provenance. Unbound rows cannot establish facts;
+corrupt/unsupported bindings and unavailable exact premises fail explicitly.
+
+The ceiling is **512 distinct retained evidence records**, including candidate
+rows, retained identity context and exact premises. A 513th row produces
+`PERSISTED_EVIDENCE_BOUND_EXCEEDED`; no truncated result is resolved. This
+conservative personal-use bound also limits reference traversal and equality
+work. Cancellation preserves earlier replay, prevents superseded facts from
+resurfacing and leaves unrelated series intact. Partial evidence stays partial.
+Trading status uses positive status/suspension/reopening evidence independently
+of scheduled sessions, completed sessions and admitted prices.
+
+Fresh validation: build succeeded with zero warnings/errors; pure Slice 3B
+**16/16**, database Slice 3B **36/36**, Slice 1 **24/24**, Slice 2 **72/72**,
+binding **172/172**, persistence database **13/13**, binding database **21/21**.
+Standard discovery: **913 total, 787 passed, 126 database-only skipped, 0 failed**.
+Owned disposable PostgreSQL full discovery: **913 passed, 0 skipped/failed**;
+cleanup and unchanged fingerprints for 15 operational tables and protected
+pilot/operation files passed. Provider calls/units and API calls: **0**.
+
+No migration, frozen-contract or V0.1 changes. Migration 0008 remains sufficient.
+This is a base evidence reader, not operational V0.2 orchestration: no provider
+recovery, current-reference fallback, HTTP route or readiness/eligibility wiring.
+Raw-artifact metadata is authenticated as required by the binding; this reader
+does not fetch or replace archive bytes. FullIdx/soak behavior is unchanged.

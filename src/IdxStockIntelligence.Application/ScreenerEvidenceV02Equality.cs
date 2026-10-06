@@ -18,6 +18,16 @@ public static class ScreenerEvidenceEquality
         return ValuesEqual(a.Value!, b.Value!, left, right, premises);
     }
 
+    // The reader evaluates class validity first, then compares these same factual projections.
+    public static bool FactualValueEquals(ScreenerEvidenceRecord left, ScreenerEvidenceRecord right,
+        IReadOnlyDictionary<Guid, ScreenerEvidenceRecord>? premises = null)
+    {
+        var a = ScreenerEvidenceBinding.Decode(left);
+        var b = ScreenerEvidenceBinding.Decode(right);
+        return left.Claim == right.Claim && a.Operation == EvidenceOperation.ASSERT && b.Operation == EvidenceOperation.ASSERT
+            && ValuesEqual(a.Value!, b.Value!, left, right, premises);
+    }
+
     private static bool ValuesEqual(ScreenerEvidenceValue a, ScreenerEvidenceValue b, ScreenerEvidenceRecord left,
         ScreenerEvidenceRecord right, IReadOnlyDictionary<Guid, ScreenerEvidenceRecord>? premises) => (a, b) switch
     {
