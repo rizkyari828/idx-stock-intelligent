@@ -158,7 +158,9 @@ public sealed record EvidenceCandidate<T>(
     SourceAuthorityTier Tier,
     EvidenceChronology Chronology,
     long RevisionNumber,
-    int Specificity = 0);
+    int Specificity = 0,
+    string? SourceId = null,
+    long? SupersedesRevisionNumber = null);
 
 public sealed record EvidenceResolution<T>(T? Selected, bool Conflicting, IReadOnlyList<T> Candidates)
 {
@@ -182,27 +184,43 @@ public static class ScreenerEvidenceResolver
             return new(default, false, []);
         }
 
-        var ordered = applicable
-            .OrderBy(c => (int)c.Tier)
-            .ThenByDescending(c => c.Specificity)
-            .ThenByDescending(c => c.Chronology.KnownAt)
-            .ThenByDescending(c => c.RevisionNumber)
+        // Authority and scope specificity dominate. Chronology is not a tie-break;
+        // a later record supersedes an earlier one only through an admitted relationship.
+        var topTier = applicable.Min(c => (int)c.Tier);
+        var topSpecificity = applicable.Where(c => (int)c.Tier == topTier).Max(c => c.Specificity);
+        var group = applicable
+            .Where(c => (int)c.Tier == topTier && c.Specificity == topSpecificity)
             .ToArray();
 
-        var topTier = (int)ordered[0].Tier;
-        var topSpecificity = ordered[0].Specificity;
-        var group = ordered.Where(c => (int)c.Tier == topTier && c.Specificity == topSpecificity).ToArray();
-        var latestKnown = group.Max(c => c.Chronology.KnownAt ?? DateTimeOffset.MinValue);
-        var knownGroup = group.Where(c => (c.Chronology.KnownAt ?? DateTimeOffset.MinValue) == latestKnown).ToArray();
-        var latestRevision = knownGroup.Max(c => c.RevisionNumber);
-        var revisionGroup = knownGroup.Where(c => c.RevisionNumber == latestRevision).ToArray();
-
-        if (revisionGroup.Select(c => c.Value).Distinct().Count() > 1)
+        var survivors = group.Where(c => !group.Any(other => !ReferenceEquals(c, other) && Supersedes(other, c))).ToArray();
+        if (survivors.Length == 0)
         {
-            return new(default, true, revisionGroup.Select(c => c.Value).ToArray());
+            return new(default, true, group.Select(c => c.Value).ToArray());
         }
 
-        return new(revisionGroup[0].Value, false, applicable.Select(c => c.Value).ToArray());
+        if (survivors.Select(c => c.Value).Distinct().Count() > 1)
+        {
+            return new(default, true, survivors.Select(c => c.Value).ToArray());
+        }
+
+        var winner = survivors
+            .OrderByDescending(c => c.Chronology.KnownAt)
+            .ThenByDescending(c => c.RevisionNumber)
+            .ThenBy(c => c.SourceId, StringComparer.Ordinal)
+            .First();
+        return new(winner.Value, false, applicable.Select(c => c.Value).ToArray());
+    }
+
+    private static bool Supersedes<T>(EvidenceCandidate<T> candidate, EvidenceCandidate<T> other)
+    {
+        if (candidate.SupersedesRevisionNumber is { } superseded && superseded == other.RevisionNumber)
+        {
+            return true;
+        }
+
+        return candidate.SourceId is { } source
+            && source == other.SourceId
+            && candidate.RevisionNumber > other.RevisionNumber;
     }
 }
 
@@ -237,16 +255,19 @@ public static class ScreenerTradingStatusEvaluator
             return new(TradingStatus.Unknown, EvidenceQuality.Unknown, [ScreenerEvidenceReasons.StatusUnknown]);
         }
 
-        var latestEffective = applicable.Max(e => e.Scope.From);
-        var latest = applicable.Where(e => e.Scope.From == latestEffective).ToArray();
-        var topTier = latest.Min(e => (int)e.Tier);
-        var tierGroup = latest.Where(e => (int)e.Tier == topTier).ToArray();
-        if (tierGroup.Select(e => e.Status).Distinct().Count() > 1)
+        // Authority dominates recency: a later lower-authority observation never
+        // overrides applicable higher-authority evidence. Within the highest
+        // authority tier, the latest effective state transition applies.
+        var topTier = applicable.Min(e => (int)e.Tier);
+        var tierGroup = applicable.Where(e => (int)e.Tier == topTier).ToArray();
+        var latestEffective = tierGroup.Max(e => e.Scope.From);
+        var latest = tierGroup.Where(e => e.Scope.From == latestEffective).ToArray();
+        if (latest.Select(e => e.Status).Distinct().Count() > 1)
         {
             return new(TradingStatus.Unknown, EvidenceQuality.Conflicting, [ScreenerEvidenceReasons.StatusConflict]);
         }
 
-        var chosen = tierGroup
+        var chosen = latest
             .OrderBy(e => (int)e.Quality)
             .ThenBy(e => e.SourceId, StringComparer.Ordinal)
             .First();
@@ -462,7 +483,6 @@ public sealed record MarketEvidenceFacts(
     bool IdentityConflict,
     bool SecurityTypeKnown,
     bool SecurityTypeUnsupported,
-    bool CurrencyKnown,
     bool ListingKnown,
     bool PreListing,
     bool PostDelisting,
@@ -513,11 +533,6 @@ public static class ScreenerMarketEligibilityEvaluator
         if (!facts.ListingKnown)
         {
             return Blocked(ScreenerEvidenceReasons.ListingUnknown);
-        }
-
-        if (!facts.CurrencyKnown)
-        {
-            return Blocked(ScreenerEvidenceReasons.PriceBasisUnverified);
         }
 
         if (facts.BoardConflict)
@@ -584,8 +599,8 @@ public static class ScreenerMarketEligibilityEvaluator
 public sealed record ScreenerReadinessResult(
     EligibilityStatus MarketEligibility,
     bool DataReady,
-    bool TechnicalEvaluated,
-    bool SetupEvaluated,
+    bool CanEvaluateSetup,
+    bool EvaluationAllowed,
     IReadOnlyList<string> Reasons);
 
 public static class ScreenerDataReadiness
@@ -593,15 +608,22 @@ public static class ScreenerDataReadiness
     public static ScreenerReadinessResult Evaluate(
         MarketEligibilityResult market,
         PriceComparabilityResult comparability,
-        bool coreTechnicalInputsAvailable)
+        IReadOnlyList<FeatureState> requiredCoreFeatures)
     {
         ArgumentNullException.ThrowIfNull(market);
         ArgumentNullException.ThrowIfNull(comparability);
+        ArgumentNullException.ThrowIfNull(requiredCoreFeatures);
 
         var marketEligible = market.Status == EligibilityStatus.Eligible;
-        var dataReady = marketEligible && comparability.State == PriceComparability.Cleared;
-        var technicalEvaluated = dataReady && coreTechnicalInputsAvailable;
-        var setupEvaluated = ScreenerFunnel.SetupEvaluationAllowed(marketEligible, dataReady) && coreTechnicalInputsAvailable;
+        var comparabilityCleared = comparability.State == PriceComparability.Cleared;
+        var coreReady = requiredCoreFeatures.Count > 0
+            && requiredCoreFeatures.All(f => f.Availability == Availability.AVAILABLE);
+        var dataReady = marketEligible && comparabilityCleared && coreReady;
+
+        // Readiness means the setup may be evaluated; it never asserts that the setup
+        // actually executed. TECHNICAL_EVALUATED belongs to the future executor.
+        var canEvaluateSetup = ScreenerFunnel.SetupEvaluationAllowed(marketEligible, dataReady) && coreReady;
+        var evaluationAllowed = canEvaluateSetup;
 
         var reasons = new List<string>();
         if (!marketEligible)
@@ -610,18 +632,21 @@ public static class ScreenerDataReadiness
             reasons.AddRange(market.Reasons);
         }
 
-        if (comparability.State != PriceComparability.Cleared)
+        if (!comparabilityCleared)
         {
             reasons.Add(ScreenerEvidenceReasons.DataNotReady);
             reasons.AddRange(comparability.Reasons);
         }
 
-        if (!coreTechnicalInputsAvailable)
+        foreach (var feature in requiredCoreFeatures)
         {
-            reasons.Add(ScreenerEvidenceReasons.InsufficientHistory);
+            if (feature.Availability != Availability.AVAILABLE)
+            {
+                reasons.Add(feature.UnavailableReason ?? ScreenerEvidenceReasons.InsufficientHistory);
+            }
         }
 
-        return new(market.Status, dataReady, technicalEvaluated, setupEvaluated, ScreenerEvidenceReasons.Canonical(reasons));
+        return new(market.Status, dataReady, canEvaluateSetup, evaluationAllowed, ScreenerEvidenceReasons.Canonical(reasons));
     }
 }
 

@@ -62,7 +62,6 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
         bool identityConflict = false,
         bool securityTypeKnown = true,
         bool securityTypeUnsupported = false,
-        bool currencyKnown = true,
         bool listingKnown = true,
         bool preListing = false,
         bool postDelisting = false,
@@ -77,7 +76,6 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
             identityConflict,
             securityTypeKnown,
             securityTypeUnsupported,
-            currencyKnown,
             listingKnown,
             preListing,
             postDelisting,
@@ -88,6 +86,12 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
             mechanismUnresolved,
             status ?? new TradingStatusResult(TradingStatus.Trading, EvidenceQuality.Verified, [ScreenerEvidenceReasons.StatusTrading]),
             targetSessionCompleted);
+
+    private static FeatureState Available() => new(Availability.AVAILABLE, 1m, null);
+
+    private static FeatureState Warmup() => new(Availability.WARMUP, null, ScreenerEvidenceReasons.InsufficientHistory);
+
+    private static MarketEligibilityResult EligibleMarket() => new(EligibilityStatus.Eligible);
 
     private static PriceComparabilityRequest ComparabilityRequest(
         bool identity = true,
@@ -207,17 +211,50 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     }
 
     [Fact]
-    public void ResolverAppliesCorrectionOnlyAtLaterCutoffs()
+    public void ResolverAppliesExplicitCorrectionOnlyAtItsKnownCutoff()
     {
         var scope = new EffectiveInterval(Day(1, 1));
-        var original = new EvidenceCandidate<string>("original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1);
-        var correction = new EvidenceCandidate<string>("correction", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(3, 2))), 1);
+        var original = new EvidenceCandidate<string>(
+            "original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1, SourceId: "src");
+        var correction = new EvidenceCandidate<string>(
+            "correction", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(3, 2))), 2,
+            SourceId: "src", SupersedesRevisionNumber: 1);
 
-        var before = ScreenerEvidenceResolver.Resolve([original, correction], Day(4, 1), Instant(Day(2, 1)));
-        var after = ScreenerEvidenceResolver.Resolve([original, correction], Day(4, 1), Instant(Day(4, 1)));
+        var earlier = ScreenerEvidenceResolver.Resolve([original, correction], Day(4, 1), Instant(Day(2, 1)));
+        var later = ScreenerEvidenceResolver.Resolve([original, correction], Day(4, 1), Instant(Day(4, 1)));
 
-        Assert.Equal("original", before.Selected);
-        Assert.Equal("correction", after.Selected);
+        Assert.Equal("original", earlier.Selected);
+        Assert.Equal("correction", later.Selected);
+    }
+
+    [Fact]
+    public void ResolverReportsConflictWhenLaterEvidenceIsNotACorrection()
+    {
+        var scope = new EffectiveInterval(Day(1, 1));
+        var original = new EvidenceCandidate<string>(
+            "original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1, SourceId: "src-a");
+        var merelyNewer = new EvidenceCandidate<string>(
+            "merelyNewer", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(4, 2))), 1, SourceId: "src-b");
+
+        var result = ScreenerEvidenceResolver.Resolve([original, merelyNewer], Day(5, 1), Instant(Day(6, 1)));
+
+        Assert.True(result.Conflicting);
+        Assert.Null(result.Selected);
+    }
+
+    [Fact]
+    public void ResolverNeverLetsLaterLowerAuthorityOverrideHigherAuthority()
+    {
+        var scope = new EffectiveInterval(Day(1, 1));
+        var governing = new EvidenceCandidate<string>(
+            "governing", scope, SourceAuthorityTier.T1Governing, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1, SourceId: "g");
+        var providerLater = new EvidenceCandidate<string>(
+            "provider", scope, SourceAuthorityTier.T3ProviderObservation, new EvidenceChronology(knownAt: Instant(Day(5, 2))), 1, SourceId: "p");
+
+        var result = ScreenerEvidenceResolver.Resolve([governing, providerLater], Day(6, 1), Instant(Day(7, 1)));
+
+        Assert.Equal("governing", result.Selected);
+        Assert.False(result.Conflicting);
     }
 
     [Fact]
@@ -344,6 +381,20 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
 
         Assert.Equal(EvidenceQuality.Conflicting, result.Quality);
         Assert.Contains(ScreenerEvidenceReasons.StatusConflict, result.Reasons);
+    }
+
+    [Fact]
+    public void TradingStatusIgnoresLaterLowerAuthorityObservation()
+    {
+        var evidence = new[]
+        {
+            Status(TradingStatus.Suspended, EvidenceQuality.Verified, new EffectiveInterval(Day(1, 1)), Instant(Day(1, 2)), SourceAuthorityTier.T1Governing),
+            Status(TradingStatus.Trading, EvidenceQuality.Partial, new EffectiveInterval(Day(3, 1)), Instant(Day(3, 2)), SourceAuthorityTier.T3ProviderObservation)
+        };
+
+        var result = ScreenerTradingStatusEvaluator.Evaluate(evidence, Day(4, 1), Instant(Day(5, 1)));
+
+        Assert.Equal(TradingStatus.Suspended, result.Status);
     }
 
     [Fact]
@@ -535,41 +586,57 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     }
 
     [Fact]
-    public void EligibleClearedAndReadyAllowsSetupEvaluation()
+    public void RequiredWarmupFeatureKeepsDataNotReady()
     {
         var result = ScreenerDataReadiness.Evaluate(
-            new MarketEligibilityResult(EligibilityStatus.Eligible),
+            EligibleMarket(),
             new PriceComparabilityResult(PriceComparability.Cleared),
-            coreTechnicalInputsAvailable: true);
+            [Available(), Warmup()]);
 
-        Assert.True(result.DataReady);
-        Assert.True(result.TechnicalEvaluated);
-        Assert.True(result.SetupEvaluated);
+        Assert.False(result.DataReady);
+        Assert.False(result.CanEvaluateSetup);
+        Assert.False(result.EvaluationAllowed);
     }
 
     [Fact]
-    public void EligibleButWarmupBlocksSetupEvaluation()
+    public void AllRequiredCoreInputsReadyAllowsEvaluationButDoesNotAssertExecution()
     {
         var result = ScreenerDataReadiness.Evaluate(
-            new MarketEligibilityResult(EligibilityStatus.Eligible),
+            EligibleMarket(),
             new PriceComparabilityResult(PriceComparability.Cleared),
-            coreTechnicalInputsAvailable: false);
+            [Available(), Available()]);
 
         Assert.True(result.DataReady);
-        Assert.False(result.TechnicalEvaluated);
-        Assert.False(result.SetupEvaluated);
+        Assert.True(result.CanEvaluateSetup);
+        Assert.True(result.EvaluationAllowed);
+        Assert.Null(typeof(ScreenerReadinessResult).GetProperty("TechnicalEvaluated"));
+        Assert.Null(typeof(ScreenerReadinessResult).GetProperty("SetupEvaluated"));
     }
 
     [Fact]
-    public void BlockedMarketNeverEvaluatesSetupEvenWithValidDiagnostics()
+    public void MarketFactsValidWithUnresolvedPriceBasisStayEligibleButNotDataReady()
+    {
+        var market = ScreenerMarketEligibilityEvaluator.Evaluate(Facts());
+        var readiness = ScreenerDataReadiness.Evaluate(
+            market,
+            ScreenerPriceComparabilityEvaluator.Evaluate(ComparabilityRequest(rawConvention: false)),
+            [Available()]);
+
+        Assert.Equal(EligibilityStatus.Eligible, market.Status);
+        Assert.False(readiness.DataReady);
+        Assert.Contains(ScreenerEvidenceReasons.DataNotReady, readiness.Reasons);
+    }
+
+    [Fact]
+    public void BlockedMarketNeverAllowsSetupEvenWithValidDiagnostics()
     {
         var result = ScreenerDataReadiness.Evaluate(
             new MarketEligibilityResult(EligibilityStatus.DataBlocked, [ScreenerEvidenceReasons.StatusUnknown]),
             new PriceComparabilityResult(PriceComparability.Cleared),
-            coreTechnicalInputsAvailable: true);
+            [Available()]);
 
         Assert.False(result.DataReady);
-        Assert.False(result.SetupEvaluated);
+        Assert.False(result.CanEvaluateSetup);
         Assert.Contains(ScreenerEvidenceReasons.MarketNotEligible, result.Reasons);
     }
 
@@ -577,12 +644,12 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     public void UnresolvedComparabilityBlocksDataReady()
     {
         var result = ScreenerDataReadiness.Evaluate(
-            new MarketEligibilityResult(EligibilityStatus.Eligible),
+            EligibleMarket(),
             ScreenerPriceComparabilityEvaluator.Evaluate(ComparabilityRequest(actionCoverage: false)),
-            coreTechnicalInputsAvailable: true);
+            [Available()]);
 
         Assert.False(result.DataReady);
-        Assert.False(result.SetupEvaluated);
+        Assert.False(result.CanEvaluateSetup);
         Assert.Contains(ScreenerEvidenceReasons.DataNotReady, result.Reasons);
     }
 
@@ -590,14 +657,14 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     public void OptionalBenchmarkMissingDoesNotBlockSetup()
     {
         var readiness = ScreenerDataReadiness.Evaluate(
-            new MarketEligibilityResult(EligibilityStatus.Eligible),
+            EligibleMarket(),
             new PriceComparabilityResult(PriceComparability.Cleared),
-            coreTechnicalInputsAvailable: true);
+            [Available()]);
         var context = ScreenerOptionalFeatures.Evaluate(
             OptionalFeature.MarketContext,
             new OptionalFeatureInputs(true, true, true, BenchmarkAvailable: false, false, true));
 
-        Assert.True(readiness.SetupEvaluated);
+        Assert.True(readiness.CanEvaluateSetup);
         Assert.Equal(Availability.UNAVAILABLE, context.Availability);
         Assert.Equal(ScreenerEvidenceReasons.BenchmarkMissing, context.UnavailableReason);
     }
