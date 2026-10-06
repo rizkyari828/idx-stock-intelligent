@@ -102,7 +102,11 @@ public sealed record ScreenerEvidenceRecord
         string sourceId,
         string? sourceReference,
         Guid? rawArtifactId,
-        string payloadJson)
+        string payloadJson,
+        EvidenceClass? evidenceClass = null,
+        int? payloadSchemaVersion = null,
+        ScreenerScopeKind? scopeKind = null,
+        Guid? scopeExchangeId = null)
     {
         if (evidenceId == Guid.Empty)
         {
@@ -202,6 +206,17 @@ public sealed record ScreenerEvidenceRecord
         RawArtifactId = rawArtifactId;
         Payload = payload;
         PayloadSha256 = ScreenerEvidenceJson.Sha256(payload);
+        var supplied = new object?[] { evidenceClass, payloadSchemaVersion, scopeKind, scopeExchangeId }.Count(v => v is not null);
+        if (evidenceClass is { } cls && !Enum.IsDefined(cls))
+            throw new EvidenceBindingException("PERSISTED_EVIDENCE_BINDING_UNSUPPORTED");
+        if (supplied != 0 && (supplied != 4
+            || payloadSchemaVersion <= 0 || !Enum.IsDefined(scopeKind!.Value) || scopeExchangeId == Guid.Empty
+            || scopeKind == ScreenerScopeKind.EXCHANGE && subjectId != scopeExchangeId))
+            throw new EvidenceBindingException("PERSISTED_EVIDENCE_MALFORMED");
+        EvidenceClass = evidenceClass;
+        PayloadSchemaVersion = payloadSchemaVersion;
+        ScopeKind = scopeKind;
+        ScopeExchangeId = scopeExchangeId;
     }
 
     public Guid EvidenceId { get; }
@@ -226,4 +241,9 @@ public sealed record ScreenerEvidenceRecord
     public string PayloadSha256 { get; }
 
     public DateTimeOffset? RecordedAt { get; init; }
+    public EvidenceClass? EvidenceClass { get; }
+    public int? PayloadSchemaVersion { get; }
+    public ScreenerScopeKind? ScopeKind { get; }
+    public Guid? ScopeExchangeId { get; }
+    public bool IsBound => PayloadSchemaVersion is not null;
 }

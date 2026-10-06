@@ -14,7 +14,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
     private static readonly DateOnly Day = new(2026, 9, 15);
     private static readonly DateTimeOffset Known = new(2026, 9, 30, 12, 0, 0, TimeSpan.Zero);
 
-    private static NpgsqlConnection OwnedConnection()
+    internal static NpgsqlConnection OwnedConnection()
     {
         var config = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("IDX_SCREENER_TEST_CONNECTION"));
         if (config.Host != "127.0.0.1" || config.Database is null || !config.Database.StartsWith("idx_screener_test_", StringComparison.Ordinal)
@@ -22,7 +22,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         return new NpgsqlConnection(config.ConnectionString);
     }
 
-    private static async Task<NpgsqlConnection> Fixture(CancellationToken ct)
+    internal static async Task<NpgsqlConnection> Fixture(CancellationToken ct)
     {
         var connection = OwnedConnection();
         try
@@ -32,6 +32,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
                 CREATE TEMP TABLE screener_evidence_record (LIKE public.screener_evidence_record INCLUDING ALL);
                 CREATE TRIGGER immutable_screener_evidence BEFORE UPDATE OR DELETE ON screener_evidence_record
                     FOR EACH ROW EXECUTE FUNCTION reject_evidence_mutation();
+                CREATE TRIGGER immutable_screener_evidence_truncate BEFORE TRUNCATE ON screener_evidence_record
+                    FOR EACH STATEMENT EXECUTE FUNCTION reject_evidence_mutation();
                 """, connection) { CommandTimeout = 15 };
             await create.ExecuteNonQueryAsync(ct);
             return connection;
@@ -90,7 +92,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         await using var connection = await Fixture(ct);
         var record = Record(publishedAt: Known.AddHours(-3), retrievedAt: Known.AddHours(-1));
 
-        var result = await ScreenerEvidenceV02Store.AppendAsync(connection, null, record, ct);
+        var result = await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, record, ct);
         Assert.Equal(EvidenceWriteDisposition.Inserted, result.Disposition);
 
         var stored = await ScreenerEvidenceV02Store.ReadExactAsync(connection, null, record.EvidenceId, ct);
@@ -113,7 +115,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         await using var connection = await Fixture(ct);
         var record = Record(effectiveTo: null, publishedAt: null, retrievedAt: null);
 
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, record, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, record, ct);
         var stored = await ScreenerEvidenceV02Store.ReadExactAsync(connection, null, record.EvidenceId, ct);
 
         Assert.NotNull(stored);
@@ -153,8 +155,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var rev10 = Record(seriesReference: "record-1", revision: 10);
         var rev11 = Record(seriesReference: "record-1", revision: 11, supersedes: 10);
 
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, rev10, ct);
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, rev11, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, rev10, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, rev11, ct);
 
         var history = await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, rev10.RevisionSeriesId!, ct);
         Assert.Equal(new long[] { 10, 11 }, history.Select(r => r.RevisionNumber));
@@ -174,8 +176,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var seriesA = Record(seriesReference: "record-a", revision: 10, source: "provider-a");
         var seriesB = Record(seriesReference: "record-b", revision: 11, source: "provider-a");
 
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesA, ct);
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesB, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, seriesA, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, seriesB, ct);
 
         Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, seriesA.RevisionSeriesId!, ct));
         Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, seriesB.RevisionSeriesId!, ct));
@@ -192,8 +194,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
 
         Assert.NotEqual(sourceA.RevisionSeriesId, sourceB.RevisionSeriesId);
 
-        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, sourceA, ct)).Disposition);
-        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, sourceB, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, sourceA, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, sourceB, ct)).Disposition);
         Assert.Equal(2, await CountAsync(connection, ct));
         Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, sourceA.RevisionSeriesId!, ct));
         Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, sourceB.RevisionSeriesId!, ct));
@@ -207,8 +209,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var first = Record(seriesReference: null, revision: 1, payload: "{\"symbol\":\"ONE\"}");
         var second = Record(seriesReference: null, revision: 1, payload: "{\"symbol\":\"TWO\"}");
 
-        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, first, ct)).Disposition);
-        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, second, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, first, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, second, ct)).Disposition);
         Assert.Equal(2, await CountAsync(connection, ct));
     }
 
@@ -219,8 +221,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         await using var connection = await Fixture(ct);
         var record = Record();
 
-        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, record, ct)).Disposition);
-        Assert.Equal(EvidenceWriteDisposition.DuplicateIgnored, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, record, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, record, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.DuplicateIgnored, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, record, ct)).Disposition);
         Assert.Equal(1, await CountAsync(connection, ct));
     }
 
@@ -230,15 +232,15 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
         var id = Guid.NewGuid();
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(evidenceId: id), ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, Record(evidenceId: id), ct);
 
         var changedPayload = Record(evidenceId: id, payload: "{\"symbol\":\"CHANGED\"}");
-        await Assert.ThrowsAsync<InvalidOperationException>(() => ScreenerEvidenceV02Store.AppendAsync(connection, null, changedPayload, ct));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, changedPayload, ct));
 
         var seriesOriginal = Record(seriesReference: "record-x", revision: 5, payload: "{\"v\":1}");
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesOriginal, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, seriesOriginal, ct);
         var seriesConflicting = Record(seriesReference: "record-x", revision: 5, payload: "{\"v\":2}");
-        await Assert.ThrowsAsync<InvalidOperationException>(() => ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesConflicting, ct));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, seriesConflicting, ct));
     }
 
     [Fact(Skip = "Opt-in disposable PostgreSQL evidence test", SkipUnless = nameof(DatabaseConfigured))]
@@ -247,8 +249,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
 
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(seriesReference: "record-ordered", revision: 11, supersedes: 10), ct);
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(seriesReference: "record-ordered", revision: 10), ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, Record(seriesReference: "record-ordered", revision: 11, supersedes: 10), ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, Record(seriesReference: "record-ordered", revision: 10), ct);
 
         var history = await ScreenerEvidenceV02Store.ReadSeriesAsync(
             connection, null, ScreenerEvidenceRevisionSeries.Canonical("provider-a", "record-ordered"), ct);
@@ -264,7 +266,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
 
         await using (var transaction = await connection.BeginTransactionAsync(ct))
         {
-            Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, transaction, record, ct)).Disposition);
+            Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, transaction, record, ct)).Disposition);
             await transaction.RollbackAsync(ct);
         }
 
@@ -278,7 +280,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
         var record = Record();
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, record, ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, record, ct);
 
         await using var update = new NpgsqlCommand("UPDATE screener_evidence_record SET source_id='x' WHERE evidence_id=$1;", connection) { CommandTimeout = 15 };
         update.Parameters.AddWithValue(record.EvidenceId);
@@ -297,10 +299,10 @@ public sealed class ScreenerEvidenceV02DatabaseTests
 
         await using (var version = new NpgsqlCommand("SELECT max(version)::int FROM pilot_schema_version;", connection) { CommandTimeout = 15 })
         {
-            Assert.Equal(7, (int)(await version.ExecuteScalarAsync(ct))!);
+            Assert.Equal(8, (int)(await version.ExecuteScalarAsync(ct))!);
         }
 
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(), ct);
+        await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, Record(), ct);
 
         await using var v01 = new NpgsqlCommand("SELECT count(*)::int FROM daily_bar_revision;", connection) { CommandTimeout = 15 };
         Assert.Equal(0, (int)(await v01.ExecuteScalarAsync(ct))!);

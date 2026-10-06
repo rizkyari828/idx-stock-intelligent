@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def fingerprints(sql):
     tables = ("daily_bar_revision", "raw_artifact", "raw_fetch_observation", "ingestion_run",
               "instrument", "instrument_history", "instrument_listing_evidence", "market_session",
-              "portfolio", "portfolio_event", "thesis_version")
+              "portfolio", "portfolio_event", "thesis_version", "decision_snapshot_run",
+              "decision_snapshot_row", "decision_snapshot_outcome", "pilot_schema_version")
     return {table: sql(f"SELECT count(*)||':'||coalesce(md5(string_agg(to_jsonb(t)::text,',' "
                        f"ORDER BY to_jsonb(t)::text)),'') FROM {table} t;", "idx_stock_intelligence") for table in tables}
 
@@ -57,7 +58,10 @@ class ScreenerEvidenceAcceptance(unittest.TestCase):
             for migration in sorted((ROOT / "src/IdxStockIntelligence.Infrastructure/Migrations").glob("*.sql")):
                 cls.sql(migration.read_text())
             # Canonical discovery is the primary runner; the wrapper only supplies disposable ownership/environment.
-            result = subprocess.run(["rtk", "proxy", "dotnet", "test"], cwd=ROOT, env=env,
+            command = ["rtk", "proxy", "dotnet", "test"]
+            if env.get("IDX_SCREENER_TEST_FILTER_CLASS"):
+                command += ["--filter-class", env["IDX_SCREENER_TEST_FILTER_CLASS"]]
+            result = subprocess.run(command, cwd=ROOT, env=env,
                                     capture_output=True, text=True, timeout=120)
             output = (result.stdout + result.stderr).replace(password, "[redacted]") if password else result.stdout + result.stderr
             print(output, flush=True)

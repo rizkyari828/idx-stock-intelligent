@@ -20,7 +20,8 @@ public enum EvidenceClaim
     CorporateAction = 13,
     SourcePriceConvention = 14,
     GenuinePriceObservation = 15,
-    PriceComparability = 16
+    PriceComparability = 16,
+    TradingStatus = 17
 }
 
 public sealed record SourceAdmissionResult(bool Admitted, string? Reason);
@@ -46,6 +47,7 @@ public static class ScreenerSourceAdmission
         EvidenceClaim.SourcePriceConvention => 2,
         EvidenceClaim.GenuinePriceObservation => 2,
         EvidenceClaim.PriceComparability => 3,
+        EvidenceClaim.TradingStatus => 1,
         _ => -1
     };
 
