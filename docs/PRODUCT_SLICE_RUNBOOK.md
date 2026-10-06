@@ -3174,3 +3174,61 @@ This is a base evidence reader, not operational V0.2 orchestration: no provider
 recovery, current-reference fallback, HTTP route or readiness/eligibility wiring.
 Raw-artifact metadata is authenticated as required by the binding; this reader
 does not fetch or replace archive bytes. FullIdx/soak behavior is unchanged.
+
+## Screener V0.2 Slice 4A — evidence-to-readiness composition (2026-10-06)
+
+`ScreenerEvidenceReadinessService.EvaluateAsync` coordinates all claim/history
+reads in one **READ ONLY / REPEATABLE READ** transaction. The application-level
+`ScreenerEvidenceReadiness.Compose` reuses the stored-only reader, typed codecs,
+market/status/comparability evaluators and technical/optional/data-readiness
+helpers. No V0.1 formulas execute. Requests bind the instrument, exact session,
+evaluation date, cutoff, policy/schema, explicit history start and exact price
+source/endpoint/field/version; an optional benchmark has its own retained binding.
+Neither asset nor exchange identity comes from a current registry.
+
+Market inputs include identity, security type, listing/delisting, board/change,
+rule/exception, suspension/reopening/session status and completed-session proof.
+Currency is a comparability premise, not a new market-eligibility blocker.
+Partial status cannot establish a positive exclusion. Technical failures leave
+market eligibility independent. Only verified admitted genuine-price facts count;
+exact convention/session premises, identity/currency continuity, explicit action
+coverage and revision bindings control each calculation segment. Unknown weekdays,
+rejected prices and unresolved continuity break history; sourced closures and the
+frozen weekend default do not manufacture bars. Known action breaks restart the
+subsequently cleared segment. `HistoryComparability` retains whole-window breaks;
+`PriceComparability` describes the active segment. `ActiveBars` explicitly retains
+the stock/benchmark segments used for readiness, separately from whole-history
+bindings and all retained evidence references.
+
+Core readiness covers EMA20/50, ATR14, prior high/low20 and distance to high.
+RS20/60 use exact aligned stock/index sessions as optional dependencies. Missing
+benchmark or quantity proof stays local to optional features. Market context
+requires benchmark EMA/ATR readiness; volume ratio requires its positive-volume
+history, and the monetary proxy requires compatible IDR/share evidence. Actual
+traded value remains unavailable: the current binding provides no admitted
+traded-value facts. `DataReady` and `CanEvaluateSetup` require eligible market,
+cleared active segment and all required core windows available. Feature values
+remain null; no `TECHNICAL_EVALUATED`, setup execution or candidate is claimed.
+
+The aggregate ceiling remains **512 distinct examined evidence records**, including
+unbound inputs, identity context and exact premises across all claims and both
+assets. Overflow fails explicitly; no truncation. Explicit history is bounded to
+**330 inclusive calendar dates**, with 15-second commands and a 60-second overall
+deadline. Failed retained reads stop the affected branch. Diagnostics and replay
+bindings are deterministic. No orchestration result is persisted.
+
+Validation: build passed (0 warnings/errors); Slice 4A pure **19/19**, disposable
+database **16/16**. V0.2 regression discovery: **389 total, 303 passed, 86
+database-only skipped, 0 failed**. Standard discovery: **948 total, 806 passed,
+142 database-only skipped, 0 failed**. Full disposable PostgreSQL discovery:
+**948 passed, 0 skipped/failed**. Operational fingerprints for 15 protected tables
+and pilot/operation files stayed unchanged; disposable cleanup passed. The initial
+reopening fixture used equal effective transition dates and correctly conflicted;
+it was corrected to model a later reopening. An MSBuild worker-exit attempt was
+rerun successfully in serial.
+
+Provider calls/units and API calls: **0**. Migrations, frozen contracts, V0.1 code,
+FullIdx and soak remain unchanged. No acquisition, endpoint, UI, scheduling,
+ranking, technical signal execution or V0.2 snapshot persistence is implemented.
+Slice 4B may connect the existing frozen formulas to the explicitly ready segment;
+the V0.2 Screener is not yet operational.

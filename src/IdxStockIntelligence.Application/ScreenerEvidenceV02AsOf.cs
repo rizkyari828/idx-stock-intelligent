@@ -26,7 +26,7 @@ public sealed record ScreenerEvidenceAsOfDiagnostic(Guid? EvidenceId, string Rea
 public sealed record ScreenerEvidenceAsOfResult(ScreenerEvidenceAsOfRequest Request, Guid? ExchangeId, EvidenceQuality Quality,
     IReadOnlyList<ScreenerEvidenceAsOfFact> Facts, IReadOnlyList<string> Reasons,
     IReadOnlyList<ScreenerEvidenceAsOfDiagnostic> Diagnostics, IReadOnlyList<ScreenerEvidenceProvenance> References,
-    string? FailureReason = null);
+    string? FailureReason = null, IReadOnlyList<Guid>? ExaminedEvidenceIds = null);
 
 public static class ScreenerEvidenceAsOf
 {
@@ -145,7 +145,8 @@ public static class ScreenerEvidenceAsOf
             if (facts.Count == 0) diagnostics.Add(new(null, ScreenerEvidenceReasons.EvidenceUnknown));
             return new(request, establishedExchange, overall, facts, ScreenerEvidenceReasons.Canonical(diagnostics.Select(d => d.Reason)),
                 diagnostics.Distinct().OrderBy(d => d.EvidenceId?.ToString("D"), StringComparer.Ordinal).ThenBy(d => d.Reason, StringComparer.Ordinal).ToArray(),
-                premises.Values.Where(r => r.IsBound).OrderBy(r => r.EvidenceId.ToString("D"), StringComparer.Ordinal).Select(Provenance).ToArray());
+                premises.Values.Where(r => r.IsBound).OrderBy(r => r.EvidenceId.ToString("D"), StringComparer.Ordinal).Select(Provenance).ToArray(),
+                ExaminedEvidenceIds: records.Select(r => r.EvidenceId).Concat(premises.Keys).Distinct().Order().ToArray());
         }
         catch (EvidenceBindingException e) { return Failure(request, e.Reason, current); }
     }
