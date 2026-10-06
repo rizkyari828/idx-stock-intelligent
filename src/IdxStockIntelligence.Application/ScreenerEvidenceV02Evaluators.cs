@@ -152,6 +152,9 @@ public static class ScreenerEvidenceValidity
     }
 }
 
+// RevisionSeriesId identifies the logical source record / claim revision series.
+// It is NOT provider/source identity: two records published by the same provider
+// have different series identities and never supersede one another.
 public sealed record EvidenceCandidate<T>(
     T Value,
     EffectiveInterval Scope,
@@ -159,7 +162,7 @@ public sealed record EvidenceCandidate<T>(
     EvidenceChronology Chronology,
     long RevisionNumber,
     int Specificity = 0,
-    string? SourceId = null,
+    string? RevisionSeriesId = null,
     long? SupersedesRevisionNumber = null);
 
 public sealed record EvidenceResolution<T>(T? Selected, bool Conflicting, IReadOnlyList<T> Candidates)
@@ -206,21 +209,26 @@ public static class ScreenerEvidenceResolver
         var winner = survivors
             .OrderByDescending(c => c.Chronology.KnownAt)
             .ThenByDescending(c => c.RevisionNumber)
-            .ThenBy(c => c.SourceId, StringComparer.Ordinal)
+            .ThenBy(c => c.RevisionSeriesId, StringComparer.Ordinal)
             .First();
         return new(winner.Value, false, applicable.Select(c => c.Value).ToArray());
     }
 
     private static bool Supersedes<T>(EvidenceCandidate<T> candidate, EvidenceCandidate<T> other)
     {
+        // Supersession requires the same logical revision series. Provider/source
+        // identity and bare revision-number coincidence are never sufficient.
+        if (candidate.RevisionSeriesId is not { } series || series != other.RevisionSeriesId)
+        {
+            return false;
+        }
+
         if (candidate.SupersedesRevisionNumber is { } superseded && superseded == other.RevisionNumber)
         {
             return true;
         }
 
-        return candidate.SourceId is { } source
-            && source == other.SourceId
-            && candidate.RevisionNumber > other.RevisionNumber;
+        return candidate.RevisionNumber > other.RevisionNumber;
     }
 }
 

@@ -215,10 +215,11 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     {
         var scope = new EffectiveInterval(Day(1, 1));
         var original = new EvidenceCandidate<string>(
-            "original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1, SourceId: "src");
+            "original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1,
+            RevisionSeriesId: "series");
         var correction = new EvidenceCandidate<string>(
             "correction", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(3, 2))), 2,
-            SourceId: "src", SupersedesRevisionNumber: 1);
+            RevisionSeriesId: "series", SupersedesRevisionNumber: 1);
 
         var earlier = ScreenerEvidenceResolver.Resolve([original, correction], Day(4, 1), Instant(Day(2, 1)));
         var later = ScreenerEvidenceResolver.Resolve([original, correction], Day(4, 1), Instant(Day(4, 1)));
@@ -228,13 +229,80 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     }
 
     [Fact]
+    public void ResolverDoesNotLetDifferentRevisionSeriesSupersede()
+    {
+        var scope = new EffectiveInterval(Day(1, 1));
+        var recordA = new EvidenceCandidate<string>(
+            "recordARev10", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 10,
+            RevisionSeriesId: "record-a");
+        var recordB = new EvidenceCandidate<string>(
+            "recordBRev11", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(2, 2))), 11,
+            RevisionSeriesId: "record-b");
+
+        var result = ScreenerEvidenceResolver.Resolve([recordA, recordB], Day(3, 1), Instant(Day(4, 1)));
+
+        Assert.True(result.Conflicting);
+        Assert.Null(result.Selected);
+    }
+
+    [Fact]
+    public void ResolverSupersedesWithinSameRevisionSeries()
+    {
+        var scope = new EffectiveInterval(Day(1, 1));
+        var revision10 = new EvidenceCandidate<string>(
+            "v10", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 10,
+            RevisionSeriesId: "series");
+        var revision11 = new EvidenceCandidate<string>(
+            "v11", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(2, 2))), 11,
+            RevisionSeriesId: "series");
+
+        var result = ScreenerEvidenceResolver.Resolve([revision10, revision11], Day(3, 1), Instant(Day(4, 1)));
+
+        Assert.Equal("v11", result.Selected);
+        Assert.False(result.Conflicting);
+    }
+
+    [Fact]
+    public void ResolverDoesNotSupersedeWithoutRevisionSeriesIdentity()
+    {
+        var scope = new EffectiveInterval(Day(1, 1));
+        var first = new EvidenceCandidate<string>(
+            "first", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 10);
+        var second = new EvidenceCandidate<string>(
+            "second", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(2, 2))), 11);
+
+        var result = ScreenerEvidenceResolver.Resolve([first, second], Day(3, 1), Instant(Day(4, 1)));
+
+        Assert.True(result.Conflicting);
+    }
+
+    [Fact]
+    public void ResolverExplicitSupersessionCannotTargetUnrelatedSeries()
+    {
+        var scope = new EffectiveInterval(Day(1, 1));
+        var target = new EvidenceCandidate<string>(
+            "target", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 10,
+            RevisionSeriesId: "series-a");
+        var unrelated = new EvidenceCandidate<string>(
+            "unrelated", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(2, 2))), 99,
+            RevisionSeriesId: "series-b", SupersedesRevisionNumber: 10);
+
+        var result = ScreenerEvidenceResolver.Resolve([target, unrelated], Day(3, 1), Instant(Day(4, 1)));
+
+        Assert.True(result.Conflicting);
+        Assert.Null(result.Selected);
+    }
+
+    [Fact]
     public void ResolverReportsConflictWhenLaterEvidenceIsNotACorrection()
     {
         var scope = new EffectiveInterval(Day(1, 1));
         var original = new EvidenceCandidate<string>(
-            "original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1, SourceId: "src-a");
+            "original", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1,
+            RevisionSeriesId: "series-a");
         var merelyNewer = new EvidenceCandidate<string>(
-            "merelyNewer", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(4, 2))), 1, SourceId: "src-b");
+            "merelyNewer", scope, SourceAuthorityTier.T2AdmittedReference, new EvidenceChronology(knownAt: Instant(Day(4, 2))), 1,
+            RevisionSeriesId: "series-b");
 
         var result = ScreenerEvidenceResolver.Resolve([original, merelyNewer], Day(5, 1), Instant(Day(6, 1)));
 
@@ -247,9 +315,11 @@ public sealed class ScreenerEvidenceV02EvaluatorTests
     {
         var scope = new EffectiveInterval(Day(1, 1));
         var governing = new EvidenceCandidate<string>(
-            "governing", scope, SourceAuthorityTier.T1Governing, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1, SourceId: "g");
+            "governing", scope, SourceAuthorityTier.T1Governing, new EvidenceChronology(knownAt: Instant(Day(1, 2))), 1,
+            RevisionSeriesId: "series-g");
         var providerLater = new EvidenceCandidate<string>(
-            "provider", scope, SourceAuthorityTier.T3ProviderObservation, new EvidenceChronology(knownAt: Instant(Day(5, 2))), 1, SourceId: "p");
+            "provider", scope, SourceAuthorityTier.T3ProviderObservation, new EvidenceChronology(knownAt: Instant(Day(5, 2))), 1,
+            RevisionSeriesId: "series-p");
 
         var result = ScreenerEvidenceResolver.Resolve([governing, providerLater], Day(6, 1), Instant(Day(7, 1)));
 
