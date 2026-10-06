@@ -41,7 +41,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
 
     private static ScreenerEvidenceRecord Record(
         Guid? evidenceId = null,
-        string? series = "series-1",
+        string? seriesReference = "record-1",
         long revision = 1,
         long? supersedes = null,
         string source = "provider-a",
@@ -50,14 +50,18 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         DateTimeOffset? publishedAt = null,
         DateTimeOffset? retrievedAt = null,
         Guid? rawArtifactId = null,
-        EvidenceClaim claim = EvidenceClaim.StableIdentity) =>
-        new(
+        EvidenceClaim claim = EvidenceClaim.StableIdentity)
+    {
+        var revisionSeriesId = seriesReference is null
+            ? null
+            : ScreenerEvidenceRevisionSeries.Canonical(source, seriesReference);
+        return new(
             evidenceId ?? Guid.NewGuid(),
             Subject,
             claim,
             ScreenerEvidenceV02.PolicyId,
             ScreenerEvidenceV02.SchemaVersion,
-            series,
+            revisionSeriesId,
             revision,
             supersedes,
             SourceAuthorityTier.T1Governing,
@@ -71,6 +75,7 @@ public sealed class ScreenerEvidenceV02DatabaseTests
             "https://reference.example/evidence",
             rawArtifactId,
             payload);
+    }
 
     private static async Task<int> CountAsync(NpgsqlConnection connection, CancellationToken ct)
     {
@@ -145,13 +150,13 @@ public sealed class ScreenerEvidenceV02DatabaseTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
-        var rev10 = Record(series: "series-1", revision: 10);
-        var rev11 = Record(series: "series-1", revision: 11, supersedes: 10);
+        var rev10 = Record(seriesReference: "record-1", revision: 10);
+        var rev11 = Record(seriesReference: "record-1", revision: 11, supersedes: 10);
 
         await ScreenerEvidenceV02Store.AppendAsync(connection, null, rev10, ct);
         await ScreenerEvidenceV02Store.AppendAsync(connection, null, rev11, ct);
 
-        var history = await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, "series-1", ct);
+        var history = await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, rev10.RevisionSeriesId!, ct);
         Assert.Equal(new long[] { 10, 11 }, history.Select(r => r.RevisionNumber));
 
         var original = await ScreenerEvidenceV02Store.ReadExactAsync(connection, null, rev10.EvidenceId, ct);
@@ -166,15 +171,32 @@ public sealed class ScreenerEvidenceV02DatabaseTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
-        var seriesA = Record(series: "series-a", revision: 10, source: "provider-a");
-        var seriesB = Record(series: "series-b", revision: 11, source: "provider-a");
+        var seriesA = Record(seriesReference: "record-a", revision: 10, source: "provider-a");
+        var seriesB = Record(seriesReference: "record-b", revision: 11, source: "provider-a");
 
         await ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesA, ct);
         await ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesB, ct);
 
-        Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, "series-a", ct));
-        Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, "series-b", ct));
+        Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, seriesA.RevisionSeriesId!, ct));
+        Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, seriesB.RevisionSeriesId!, ct));
         Assert.Equal(2, await CountAsync(connection, ct));
+    }
+
+    [Fact(Skip = "Opt-in disposable PostgreSQL evidence test", SkipUnless = nameof(DatabaseConfigured))]
+    public async Task DifferentSourcesWithSameNativeReferenceStayIndependent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var connection = await Fixture(ct);
+        var sourceA = Record(seriesReference: "123", revision: 1, source: "SOURCE_A");
+        var sourceB = Record(seriesReference: "123", revision: 1, source: "SOURCE_B");
+
+        Assert.NotEqual(sourceA.RevisionSeriesId, sourceB.RevisionSeriesId);
+
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, sourceA, ct)).Disposition);
+        Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, sourceB, ct)).Disposition);
+        Assert.Equal(2, await CountAsync(connection, ct));
+        Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, sourceA.RevisionSeriesId!, ct));
+        Assert.Single(await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, sourceB.RevisionSeriesId!, ct));
     }
 
     [Fact(Skip = "Opt-in disposable PostgreSQL evidence test", SkipUnless = nameof(DatabaseConfigured))]
@@ -182,8 +204,8 @@ public sealed class ScreenerEvidenceV02DatabaseTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
-        var first = Record(series: null, revision: 1, payload: "{\"symbol\":\"ONE\"}");
-        var second = Record(series: null, revision: 1, payload: "{\"symbol\":\"TWO\"}");
+        var first = Record(seriesReference: null, revision: 1, payload: "{\"symbol\":\"ONE\"}");
+        var second = Record(seriesReference: null, revision: 1, payload: "{\"symbol\":\"TWO\"}");
 
         Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, first, ct)).Disposition);
         Assert.Equal(EvidenceWriteDisposition.Inserted, (await ScreenerEvidenceV02Store.AppendAsync(connection, null, second, ct)).Disposition);
@@ -213,9 +235,9 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var changedPayload = Record(evidenceId: id, payload: "{\"symbol\":\"CHANGED\"}");
         await Assert.ThrowsAsync<InvalidOperationException>(() => ScreenerEvidenceV02Store.AppendAsync(connection, null, changedPayload, ct));
 
-        var seriesOriginal = Record(series: "series-x", revision: 5, payload: "{\"v\":1}");
+        var seriesOriginal = Record(seriesReference: "record-x", revision: 5, payload: "{\"v\":1}");
         await ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesOriginal, ct);
-        var seriesConflicting = Record(series: "series-x", revision: 5, payload: "{\"v\":2}");
+        var seriesConflicting = Record(seriesReference: "record-x", revision: 5, payload: "{\"v\":2}");
         await Assert.ThrowsAsync<InvalidOperationException>(() => ScreenerEvidenceV02Store.AppendAsync(connection, null, seriesConflicting, ct));
     }
 
@@ -225,10 +247,11 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
 
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(series: "ordered", revision: 11, supersedes: 10), ct);
-        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(series: "ordered", revision: 10), ct);
+        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(seriesReference: "record-ordered", revision: 11, supersedes: 10), ct);
+        await ScreenerEvidenceV02Store.AppendAsync(connection, null, Record(seriesReference: "record-ordered", revision: 10), ct);
 
-        var history = await ScreenerEvidenceV02Store.ReadSeriesAsync(connection, null, "ordered", ct);
+        var history = await ScreenerEvidenceV02Store.ReadSeriesAsync(
+            connection, null, ScreenerEvidenceRevisionSeries.Canonical("provider-a", "record-ordered"), ct);
         Assert.Equal(new long[] { 10, 11 }, history.Select(r => r.RevisionNumber));
     }
 

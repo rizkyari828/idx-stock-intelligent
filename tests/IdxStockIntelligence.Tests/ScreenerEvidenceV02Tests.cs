@@ -248,6 +248,56 @@ public sealed class ScreenerEvidenceV02Tests
         Assert.Equal("research-evaluation-v0.1.0", ResearchEvaluation.PolicyId);
     }
 
+    [Fact]
+    public void RevisionSeriesNamespaceIsolatesSources()
+    {
+        var fromA = ScreenerEvidenceRevisionSeries.Canonical("SOURCE_A", "123");
+        var fromB = ScreenerEvidenceRevisionSeries.Canonical("SOURCE_B", "123");
+
+        Assert.NotEqual(fromA, fromB);
+        Assert.True(ScreenerEvidenceRevisionSeries.IsCanonicalFor(fromA, "SOURCE_A"));
+        Assert.False(ScreenerEvidenceRevisionSeries.IsCanonicalFor(fromA, "SOURCE_B"));
+    }
+
+    [Fact]
+    public void CanonicalRevisionSeriesRejectsSeparatorInIdentity()
+    {
+        Assert.Throws<ArgumentException>(() => ScreenerEvidenceRevisionSeries.Canonical("SOURCE\u001fA", "123"));
+        Assert.Throws<ArgumentException>(() => ScreenerEvidenceRevisionSeries.Canonical("SOURCE_A", "12\u001f3"));
+    }
+
+    [Fact]
+    public void EvidenceRecordRequiresCanonicallyNamespacedSeries()
+    {
+        Assert.Throws<ArgumentException>(() => EvidenceRecord("SOURCE_A", "raw-123"));
+
+        var valid = EvidenceRecord("SOURCE_A", ScreenerEvidenceRevisionSeries.Canonical("SOURCE_A", "123"));
+        Assert.Equal("SOURCE_A", valid.SourceId);
+        Assert.True(ScreenerEvidenceRevisionSeries.IsCanonicalFor(valid.RevisionSeriesId!, valid.SourceId));
+    }
+
+    private static ScreenerEvidenceRecord EvidenceRecord(string sourceId, string? revisionSeriesId) =>
+        new(
+            Guid.NewGuid(),
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            EvidenceClaim.StableIdentity,
+            ScreenerEvidenceV02.PolicyId,
+            ScreenerEvidenceV02.SchemaVersion,
+            revisionSeriesId,
+            1,
+            null,
+            SourceAuthorityTier.T1Governing,
+            new DateOnly(2026, 1, 1),
+            null,
+            null,
+            null,
+            null,
+            new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero),
+            sourceId,
+            null,
+            null,
+            "{\"symbol\":\"TEST\"}");
+
     private static DailyBar Bar()
     {
         var source = new SourceReference("fixture", Guid.NewGuid(), Retrieved, Retrieved, new string('a', 64));

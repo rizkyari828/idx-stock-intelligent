@@ -51,6 +51,36 @@ public static class ScreenerEvidenceJson
     }
 }
 
+public static class ScreenerEvidenceRevisionSeries
+{
+    // Namespaces a provider-native record reference by its provider/source identity so
+    // that two unrelated source-native records cannot collide into one revision series.
+    public const char NamespaceSeparator = '\u001f';
+
+    public static string Canonical(string sourceId, string sourceReference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceReference);
+        if (sourceId.Contains(NamespaceSeparator) || sourceReference.Contains(NamespaceSeparator))
+        {
+            throw new ArgumentException("Source identity and reference cannot contain the revision-series namespace separator.", nameof(sourceReference));
+        }
+
+        return sourceId + NamespaceSeparator + sourceReference;
+    }
+
+    public static bool IsCanonicalFor(string revisionSeriesId, string sourceId)
+    {
+        if (string.IsNullOrWhiteSpace(revisionSeriesId) || string.IsNullOrWhiteSpace(sourceId))
+        {
+            return false;
+        }
+
+        var prefix = sourceId + NamespaceSeparator;
+        return revisionSeriesId.Length > prefix.Length && revisionSeriesId.StartsWith(prefix, StringComparison.Ordinal);
+    }
+}
+
 public sealed record ScreenerEvidenceRecord
 {
     public ScreenerEvidenceRecord(
@@ -94,9 +124,14 @@ public sealed record ScreenerEvidenceRecord
             throw new ArgumentException("Unsupported evidence schema version.", nameof(schemaVersion));
         }
 
-        if (revisionSeriesId is not null && string.IsNullOrWhiteSpace(revisionSeriesId))
+        if (string.IsNullOrWhiteSpace(sourceId))
         {
-            throw new ArgumentException("Revision series identity cannot be blank.", nameof(revisionSeriesId));
+            throw new ArgumentException("Source identity is required.", nameof(sourceId));
+        }
+
+        if (revisionSeriesId is not null && !ScreenerEvidenceRevisionSeries.IsCanonicalFor(revisionSeriesId, sourceId))
+        {
+            throw new ArgumentException("Revision series identity must be the canonical namespaced identity for its source.", nameof(revisionSeriesId));
         }
 
         if (revisionNumber <= 0)
@@ -122,11 +157,6 @@ public sealed record ScreenerEvidenceRecord
         if (retrievedAt is { } retrieved && knownAt < retrieved)
         {
             throw new ArgumentException("Known/admitted time cannot precede retrieval time.", nameof(knownAt));
-        }
-
-        if (string.IsNullOrWhiteSpace(sourceId))
-        {
-            throw new ArgumentException("Source identity is required.", nameof(sourceId));
         }
 
         if (rawArtifactId == Guid.Empty)
