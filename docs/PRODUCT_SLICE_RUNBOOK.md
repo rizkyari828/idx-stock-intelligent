@@ -3557,3 +3557,112 @@ and the service/database boundary were tested. V0.1 verification and Research
 inclusion remain independent and unchanged. FullIdx and soak are unaffected.
 Existing typed corporate-action limitations remain; no UI, acquisition, daily
 runner or Research V0.2 integration is added.
+
+## Screener V0.2 Slice 5A — bounded retained-ingestion framework (2026-10-07)
+
+Operational source status: **BOUNDED_SOURCE_NOT_YET_OPERATIONALLY_AVAILABLE**.
+This checkpoint implements the provider-neutral ingestion boundary permitted by
+the Slice 5A source-feasibility stop condition. It does **not** establish a working
+operational V0.2 source or install a production parser. The source-feasibility
+review above remains applicable: the bounded EODHD pilot supplies retained prices,
+but authoritative instrument status, board/mechanism scope, price conventions
+distinguishing synthetic observations, complete action coverage and verified
+quantity/segment premises are not integrated. Exchange proofs remain a separate
+manual source. An EOD row, positive volume, an empty action search or a weekday
+cannot fill those gaps. No source is promoted by this implementation.
+
+`BoundedEvidenceIngestionService.ImportAsync` is an internal application command
+for one explicit local artifact stream. A later runner may call it with a reviewed
+adapter; no public API, acquisition, scheduler or runner is added. Python remains
+responsible for provider parsing; the adapter boundary supplies provider-neutral
+typed records to .NET canonical admission. No provider-specific wire format is
+interpreted by the new domain boundary. Unknown/ambiguous source, parser version
+or content-type tuples return the status above with
+`ADMITTED_SOURCE_ADAPTER_MISSING`, without reading bytes or writing anything.
+No default source configuration exists. The synthetic adapter in acceptance tests
+is disposable-only and grants no operational source authority.
+
+The caller supplies an exact retained `UniverseSnapshot` from the existing PILOT
+representation (for example `pilot/screener-reference.json`), with its validated
+content hash and knowledge boundary, and an explicit exchange identity. Membership
+is capped at the existing 10 equities plus separate benchmark. Instrument rows
+must belong to that snapshot; exchange rows must use its supplied exchange
+context. Membership does not assert security class, listing, status or exchange
+relationship. There is no symbol guessing, registry enumeration or FullIdx fetch.
+
+Trusted adapter configuration explicitly fixes source ID, parser version, content
+type and admitted claim/class/authority/scope mappings. The existing source registry
+must also retain `terms_status=ALLOWED`; the importer never changes it. This is
+necessary permission, not a substitute for source-specific factual authority.
+Only the frozen bound codecs and `ScreenerEvidenceV02Store.AppendAsync` write
+semantic records. PriceComparability remains derived and cannot be imported.
+
+Raw bytes are bounded, hashed, archived through `RawArtifactArchiver` and then
+re-read/authenticated before normalization. Storage is content-addressed
+`<sha256-prefix>/<sha256>.bin` under one configured root; symlinked ancestors or
+targets are rejected. Existing bytes are never repaired or overwritten. Artifact
+UUID derives from source/reference/content hash/parser identity; full SHA-256 and
+byte length remain authoritative integrity checks. Existing `raw_artifact` and
+`ingestion_run` retain source reference, content type, parser version, original
+receipt/known/publication chronology and archive location. The run records raw
+retention success, separate from the semantic result. Recording time is execution
+chronology, not a database commit timestamp.
+
+Raw metadata commits before parsing; semantic rows commit atomically in a separate
+REPEATABLE READ transaction. Parse/admission/lineage failure retains authenticated
+raw provenance and rolls back all new semantic rows. Exact retries preserve raw
+identity and report existing evidence. Conflicting metadata, parser identities or
+content under an existing immutable identity fail closed; the existing
+source/content uniqueness constraint is not bypassed. Legacy artifacts are not
+silently converted. Corrections require an explicit canonical namespaced native
+fact reference and predecessor revision, same subject/claim/class/exchange and
+logical fact, with the original predecessor visible at the new knowledge boundary.
+The existing PIT logical-key helper is reused; no latest-row rule is introduced.
+
+Original receipt, publication, known and effective dates remain distinct.
+KnownAt cannot precede receipt or exceed execution time; normalized clocks must
+match authenticated artifact metadata. PostgreSQL timestamp precision must be
+exactly representable (microseconds); finer input clocks are rejected rather than
+rounded. Required premises must already satisfy the frozen original-knowledge
+rules; newly recorded proof cannot be backdated to admit an older price.
+No volume/status/session default or corporate-action clearance is invented.
+
+Bounds: one artifact per invocation, **4 MiB** raw bytes, **512** source/output
+records, existing **64 KiB** per-payload/depth/array codec bounds, **15-second**
+database commands and **60-second** overall deadline. Overflow and empty semantic
+output fail explicitly without truncation. Trusted adapters must honor cancellation
+and source-record bounds and must not silently drop unsupported records. Results
+identify universe/source/artifact, raw acceptance/rejection, inserted/duplicate
+evidence, unsupported rows, parse/source failures and at most one fixed diagnostic.
+No paths, payloads, provider secrets or SQL exception details enter diagnostics.
+
+No migration, dependency, Outcome/Verification/Research semantic change, portfolio
+write or frontend change is required. FullIdx and soak are unchanged. No operational
+artifact/evidence import is performed by this checkpoint. Provider calls/units,
+external network/API requests and paid API usage are **0**; acceptance is entirely
+offline apart from owned loopback PostgreSQL. Operational readiness remains blocked
+until reviewed source adapters and the missing authoritative evidence classes are
+available; this framework is not evidence that those sources exist.
+
+Focused validation: ingestion pure **19 passed, 0 failed/skipped**; disposable
+ingestion database **5 passed, 0 failed/skipped**, ownership/fingerprint wrapper
+**1/1**. Database proof includes raw immutability/hash/length, exact retry, correction
+history, atomic rollback, missing adapter, out-of-universe rejection, changed
+archive bytes and ordinary PIT/readiness consumption without importer hooks.
+
+Focused predecessor regressions all passed with no failures/skips: persisted
+binding **172**, PIT **16**, readiness **19**, technical **18**, capture **14**,
+candidate **25**, Outcome V0.2 **28**, Verification V0.2 **37**, Outcome V0.1 **31**,
+Verification V0.1 **34** and Research V0.1 **72** (**466** total). Final build:
+**0 warnings/errors**. Standard full discovery: **1162 total, 958 passed,
+204 database-only skipped, 0 failed**. The first full disposable run passed
+**1161/1162** and exposed a test's incorrect assumption that shared disposable
+candidate tables would stay empty across unrelated acceptance tests. The new
+fixture now uses owned temporary candidate/Outcome tables; focused acceptance
+passes after that correction. No production ingestion semantic fix was required
+for that isolation failure.
+
+Final full disposable PostgreSQL discovery: **1162 total, 1162 passed, 0 failed,
+0 skipped**; ownership/fingerprint wrapper **1/1**. Protected operational data,
+files, retained archives and frozen contracts remained unchanged, and owned
+database cleanup passed. No operational import or synthetic operational write ran.

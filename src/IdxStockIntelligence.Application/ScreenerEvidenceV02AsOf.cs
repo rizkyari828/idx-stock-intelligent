@@ -209,6 +209,14 @@ public static class ScreenerEvidenceAsOf
         return rootQuality;
     }
 
+    public static bool SameLogicalFact(ScreenerEvidenceRecord left, ScreenerEvidenceRecord right,
+        IReadOnlyDictionary<Guid, ScreenerEvidenceRecord> premises)
+    {
+        var l = ScreenerEvidenceBinding.Decode(left); var r = ScreenerEvidenceBinding.Decode(right);
+        return r.Operation == EvidenceOperation.CANCEL || l.Value is not null && r.Value is not null
+            && Key(left, l.Value, premises) == Key(right, r.Value, premises);
+    }
+
     private static string Key(ScreenerEvidenceRecord r, ScreenerEvidenceValue value, IReadOnlyDictionary<Guid, ScreenerEvidenceRecord> premises)
     {
         var extra = value switch
