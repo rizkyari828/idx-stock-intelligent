@@ -62,7 +62,8 @@ class ScreenerEvidenceAcceptance(unittest.TestCase):
             if env.get("IDX_SCREENER_TEST_FILTER_CLASS"):
                 command += ["--filter-class", env["IDX_SCREENER_TEST_FILTER_CLASS"]]
             result = subprocess.run(command, cwd=ROOT, env=env,
-                                    capture_output=True, text=True, timeout=120)
+                                    # Bounded historical episode replay adds per-session retained reads to the full suite.
+                                    capture_output=True, text=True, timeout=600)
             output = (result.stdout + result.stderr).replace(password, "[redacted]") if password else result.stdout + result.stderr
             print(output, flush=True)
             self.assertEqual(0, result.returncode, output)

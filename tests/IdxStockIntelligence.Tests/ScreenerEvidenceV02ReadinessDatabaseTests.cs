@@ -12,12 +12,12 @@ public sealed class ScreenerEvidenceV02ReadinessDatabaseTests
 {
     public static bool DatabaseConfigured => ScreenerEvidenceV02DatabaseTests.DatabaseConfigured;
     private static CancellationToken Token => TestContext.Current.CancellationToken;
-    private static async Task Sql(NpgsqlConnection c, string sql)
+    internal static async Task Sql(NpgsqlConnection c, string sql)
     {
         await using var command = new NpgsqlCommand(sql, c) { CommandTimeout = 15 };
         await command.ExecuteNonQueryAsync(Token);
     }
-    private static async Task Populate(NpgsqlConnection c, ReadinessFixture fixture)
+    internal static async Task Populate(NpgsqlConnection c, ReadinessFixture fixture)
     {
         await Sql(c, "CREATE TEMP TABLE raw_artifact (LIKE public.raw_artifact INCLUDING ALL);");
         await using (var raw = new NpgsqlCommand("""
@@ -34,7 +34,7 @@ public sealed class ScreenerEvidenceV02ReadinessDatabaseTests
             : ScreenerEvidenceBinding.Decode(r).Value is ActionCoverageValue or ReopeningValue ? 1 : 0))
             await ScreenerEvidenceV02Store.AppendAsync(c, null, row, Token);
     }
-    private static async Task<string> Fingerprint(NpgsqlConnection c)
+    internal static async Task<string> Fingerprint(NpgsqlConnection c)
     {
         await using var command = new NpgsqlCommand("SELECT md5(string_agg(to_jsonb(t)::text,',' ORDER BY evidence_id)) FROM screener_evidence_record t;", c);
         return (string)(await command.ExecuteScalarAsync(Token))!;

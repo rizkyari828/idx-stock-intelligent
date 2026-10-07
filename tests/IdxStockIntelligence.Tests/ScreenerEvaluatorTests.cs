@@ -56,6 +56,20 @@ public sealed class ScreenerEvaluatorTests
         ScreenerEvaluator.Evaluate(input.Request, input.Database, input.References, portfolio, TestContext.Current.CancellationToken);
     private static ScreenerRow StockRow(Inputs input) => Assert.Single(Evaluate(input).Rows, r => r.InstrumentId == Stock);
 
+    // Full typed results captured and compared byte-for-byte with the pre-extraction 0400bb2 assembly.
+    [Theory]
+    [InlineData(21, false, "ec290d8d59d644891a6f4089633b22f2e61142e37102a7ded584d1d7b8af59c4")]
+    [InlineData(50, false, "41922339e10cb58c7b2936398433ce7df60a2d9c54bad4ff5cfe53f6bfc87734")]
+    [InlineData(61, false, "e97a2cb48762b49717c18e21f0b43821cbe51de02effa71ce4e19e1d36603cc6")]
+    [InlineData(61, true, "26bf0fed5ba17b00ee61ab2c522db1f33f2adf5894c716ca33b19dce9820fc17")]
+    public void SharedArithmeticPreservesPreExtractionFullV01Results(int count, bool zero, string expectedHash)
+    {
+        var input = Fixture(count);
+        if (zero) input = input with { Database = input.Database with { Bars = input.Database.Bars.Select(b =>
+            b.InstrumentId == Stock ? b with { Volume = 0 } : b).ToArray() } };
+        Assert.Equal(expectedHash, ScreenerReferences.Hash(Evaluate(input), TestContext.Current.CancellationToken));
+    }
+
     [Theory]
     [InlineData("unsupported-type", EligibilityStatus.Ineligible, "UNSUPPORTED_TYPE")]
     [InlineData("index-type", EligibilityStatus.Ineligible, "UNSUPPORTED_TYPE")]

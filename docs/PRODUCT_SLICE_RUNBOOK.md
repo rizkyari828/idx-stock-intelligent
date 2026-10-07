@@ -3232,3 +3232,88 @@ FullIdx and soak remain unchanged. No acquisition, endpoint, UI, scheduling,
 ranking, technical signal execution or V0.2 snapshot persistence is implemented.
 Slice 4B may connect the existing frozen formulas to the explicitly ready segment;
 the V0.2 Screener is not yet operational.
+
+
+## Screener V0.2 Slice 4B — compatibility resolution and technical execution (2026-10-07)
+
+`ScreenerTechnicalArithmetic` extracts the existing V0.1 arithmetic without changing
+formulas, seeds, thresholds or decimal behavior. The V0.1 `ScreenerFeatures` wrapper
+retains its exact reference/volume clearance, including rejection of zero quantity
+for monetary/relative-volume features. V0.2 admits inputs through its frozen typed
+evidence/readiness rules. Positively authenticated genuine zeros with compatible
+IDR/share quantity evidence produce AVAILABLE monetary liquidity equal to zero
+using the existing prior-20-session average of `close * volume`, excluding the
+current session. Unknown or unadmitted quantity never becomes numeric zero.
+Relative volume retains Slice 4A's positive-history requirement and remains
+unavailable for calculation when that requirement fails; its readiness availability
+and reason are preserved. Actual traded value remains unavailable.
+
+`ScreenerEvidenceTechnical.Execute` accepts Slice 4A readiness and its historical
+compositions, validates exact active stock/benchmark bindings and executes only
+when market eligibility is ELIGIBLE, DataReady and CanEvaluateSetup are true, active
+comparability is CLEARED and all six required core features are AVAILABLE. It
+reuses EMA20/50, ATR14, prior high/low20, distance, change, monetary liquidity,
+relative volume and RS20/60 arithmetic. Benchmark trend/volatility retain existing
+semantics where benchmark context is admitted. No optional missingness becomes a
+neutral numeric value. Optional arithmetic overflow remains feature-level
+UNAVAILABLE / NUMERIC_OUT_OF_RANGE. Required arithmetic failure or replay-binding mismatch
+returns explicit NOT_EVALUATED with no partial feature result.
+
+`ScreenerEvidenceTechnicalService.EvaluateAsync` reuses the stored-only readiness
+reader in one READ ONLY / REPEATABLE READ transaction, including additional market
+facts for each historical session needed by the existing episode state machine.
+It never projects current trading status backwards. Original request cutoff,
+history start, subject/session/date, policy/schema and source field bindings remain
+explicit. Authenticated observation source metadata is carried losslessly from the
+existing as-of resolver into readiness bars, rather than inventing provenance or
+reading raw DailyBar tables. Exact price payload/bar hashes, convention/session
+references and chronology are checked before calculation. Known-break segments
+restart cleanly; arithmetic and episodes cannot bridge the break.
+
+The typed result carries the evaluated flag, calculated values, frozen setup state,
+canonical reasons, exact stock/benchmark bindings, retained references and a
+canonical replay identity. TECHNICAL_EVALUATED becomes true only after successful
+calculation and setup execution. WATCH/CONFIRMED are technical setup states; this
+slice supplies no DECISION_CANDIDATE promotion, ranking, portfolio or fundamental
+policy. Input ordering does not change serialized results or replay identity.
+
+The existing 512-distinct-record aggregate ceiling, 330-inclusive-calendar-date
+history limit, 15-second database commands and 60-second service deadline remain.
+No result persistence, acquisition, provider recovery, API, UI, scheduling or
+migration is added. Frozen contracts and FullIdx/soak gates are unchanged. V0.2 is
+not yet a complete operational Screener.
+
+V0.1 preservation was checked against the original `0400bb2` application assembly:
+complete serialized results matched byte-for-byte for 21-, 50- and 61-session
+clean inputs plus the 61-session zero-volume case. Four permanent full-result
+hash regressions preserve that comparison. V0.1 evaluator **82/82** and episode/
+evaluation **42/42** passed. Compatibility **7/7** and execution **18/18** passed,
+including admitted monetary zero, unknown-basis zeros remaining null, optional
+benchmark behavior, exact feature parity, known breaks, historical exclusions,
+ordering, lost bindings, required overflow not claiming execution, and optional
+monetary/context overflow remaining local to the affected feature. V0.2
+regression discovery: **427 total, 328 passed, 99 database-only skipped, 0 failed**.
+Standard full discovery: **990 total, 835 passed, 155 database-only skipped,
+0 failed**. Its initial sandboxed runner startup was interrupted before any test
+result; standard discovery with local runtime permissions passed.
+
+Final disposable PostgreSQL standard discovery: **990 passed, 0 skipped/failed**;
+the Python ownership/fingerprint wrapper passed **1/1**. All **13** new database
+scenarios passed: retained readiness/execution, warmup, synthetic rejection,
+split warmup/recovery, benchmark present/absent, genuine zeros, unknown quantity,
+repeat cutoff, later visible correction, historical exclusion and concurrent board
+append. The same shared snapshot kept execution unchanged; a subsequent snapshot
+observed the conflict. Exact earlier cutoffs excluded later corrections. Evidence
+fingerprints remained unchanged by execution, as did the 15 protected operational
+tables and pilot/operation files; disposable cleanup passed.
+
+The initial database attempt found Docker stopped; after starting the installed
+runtime, the old 120-second harness budget expired. A subsequent **12/13** run
+identified a concurrency fixture whose writer lacked the connection-local raw
+artifact; it was corrected to append an independently retained board fact. Final
+acceptance above passed against the finalized code. The owned full-suite watchdog
+is now **600 seconds** to cover historical replay acceptance, independently of
+unchanged production 15/60-second limits. Seven frozen contract/binding documents
+were confirmed byte-identical to HEAD. Provider calls/units and HTTP API calls:
+**0**. No migration, dependency, operational evidence write or FullIdx/soak change
+occurred.

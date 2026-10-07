@@ -32,7 +32,7 @@ public sealed record ScreenerReadinessRequest(Guid SubjectId, string SessionId, 
     }
 }
 public sealed record ScreenerReadinessBarBinding(Guid SubjectId, DateOnly Date, PriceValue Price,
-    ScreenerEvidenceProvenance Evidence);
+    ScreenerEvidenceProvenance Evidence, SourceReference? ObservationSource = null);
 public sealed record ScreenerEvidenceReadinessResult(ScreenerReadinessRequest Request, MarketEligibilityResult MarketEligibility,
     TradingStatusResult TradingStatus, PriceComparabilityResult PriceComparability, PriceComparabilityResult HistoryComparability,
     IReadOnlyDictionary<TechnicalFeature, FeatureState> CoreFeatures,
@@ -222,7 +222,7 @@ public static class ScreenerEvidenceReadiness
             if (active.State != PriceComparability.Cleared)
             { wholeClear = false; dates.Clear(); previous = null; reasons.AddRange(active.Reasons); continue; }
             var priceFact = selected[0]; var value = (PriceValue)priceFact.Value!;
-            bars.Add(new(subject, day, value, priceFact.Selected!)); dates.Add(day); previous = binding;
+            bars.Add(new(subject, day, value, priceFact.Selected!, priceFact.ObservationSource)); dates.Add(day); previous = binding;
         }
         var activeBars = bars.Where(b => dates.Contains(b.Date)).TakeLast(21).ToArray();
         var quantity = activeBars.Length > 0 && activeBars.All(b => b.Price.Bar.VolumeUnit != "UNKNOWN" && b.Price.Bar.VolumeBasis == "RAW_AS_TRADED"

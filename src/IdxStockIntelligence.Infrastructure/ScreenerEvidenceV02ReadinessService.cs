@@ -21,10 +21,10 @@ public static class ScreenerEvidenceReadinessService
                     await ro.ExecuteNonQueryAsync(deadline.Token);
                 var result = await Snapshot(connection, owned, request, deadline.Token);
                 await owned.CommitAsync(deadline.Token);
-                return result;
+                return result.Current;
             }
             // Every reader call validates the caller's shared READ ONLY / REPEATABLE READ transaction.
-            return await Snapshot(connection, transaction, request, deadline.Token);
+            return (await Snapshot(connection, transaction, request, deadline.Token)).Current;
         }
         catch (EvidenceBindingException e) { return ScreenerEvidenceReadiness.Compose(request, [], new Dictionary<Guid, ConventionValue>(), e.Reason); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -33,8 +33,13 @@ public static class ScreenerEvidenceReadinessService
         { ct.ThrowIfCancellationRequested(); return ScreenerEvidenceReadiness.Compose(request, [], new Dictionary<Guid, ConventionValue>(), "PERSISTED_EVIDENCE_READ_UNAVAILABLE"); }
     }
 
-    private static async Task<ScreenerEvidenceReadinessResult> Snapshot(NpgsqlConnection connection, NpgsqlTransaction transaction,
-        ScreenerReadinessRequest request, CancellationToken ct)
+    internal static Task<(ScreenerEvidenceReadinessResult Current, IReadOnlyList<ScreenerEvidenceReadinessResult> History)>
+        ReadForTechnicalAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, ScreenerReadinessRequest request, CancellationToken ct)
+        => Snapshot(connection, transaction, request, ct, true);
+
+    private static async Task<(ScreenerEvidenceReadinessResult Current, IReadOnlyList<ScreenerEvidenceReadinessResult> History)>
+        Snapshot(NpgsqlConnection connection, NpgsqlTransaction transaction,
+        ScreenerReadinessRequest request, CancellationToken ct, bool technicalHistory = false)
     {
         var reads = new Dictionary<(Guid, EvidenceClaim, DateOnly), ScreenerEvidenceAsOfResult>();
         var examined = new HashSet<Guid>();
@@ -62,7 +67,7 @@ public static class ScreenerEvidenceReadinessService
         }
         foreach (var claim in ScreenerEvidenceReadiness.MarketClaims)
             if (!await Read(request.SubjectId, claim, request.EvaluationDate))
-                return ScreenerEvidenceReadiness.Compose(request, reads.Values.ToArray(), conventions);
+                return (ScreenerEvidenceReadiness.Compose(request, reads.Values.ToArray(), conventions), []);
         foreach (var subject in new[] { request.SubjectId, request.Benchmark?.SubjectId }.Where(id => id.HasValue).Select(id => id!.Value))
         {
             var failed = false;
@@ -73,6 +78,15 @@ public static class ScreenerEvidenceReadinessService
                     if (!await Read(subject, claim, day)) { failed = true; break; }
             }
         }
-        return ScreenerEvidenceReadiness.Compose(request, reads.Values.ToArray(), conventions);
+        var current = ScreenerEvidenceReadiness.Compose(request, reads.Values.ToArray(), conventions);
+        if (!technicalHistory || !current.CanEvaluateSetup) return (current, []);
+        var dates = current.ActiveBars.Where(b => b.SubjectId == request.SubjectId).Select(b => b.Date).Order().ToArray();
+        // Episode transitions need each day's market facts, never today's status projected backwards.
+        foreach (var date in dates)
+            foreach (var claim in ScreenerEvidenceReadiness.MarketClaims)
+                if (!await Read(request.SubjectId, claim, date)) throw new EvidenceBindingException(ScreenerEvidenceAsOf.InputUnavailable);
+        var history = dates.Select(date => ScreenerEvidenceReadiness.Compose(request with { EvaluationDate = date },
+            reads.Values.Where(r => r.Request.EvaluationDate <= date).ToArray(), conventions)).ToArray();
+        return (history[^1], history);
     }
 }

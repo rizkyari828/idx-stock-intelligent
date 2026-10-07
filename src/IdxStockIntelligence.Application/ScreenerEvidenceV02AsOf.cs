@@ -21,7 +21,8 @@ public sealed record ScreenerEvidenceProvenance(Guid EvidenceId, long RevisionNu
     Guid? RawArtifactId, int PayloadVersion, string PayloadHash, EvidenceChronology Chronology);
 public sealed record ScreenerEvidenceAsOfCandidate(ScreenerEvidenceValue Value, EvidenceQuality Quality, ScreenerEvidenceProvenance Provenance);
 public sealed record ScreenerEvidenceAsOfFact(string LogicalKey, ScreenerEvidenceValue? Value, EvidenceQuality Quality,
-    ScreenerEvidenceProvenance? Selected, IReadOnlyList<ScreenerEvidenceAsOfCandidate> Candidates);
+    ScreenerEvidenceProvenance? Selected, IReadOnlyList<ScreenerEvidenceAsOfCandidate> Candidates,
+    SourceReference? ObservationSource = null);
 public sealed record ScreenerEvidenceAsOfDiagnostic(Guid? EvidenceId, string Reason);
 public sealed record ScreenerEvidenceAsOfResult(ScreenerEvidenceAsOfRequest Request, Guid? ExchangeId, EvidenceQuality Quality,
     IReadOnlyList<ScreenerEvidenceAsOfFact> Facts, IReadOnlyList<string> Reasons,
@@ -135,7 +136,10 @@ public static class ScreenerEvidenceAsOf
                 facts.Add(new(group.Key, chosen is { Quality: EvidenceQuality.Verified or EvidenceQuality.Partial } ? chosen.Value : null,
                     quality, chosen is { Quality: EvidenceQuality.Verified or EvidenceQuality.Partial } ? Provenance(chosen.Row) : null,
                     retained.OrderBy(c => c.Row.EvidenceId.ToString("D"), StringComparer.Ordinal)
-                        .Select(c => new ScreenerEvidenceAsOfCandidate(c.Value, c.Quality, Provenance(c.Row))).ToArray()));
+                        .Select(c => new ScreenerEvidenceAsOfCandidate(c.Value, c.Quality, Provenance(c.Row))).ToArray(),
+                    chosen is { Quality: EvidenceQuality.Verified, Value: PriceValue } && rawSources is not null
+                        ? new SourceReference(chosen.Row.SourceId, chosen.Row.RawArtifactId!.Value, chosen.Row.RetrievedAt!.Value,
+                            chosen.Row.KnownAt, rawSources[chosen.Row.RawArtifactId.Value].ContentSha256) : null));
             }
             var overall = facts.Any(f => f.Quality == EvidenceQuality.Conflicting) ? EvidenceQuality.Conflicting
                 : facts.Any(f => f.Quality == EvidenceQuality.Unknown) ? EvidenceQuality.Unknown
