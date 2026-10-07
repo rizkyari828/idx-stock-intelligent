@@ -3415,3 +3415,88 @@ Provider calls/units and HTTP API calls: **0**. No operational capture/evidence
 write or operational migration execution occurred. V0.1 data, dependencies,
 frontend, FullIdx and soak remain unchanged. V0.2 candidate promotion and
 Outcome/Research integration remain unimplemented.
+
+## Screener V0.2 Slice 4D — technical candidate promotion (2026-10-07)
+
+Frozen V0.1 section I and `ScreenerOrdering.Assemble` define the technical predicate:
+ELIGIBLE, setup evaluated, and WATCH or CONFIRMED. NONE and FAILED are completed
+non-candidates. The predicate is extracted without changing V0.1 behavior; its
+configured-membership filter, ordering, cap and held union remain intact. Slice 4D
+applies only this technical predicate to one immutable V0.2 capture, not discovery
+enrollment, ranking or an investment recommendation. Existing episode thresholds
+and expiration/failure behavior are consumed from the capture, never recalculated.
+
+`ScreenerEvidenceTechnicalCandidates.Promote` validates the Slice 4C capture's
+policy/schema, bindings and hashes before using its stored setup and final market
+eligibility. Readiness alone and unexecuted/invalid captures cannot promote. The
+candidate policy is **screener-technical-candidate-v0.2.0 / schema 1**, distinct from
+the technical evidence policy **screener-evidence-v0.2.0 / schema 1** and capture
+schema 1. Unsupported bindings fail explicitly; no current-policy fallback exists.
+The candidate policy versions this inherited qualification rule under V0.2 evidence
+gates and does not introduce thresholds or portfolio/fundamental semantics.
+
+The typed result retains source capture UUID, full input/result hashes, subject,
+technical/candidate policy and schema identities, original session/date/cutoff,
+candidate boolean, separate setup classification and canonical reasons. It references
+the capture instead of duplicating features. RS, benchmark and monetary liquidity
+are not additional qualification gates. Genuine monetary zero stays AVAILABLE 0 in
+the referenced capture; unknown quantity stays null with VOLUME_BASIS_UNVERIFIED.
+Neither value is changed by promotion. Recording time is separate chronology, not
+a database commit timestamp or an input to replay identity.
+
+`ScreenerEvidenceTechnicalCandidateStore.PromoteAsync` takes only a capture UUID,
+reads/authenticates that exact stored capture and appends the deterministic decision.
+It never reads current evidence/bars, executes technical arithmetic, calls providers
+or substitutes another capture. Readback authenticates the same capture and the
+stored decision projection using the same fixed candidate policy. Reordering valid
+bindings/reasons does not change canonical identity. Later evidence cannot change
+an old decision or idempotent retry, even when the source evidence table is unavailable.
+
+V0.1 decision snapshots fix prospective PILOT and screener-v0.1.0; they cannot store
+this V0.2 one-subject artifact without changing their contract. Additive migration
+**0010_screener_technical_candidate_v02.sql** therefore adds only the immutable
+`screener_technical_candidate` table and schema version 10, requiring version 9.
+It retains an exact foreign key to `screener_technical_capture`, a unique
+(capture, candidate policy, schema) key, bounded 8 KiB projection, full SHA-256 replay
+identity and recording clock. UPDATE/DELETE/TRUNCATE use existing mutation guards.
+The decision UUID derives from SHA-256 of source capture identity/input hash plus
+candidate policy/schema. Full projection hash comparison detects conflicting content
+or truncated UUID collisions; no overwrite is allowed. A later capture/cutoff creates
+a different decision even if qualification is equal. Both candidates and evaluated
+non-candidates persist. The append uses READ COMMITTED for unique-insert/no-op retry
+arbitration over immutable inputs, with 15-second commands and a 60-second deadline.
+No changing evidence selections are mixed. Migration execution is disposable-only.
+
+Outcome/Research V0.1 contracts, membership, denominators, hashes and rows remain
+unchanged. Future V0.2 integration can bind to the decision UUID and exact source
+capture; no Outcomes are created here. There is no API/UI, acquisition, Fetch Universe,
+scheduler, ranking, portfolio, fundamentals or valuation change. Provider calls/units
+and API calls are zero. FullIdx remains disabled; soak is unaffected.
+
+Validation: build passed with **0 warnings/errors**. Focused pure candidate checks:
+**25 passed, 0 failed/skipped**. Final focused disposable candidate discovery:
+**36 passed, 0 failed/skipped** (25 pure + 11 database), ownership/fingerprint
+wrapper **1/1**. This covers actual captured WATCH/CONFIRMED/NONE/FAILED/expiry
+outputs, exact 98% and strict-above-high boundaries, unsupported/invalid/unexecuted
+captures, optional benchmark/quantity/warmup, zero versus null, canonical reorder,
+deterministic identity, exact capture foreign key, retries, later-cutoff identity,
+future evidence isolation, explicit corruption/conflict and installed mutation
+guards. The initial pure run passed 23/24 and exposed an unsupported-policy request
+throwing ArgumentException; the candidate boundary now rejects unsupported bindings
+explicitly before interpretation. A disposable SQL fixture interpolation compile
+error was corrected before final validation.
+
+V0.1 evaluator/episode/ordering/golden-result regression: **124 passed, 0 failed/skipped**.
+V0.2 regression including Slice 4B/4C: **493 total, 367 passed, 126 database-only
+skipped, 0 failed**. All seven frozen contract/binding files remain byte-identical
+to the starting HEAD.
+
+Standard full .NET discovery: **1056 total, 874 passed, 182 database-only skipped,
+0 failed**.
+
+Final full disposable PostgreSQL discovery: **1056 passed, 0 failed/skipped**
+(5m21s), ownership/fingerprint wrapper **1/1**. All 15 protected operational tables
+and pilot/operation files remained unchanged; owned database cleanup passed.
+No operational migration, capture, candidate or evidence write occurred. No frozen
+contract, existing migration, Outcome/Research implementation, dependency or
+frontend file changed.

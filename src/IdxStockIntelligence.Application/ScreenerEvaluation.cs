@@ -111,6 +111,11 @@ public sealed record ScreenerPortfolioHistory(Portfolio Portfolio, IReadOnlyList
 
 public static class ScreenerOrdering
 {
+    // Frozen V0.1 section I: universe membership is handled separately from this technical predicate.
+    public static bool QualifiesTechnically(EligibilityStatus eligibility, ScreenerSetup setup) =>
+        eligibility == EligibilityStatus.Eligible && setup.Evaluated
+        && setup.Status is SetupStatus.Confirmed or SetupStatus.Watch;
+
     private static string Id(Guid id) => id.ToString("D").ToLowerInvariant();
     private static int State(SetupStatus state) => state switch
     { SetupStatus.Confirmed => 0, SetupStatus.Watch => 1, SetupStatus.Failed => 2, _ => 3 };
@@ -127,8 +132,7 @@ public static class ScreenerOrdering
         ct.ThrowIfCancellationRequested();
         if (rows.Select(r => r.InstrumentId).Distinct().Count() != rows.Count) throw new ArgumentException("Duplicate logical row.");
         var configured = rows.Where(r => r.Configured).ToArray();
-        var candidates = Order(configured.Where(r => r.Eligibility.Status == EligibilityStatus.Eligible && r.Setup.Evaluated
-            && r.Setup.Status is SetupStatus.Confirmed or SetupStatus.Watch)).ToArray();
+        var candidates = Order(configured.Where(r => QualifiesTechnically(r.Eligibility.Status, r.Setup))).ToArray();
         var ranks = candidates.Select((r, i) => (r.InstrumentId, Rank: i + 1)).ToDictionary(x => x.InstrumentId, x => x.Rank);
         var rankedRows = new List<ScreenerRow>();
         foreach (var row in rows)

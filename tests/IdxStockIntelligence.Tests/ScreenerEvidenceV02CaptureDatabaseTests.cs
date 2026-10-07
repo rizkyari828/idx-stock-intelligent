@@ -11,7 +11,7 @@ public sealed class ScreenerEvidenceV02CaptureDatabaseTests
     public static bool DatabaseConfigured => ScreenerEvidenceV02DatabaseTests.DatabaseConfigured;
     private static CancellationToken Token => TestContext.Current.CancellationToken;
     private static Task Sql(NpgsqlConnection c, string sql) => ScreenerEvidenceV02ReadinessDatabaseTests.Sql(c, sql);
-    private static async Task<NpgsqlConnection> Fixture(TechnicalFixture f)
+    internal static async Task<NpgsqlConnection> Fixture(TechnicalFixture f)
     {
         var c = await ScreenerEvidenceV02DatabaseTests.Fixture(Token);
         try
@@ -28,7 +28,7 @@ public sealed class ScreenerEvidenceV02CaptureDatabaseTests
         }
         catch { await c.DisposeAsync(); throw; }
     }
-    private static async Task<string> V01Fingerprint(NpgsqlConnection c)
+    internal static async Task<string> V01Fingerprint(NpgsqlConnection c)
     {
         await using var cmd = new NpgsqlCommand("""
             SELECT md5(coalesce((SELECT string_agg(to_jsonb(t)::text,',' ORDER BY run_id) FROM decision_snapshot_run t),'')
