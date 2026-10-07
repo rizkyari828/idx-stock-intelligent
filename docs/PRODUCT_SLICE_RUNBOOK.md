@@ -3851,3 +3851,49 @@ owned local PostgreSQL/test process communication occurred. Frozen contracts,
 V0.1 and V0.2 semantic implementations, Slice 5A ingestion, FullIdx, prospective
 soak, portfolio/candidate/Outcome/Research behavior and retained evidence are
 unchanged. No synthetic operational market facts, captures or Outcomes were made.
+
+## Screener V0.2 Slice 5A.2 — operational source acquisition feasibility (2026-10-07)
+
+Decision: **C — LEVEL1_SOURCE_STACK_NOT_YET_FEASIBLE**. The current source/access
+ledger, required admission matrix, EODHD premise reassessment, permission gates,
+repository mapping and conditional next slices are in
+[Level-1 source acquisition decision](LEVEL1_SCREENER_SOURCE_STACK.md).
+
+Fresh research obtained the official KSEI 2026-09-30 master ZIP through its
+published download link and reused `ksei-master-inspect-1`: 145,689 bytes,
+3,678 well-shaped records, 981 EQUITY candidates, two malformed lines and 90 equity
+candidates without listing dates. All ten panel codes exist; four lack listing
+dates. Temporary research bytes were not imported or added to the operational
+archive. Official IDX reopening, KSEI rights/merger and issuer stock-split PDFs
+demonstrate positive event sources. They do not establish normal status at each
+target session or complete action coverage. Some IDX/KSEI pages failed or exposed
+only Loading shells; indexed snippets were not accepted as source artifacts.
+
+EODHD raw-field and private-use storage documentation supports a conditional
+observation source, but exact JK authenticity, no-trade/synthetic behavior,
+price-unit/continuity and native corrections remain unproved. Exact volume units
+and segment remain unknown, affecting optional quantity/liquidity features.
+Benchmark/RS is optional. Fifty consecutive comparable completed sessions remain
+unproved; a one-year candidate price window alone is insufficient.
+
+Next: **5A.2b authoritative source confirmation**, especially positive exact-session
+status, JK genuine-price semantics and complete action-window coverage/retention
+rights. No complete minimum source stack is admitted, no daily runner is approved,
+and a mandatory paid source is not demonstrated. The smallest conditional stack
+combines KSEI/issuer security/action artifacts, operative IDX listing/board/status
+and rules, independent calendar/completion evidence, and authenticated EOD prices.
+Existing migrations **0007 then 0008** suffice for typed V0.2 ingestion after
+separate deployment approval; operational schema remains **2/4/5/6**. No migration
+or adapter was added/deployed and no source permission changed.
+
+Documentation-only validation: existing inspector and read-only archive inventory
+(45/45 registered hashes/lengths intact), exact diff/whitespace review and matching
+before/after **21 protected table/existence fingerprints** and **1,386 protected
+file hashes**. Operational snapshot runs/rows remain **1/10**, committed V0.1
+Outcomes **0**, canonical revisions **86**, database market sessions **0** and
+V0.2 evidence table absent. No build or test suite was rerun; code is unchanged.
+Public web research was nonzero; three explicit bounded public GETs inspected the
+KSEI index, ZIP and disclaimer. Market-provider API calls/units **0/0**, paid usage
+**0**, no provider recovery/access-control bypass. FullIdx remains disabled, soak
+**1/10**, frozen contracts and operational evidence/portfolio unchanged. Commit
+scope is this appended note and the research decision document; no push.
