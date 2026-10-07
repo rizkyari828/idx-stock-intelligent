@@ -10,7 +10,7 @@ public sealed class ScreenerEvidenceV02BindingDatabaseTests
 {
     public static bool DatabaseConfigured => ScreenerEvidenceV02DatabaseTests.DatabaseConfigured;
     private static Task<NpgsqlConnection> Fixture(CancellationToken ct) => ScreenerEvidenceV02DatabaseTests.Fixture(ct);
-    private static string Root()
+    internal static string Root()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "IdxStockIntelligence.slnx"))) directory = directory.Parent;
@@ -33,7 +33,7 @@ public sealed class ScreenerEvidenceV02BindingDatabaseTests
         try
         {
             var migrations = Directory.GetFiles(Path.Combine(Root(), "src/IdxStockIntelligence.Infrastructure/Migrations"), "*.sql").Order(StringComparer.Ordinal).ToArray();
-            foreach (var path in migrations.Where(p => !Path.GetFileName(p).StartsWith("0008", StringComparison.Ordinal)))
+            foreach (var path in migrations.Where(p => string.CompareOrdinal(Path.GetFileName(p), "0008") < 0))
                 await Sql(connection, await File.ReadAllTextAsync(path, ct), ct);
             var legacy = EvidenceBindingFixture.Envelope(EvidenceClaim.StableIdentity);
             await using (var insert = new NpgsqlCommand("""

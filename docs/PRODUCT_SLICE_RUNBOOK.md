@@ -3317,3 +3317,101 @@ unchanged production 15/60-second limits. Seven frozen contract/binding document
 were confirmed byte-identical to HEAD. Provider calls/units and HTTP API calls:
 **0**. No migration, dependency, operational evidence write or FullIdx/soak change
 occurred.
+
+## Screener V0.2 Slice 4C — immutable technical evaluation capture (2026-10-07)
+
+`ScreenerEvidenceTechnicalCapture.Create` crosses the capture boundary only after
+the existing Slice 4B executor completes with TECHNICAL_EVALUATED and an evaluated
+setup. Readiness flags alone, missing replay history, warmup and failed execution
+cannot create a capture. No formula, seed, threshold, episode or evidence-admission
+semantics change. This stores policy output, never replacement evidence or current
+market truth.
+
+The existing V0.1 `decision_snapshot_run`/`decision_snapshot_row` tables deliberately
+fix `screener-v0.1.0`, prospective PILOT and capture-time cutoff semantics. They are
+not widened or converted. Additive migration **0009_screener_technical_capture_v02.sql**
+requires schema version 8 and adds **screener_technical_capture**, plus version 9.
+It reuses `reject_evidence_mutation` for UPDATE/DELETE/TRUNCATE rejection and the
+existing transactional migration lock/version guard. It makes no changes to old
+rows/tables. Migration execution in this milestone is disposable-only.
+
+Policy/envelope schema remains **screener-evidence-v0.2.0 / 1**, with capture
+projection schema **1**. The capture retains the exact technical result: setup,
+episode, canonical reasons, trend, EMA20/50, ATR14/ATR%, prior high/low20, distance,
+change, daily/20-session monetary proxies, relative volume, RS20/60 and actual
+benchmark values/context. Native decimal JSON preserves exact calculated values;
+retained price decimal strings preserve their original transport/bar hashes.
+Unavailable/warmup values retain availability, null and their explicit reason.
+Admitted genuine monetary zero is AVAILABLE numeric 0; unknown quantity remains
+null with VOLUME_BASIS_UNVERIFIED. Actual traded value remains unavailable.
+
+The request retains subject, policy/schema, exact session/date, history start,
+source/endpoint/field/version, optional benchmark and the explicit original cutoff.
+Cutoffs normalize to UTC and retain all seven .NET fractional digits in JSON/text;
+PostgreSQL's six-digit timestamp precision never rounds semantic input identity.
+Database `recorded_at` is capture recording chronology, not a commit timestamp.
+Every historical execution date retains market eligibility, trading status,
+active/whole-history comparability, core/optional readiness, flags, diagnostics and
+exact evidence IDs. Exact stock/benchmark bar revisions, observation sources,
+payload/bar hashes, source convention/session premises and all retained
+identity/currency/listing/status/rule/action/coverage references remain bound.
+
+`input_hash` is the existing canonical SHA-256 over capture schema, normalized
+request, exact stock/benchmark bindings, retained provenance and readiness history.
+The deterministic UUID is the first 128 bits of that hash; full 256-bit input hash
+is separately unique and checked. `result_hash` is canonical SHA-256 over the
+complete typed projection. Property/set insertion order does not affect hashes;
+date identity preserves historical sequencing. Capture recording time is excluded.
+A later cutoff produces a distinct capture even if calculated values are equal.
+
+`ScreenerEvidenceTechnicalCaptureStore.CaptureAsync` reads readiness/history and
+executes under one READ ONLY / REPEATABLE READ snapshot, then appends that frozen
+output in a separate bounded transaction. Before INSERT it authenticates only the
+exact retained evidence IDs/provenance/payloads; it makes no new as-of selection.
+Caller-owned collections are serialized before the first asynchronous boundary.
+Unique INSERT/no-op followed by stored hash comparison gives identical retry
+idempotency; same immutable identity with different content raises an explicit
+integrity conflict and never overwrites. Commands remain 15 seconds, overall capture
+deadline 60 seconds, history 330 dates, references 512 and projection 32 MiB.
+
+`ReadAsync` returns the stored projection/recording clock and validates its schema,
+bindings and hashes. It never reads current evidence or recalculates technical
+features. Missing ID returns null. Future verification is a separate milestone.
+Outcome/Research V0.1 inclusion, hashes and bindings remain unchanged; there is no
+V0.1 backfill or conversion. No HTTP endpoint, UI, acquisition, provider recovery,
+scheduler, Fetch Universe or park/re-entry change is introduced. Candidate
+promotion, ranking, portfolio fit, fundamentals, valuation and recommendations
+remain separate future scope. FullIdx stays disabled and soak is unaffected.
+
+Validation: build passed with **0 warnings/errors**. Focused capture pure checks:
+**14 passed, 0 failed/skipped**. Final focused disposable capture acceptance:
+**16 passed, 0 failed/skipped**, with ownership/fingerprint wrapper **1/1**.
+Coverage includes exact retained execution/readback, stock/benchmark bindings,
+all calculated values and optional reasons, genuine monetary zero versus unknown
+quantity, seven-digit cutoff precision, historical exclusions, reordered retries,
+changed-content conflicts, later-cutoff identity, future evidence isolation,
+missing exact references, migration reruns and installed UPDATE/DELETE/TRUNCATE
+guards. An earlier **15/16** run exposed a test assertion expecting three triggers;
+the correct count is two (one UPDATE/DELETE trigger and one TRUNCATE trigger),
+and all three mutation checks passed. The assertion was corrected before final
+acceptance. Initial compile-time analyzer findings were fixed before validation.
+
+V0.2 regression discovery, including Slice 4A/4B: **457 total, 342 passed,
+115 database-only skipped, 0 failed**. V0.1 evaluator/episode/full-result hash
+regression: **124 passed, 0 failed/skipped**. Standard full discovery:
+**1020 total, 849 passed, 171 database-only skipped, 0 failed**.
+
+The first full disposable run passed **1019/1020** and found an old test's fixed
+maximum schema version of 8. That V0.1 isolation test now checks retention of its
+four original schema versions (2/4/5/6), independently of additive V0.2 migrations;
+its canonical-table check is unchanged. The version-8 migration test separately
+builds only its actual pre-version-8 baseline, excluding future migrations.
+
+Final full disposable PostgreSQL standard discovery: **1020 passed, 0 failed/skipped**
+(4m33s), ownership/fingerprint wrapper **1/1**. All 15 protected operational tables
+and pilot/operation files remained unchanged, and owned database cleanup passed.
+Seven frozen contract/binding documents are byte-identical to the starting HEAD.
+Provider calls/units and HTTP API calls: **0**. No operational capture/evidence
+write or operational migration execution occurred. V0.1 data, dependencies,
+frontend, FullIdx and soak remain unchanged. V0.2 candidate promotion and
+Outcome/Research integration remain unimplemented.

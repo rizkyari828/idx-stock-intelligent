@@ -297,9 +297,9 @@ public sealed class ScreenerEvidenceV02DatabaseTests
         var ct = TestContext.Current.CancellationToken;
         await using var connection = await Fixture(ct);
 
-        await using (var version = new NpgsqlCommand("SELECT max(version)::int FROM pilot_schema_version;", connection) { CommandTimeout = 15 })
+        await using (var version = new NpgsqlCommand("SELECT count(*)::int FROM pilot_schema_version WHERE version IN (2,4,5,6);", connection) { CommandTimeout = 15 })
         {
-            Assert.Equal(8, (int)(await version.ExecuteScalarAsync(ct))!);
+            Assert.Equal(4, (int)(await version.ExecuteScalarAsync(ct))!);
         }
 
         await ScreenerEvidenceV02Store.AppendMechanicalAsync(connection, null, Record(), ct);
