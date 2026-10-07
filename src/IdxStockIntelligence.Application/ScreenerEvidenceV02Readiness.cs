@@ -141,7 +141,7 @@ public static class ScreenerEvidenceReadiness
         && read.Facts.Any(f => f.Quality == EvidenceQuality.Verified && f.Value is CompletedSessionValue
             { Completion: EvidenceCompletion.COMPLETED } s && s.SessionId == session);
 
-    private static (T? Value, EvidenceQuality Quality) Combine<T>(ScreenerEvidenceAsOfResult first,
+    public static (T? Value, EvidenceQuality Quality) Combine<T>(ScreenerEvidenceAsOfResult first,
         ScreenerEvidenceAsOfResult second, Func<ScreenerEvidenceValue, T?> project)
     {
         var all = new[] { first, second }.SelectMany(r => r.Facts).Where(f => f.Selected is not null || f.Quality == EvidenceQuality.Conflicting).ToArray();

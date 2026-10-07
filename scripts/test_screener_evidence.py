@@ -3,6 +3,7 @@ Run: python3.13 -m unittest discover -s scripts -p test_screener_evidence.py -v
 No provider calls, API, collector, registry or operational evidence writes.
 """
 import os
+import hashlib
 from pathlib import Path
 import shlex
 import subprocess
@@ -19,14 +20,26 @@ def fingerprints(sql):
               "instrument", "instrument_history", "instrument_listing_evidence", "market_session",
               "portfolio", "portfolio_event", "thesis_version", "decision_snapshot_run",
               "decision_snapshot_row", "decision_snapshot_outcome", "pilot_schema_version")
-    return {table: sql(f"SELECT count(*)||':'||coalesce(md5(string_agg(to_jsonb(t)::text,',' "
-                       f"ORDER BY to_jsonb(t)::text)),'') FROM {table} t;", "idx_stock_intelligence") for table in tables}
+    result = {table: sql(f"SELECT count(*)||':'||coalesce(md5(string_agg(to_jsonb(t)::text,',' "
+                        f"ORDER BY to_jsonb(t)::text)),'') FROM {table} t;", "idx_stock_intelligence") for table in tables}
+    for table in ("screener_evidence_record", "screener_technical_capture", "screener_technical_candidate",
+                  "outcome_v02_enrollment", "outcome_v02_observation"):
+        exists = sql(f"SELECT to_regclass('public.{table}') IS NOT NULL;", "idx_stock_intelligence") == "t"
+        result[table] = (sql(f"SELECT count(*)||':'||coalesce(md5(string_agg(to_jsonb(t)::text,',' "
+                             f"ORDER BY to_jsonb(t)::text)),'') FROM {table} t;", "idx_stock_intelligence") if exists else "ABSENT")
+    return result
 
 
 def files():
     paths = list((ROOT / "pilot").glob("*.json"))
     paths += list((ROOT / "data/collector-output/pilot").glob("*.operation.json"))
-    return {p.relative_to(ROOT).as_posix(): p.read_bytes() for p in paths}
+    paths += [p for p in (ROOT / "data/raw").rglob("*") if p.is_file()]
+    paths += list((ROOT / "docs").glob("*CONTRACT.md"))
+    hashes = {}
+    for path in paths:
+        with path.open("rb") as stream:
+            hashes[path.relative_to(ROOT).as_posix()] = hashlib.file_digest(stream, "sha256").hexdigest()
+    return hashes
 
 
 def environment(database):
@@ -58,12 +71,14 @@ class ScreenerEvidenceAcceptance(unittest.TestCase):
             for migration in sorted((ROOT / "src/IdxStockIntelligence.Infrastructure/Migrations").glob("*.sql")):
                 cls.sql(migration.read_text())
             # Canonical discovery is the primary runner; the wrapper only supplies disposable ownership/environment.
-            command = ["rtk", "proxy", "dotnet", "test"]
+            # Bound threads so the full suite does not oversubscribe the single local PostgreSQL under host load
+            # and trip the 60s operation deadlines; every test still runs, none are skipped.
+            command = ["rtk", "proxy", "dotnet", "test", "--max-threads", "2"]
             if env.get("IDX_SCREENER_TEST_FILTER_CLASS"):
                 command += ["--filter-class", env["IDX_SCREENER_TEST_FILTER_CLASS"]]
             result = subprocess.run(command, cwd=ROOT, env=env,
                                     # Bounded historical episode replay adds per-session retained reads to the full suite.
-                                    capture_output=True, text=True, timeout=600)
+                                    capture_output=True, text=True, timeout=1500)
             output = (result.stdout + result.stderr).replace(password, "[redacted]") if password else result.stdout + result.stderr
             print(output, flush=True)
             self.assertEqual(0, result.returncode, output)
