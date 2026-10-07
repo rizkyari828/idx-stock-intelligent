@@ -631,3 +631,147 @@ both prior documentation prefixes unchanged and all four research hash/length
 checks passing. Operational Outcomes remain **0**, schema **2/4/5/6**, V0.2
 evidence absent; frozen contracts, references, source registry/permission and
 operational archives/ledger/portfolio are unchanged.
+
+## Slice 5A.2c — BBCA positive TradingStatus confirmation (2026-10-08 WIB)
+
+**Verdict: STILL_UNCONFIRMED.** Positive supported `TradingStatus` for **BBCA /
+IDX / 2026-10-02** is not proved. Neither a direct authoritative status row nor
+an authenticated positive starting state with a demonstrably complete transition
+chain was obtained. This is an evidence gap, not a finding that BBCA was suspended.
+BBCA / **ID1000109507** identifies the subject only. No production adapter is
+unblocked; no synthetic status, negative-search clearance or inferred continuity.
+
+### Exact sources checked and candidate decisions
+
+| Exact official source / artifact | Check and narrow status decision |
+|---|---|
+| [IDX suspension/resumption index](https://idx.co.id/id/berita/suspensi/) | Normal public browser access worked. The table displayed both suspension and reopening PDFs, initially 1–10 of 1,913 entries. Its keyword filter `BBCA` returned `Data suspensi tidak ditemukan`, 0 results. This is search silence, not complete coverage or positive status. |
+| [IDX stock master](https://idx.co.id/id/data-pasar/data-saham/daftar-saham/) | Followed the visible official `Data Pasar` → `Daftar Saham` link. Browser returned a page titled `503`, stating a database error. No dated BBCA row, status field or export was obtained. |
+| [IDX stock summary](https://www.idx.id/id/data-pasar/ringkasan-perdagangan/ringkasan-saham/) | Public page exposed `All Stock`, `Margin`, `Short Selling` controls but no actual rows, date selector or downloadable status artifact in the inspected render. No undocumented endpoint was attempted. |
+| [SE-00010/BEI/07-2026 Remarks2 dictionary](https://www.idx.co.id/Media/nauhx32e/signed_se_00010_bei_2026_tampilan_informasi_perusahaan_tercatat_pada_kolom_remarks_dalam_jats.pdf) | Rechecked exact retained 27-page original X1. Dictionary alone is **CONFIRMED_NOT_ADMISSIBLE for the requested positive status assertion**; no BBCA 2026-10-02 Remarks2 row was retained/authenticated. |
+| [IDX Daily Statistics, 2 October 2026](https://www.idx.co.id/Media/4mdb3i3d/ds_261002.pdf) | Rechecked all nine retained pages of X2 and its linked field manual. Names BBCA, but no affirmative security/session status field. **CONFIRMED_NOT_ADMISSIBLE for the requested positive status assertion**; this does not reject its separately scoped statistical facts. |
+| [Officially linked statistics manual](https://bit.ly/IDXstat-manual) → [public Manual Guides folder](https://drive.google.com/drive/folders/1-aiZVJwc17tfFOfmyjFH2V2igjttZ7y9) | X2 page 9 links the manual. Public folder offered `Manual Guides - IDX Statistical Publication v1.2.pdf`; native file identity `1-hJVpCmVmmzQ3wiy6wh3shqWiUafO4MY`, seven pages. Manual download worked without login; all pages extracted, page 4 visually checked. IDX Data Services authorship and official report linkage establish dictionary provenance; hosting on Google Drive alone would not. No trading-status dictionary field. |
+| [IDX 2026 catalogue](https://www.idx.id/media/auobyarx/idx-catalogue-pricelist-updated-2026.pdf) | Web reader reported content exceeding its 10 MiB limit. No original downloaded or field semantics verified; no inference about a status product, entitlement or paid-source necessity. |
+
+Focused official-domain searches for BBCA/2 October/suspension and positive
+stock/trading-status dictionary terms returned no results. No snippet was admitted.
+The stock master error and summary shell are access findings, not proof that IDX
+has no suitable dataset. Scope stayed on the exact security/session.
+
+### Remarks2, board/mechanism and statistical semantics
+
+X1 was issued **31 July 2026**, effective **3 August 2026**. It revokes
+SE-00002/BEI.PB2/01-2025, with transitional special-notation provisions stated
+on page 2. The operative dictionary is not a security observation:
+
+- Page 3 digits 1–2 `--` denote no corporate action in that display convention;
+  this is neither no suspension nor all-type action-coverage proof.
+- Digit 3 `M`/`S`/`U`/`D` encodes margin/short-selling eligibility or unsecured
+  classification, not general target-session `TRADING`.
+- Digit 4 `O`/`-` encodes pre-opening eligibility/ineligibility. It is not a
+  general normal/suspended status field and no dated BBCA value was obtained.
+- Digit 5 codes `1`…`5` encode board/index classifications; page 27 digit 30
+  `X` denotes Special Monitoring Board. These do not collapse board, mechanism,
+  suspension and general tradability into one claim.
+- Digits 6–18 cover index/industry information; 19–30 cover special notations.
+  No documented absence/default rule in this circular affirmatively establishes
+  general `TRADING`. No `Remarks` field is silently equated with `Remarks2`.
+
+X2 page 3 includes BBCA under **Top Stocks by Value** (833 billion rupiah, 6.80%)
+and **Top Stocks by Frequency** (27,304, 1.69%). Page 4 includes BBCA in market-cap
+and IHSG contribution rankings. The linked manual v1.2 page 4 defines the first
+two as rankings of that day's total transaction value/frequency, and market cap
+as capitalization at closing; page 5 defines leaders/laggards by index-point
+contribution. These describe trading statistics or reported constituents, not
+an affirmative permitted trading-state code. No status enum, supported mechanism
+or uninterrupted tradability field appears. Even documented executions do not
+become the separate frozen TradingStatus claim. No closing-price/volume fallback.
+The manual adds no target-session BBCA row.
+
+### Transition route, authority and chronology
+
+The index visibly contains official reopening as well as suspension notices,
+so individual acts may be useful when their exact instrument/effective scope and
+predecessors are retained. The tested index/filter supplies neither an authenticated
+BBCA positive starting state nor a closed, authoritative completeness statement
+covering every subsequent status-changing event through **2026-10-02**. Initial
+pagination counts and an empty keyword result do not establish that chain. No
+transition-derived status was admitted, and no unrelated notice was substituted.
+
+IDX-authored originals/dictionary are **T1 for their actual documented facts**;
+authority does not supply the missing BBCA status assertion. No third-party/KSEI
+registration fact was elevated to exchange status. X2's artifact/session date is
+**2026-10-02**, not a verified publication timestamp. X1's issue/effective dates
+are distinct from website publication and application knowledge. The linked
+manual is v1.2, ©2023; Drive displayed modified **15 February 2023**, which is
+not authenticated original publication time or proof of immutable history.
+
+Fresh research access/check date: **2026-10-08 WIB**. Manual file receipt was
+observed at **2026-10-08T00:34:36.925538+07:00** (local download metadata).
+X1/X2 working-copy timestamps are **00:03:01 / 00:06:53 WIB** on the same date;
+they are reused prior-checkpoint copies, not independently attested publication
+or exact server receipt clocks. Native amended status-record lineage is unknown
+because no such record was obtained. Hashes pin these research bytes, not external
+truth. No publication/knownAt was invented; none was backdated to 2 October.
+Later retention could support only a later-cutoff historical query under the
+frozen chronology, never repair an earlier prospective capture.
+
+### Retention, permission and future binding
+
+| Research original | Bytes | SHA-256 |
+|---|---:|---|
+| X1 Remarks2, reused unchanged | 1,011,785 | `c50ea85cdbd18e41274e20a6ccd2531868b7ef11a918bdebff4ddf048808462a` |
+| X2 2 October Daily Statistics, reused unchanged | 1,987,188 | `8809cf9d71c8474eff2d25962e36558c388d77f484c2716d1b40462b6779efa7` |
+| Statistics manual v1.2, newly manually downloaded | 981,358 | `aab5f6cd9e341c38e6c04fa22c81c14a59d9a6aa974f56212bc16a28283a636c` |
+
+Original PDFs are research copies outside the repository, with bounded temporary
+working copies; no production archive/import. Preserve X3's [IDX terms](https://www.idx.id/id/syarat-penggunaan/)
+classification: attributed private noncommercial manual documents
+**ALLOWED_JUSTIFIED**; scraping/crawling **DISALLOWED_JUSTIFIED**. The manual
+page 1 also states noncommercial citation/use with full source/access-date
+attribution. No broader perpetual/commercial rights or automated website access
+are asserted. Public manual downloads remain a valid Level-1 route if they
+actually prove the required fact; current failure is semantic/evidentiary, not
+an objection to manual acquisition. Registry and permission records remain untouched.
+
+No admitted source-to-field mapping exists. The frozen destination, conditional
+on a real source, is **TradingStatus / SESSION_FACT / INSTRUMENT**, exact retained
+BBCA and IDX identities, `effective_from = effective_to = 2026-10-02`, supported
+payload version 1 with `status = TRADING` and the authenticated exact `sessionId`.
+The frozen binding admits authoritative T1/T2 session facts; a future official IDX
+record would be T1. Its native status value/definition, source ID/reference,
+namespaced revision series, completeness basis and publication/retrieval/known/
+recording chronology cannot be filled without the missing record. No invented
+source ID, session ID, FULL assertion or dictionary-to-status mapping is proposed.
+Other pilot instruments have **no established reuse** without their exact dated
+identifiers/fields; this checkpoint proves none.
+
+### Single remaining item, next gate and validation
+
+**Single missing item:** one official IDX **BBCA / 2026-10-02 security-status
+record**, retained with the operative field definition explicitly making its
+positive value supported general trading status. Obtain that exact historical
+record and definition through legitimate official manual access; no further
+broad source sweep. There is no proved URL/native field/value for that missing
+artifact, and no claim that it is publicly available or requires payment.
+
+**Next remains the same source gate**, a surgical continuation of 5A.2c for that
+one item. **5A.3a — BBCA/IDX TradingStatus retained-artifact adapter remains
+blocked** and is not frozen as an authorized implementation step. The overall
+Level-1 stack remains blocked; the runbook next-step gate is unchanged, so no
+runbook edit. Other source blockers were not investigated in this slice.
+
+Validation: all three research PDF hash/length checks, exact append-only diff and
+whitespace review, and protected before/after database/file fingerprints. No full
+build/test suite is required or claimed. No production code, adapter, migration,
+source/permission registry, evidence/universe, Outcome/Research data or frozen
+contract changes. FullIdx remains disabled; soak remains **1/10**. Public browser
+and web-reader research was nonzero; one new manual PDF download, two reused
+PDFs. No provider API calls/units (**0/0**), paid usage, credentials, recovery,
+scraping/crawling or access-control bypass; no Daily Runner/scheduler operation.
+Fresh validation passed: **21 protected table/existence states** and **1,386
+protected file hashes** matched before/after, including source registry and
+permission-bearing configuration. Operational committed Outcomes remain **0**;
+V0.2 evidence remains absent. All three PDF byte-length/SHA-256 checks passed,
+the complete prior ledger prefix is preserved, and the research ledger is the
+only changed file. The runbook and all frozen contracts are unchanged.
