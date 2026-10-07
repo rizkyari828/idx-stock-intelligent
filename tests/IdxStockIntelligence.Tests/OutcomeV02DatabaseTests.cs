@@ -15,7 +15,7 @@ public sealed class OutcomeV02DatabaseTests
     private static string Json(object value) => JsonSerializer.Serialize(value, DecisionSnapshotService.JsonOptions);
     private static async Task<long> Count(NpgsqlConnection c, string table)
     { await using var cmd = new NpgsqlCommand("SELECT count(*) FROM " + table, c); return (long)(await cmd.ExecuteScalarAsync(Token))!; }
-    private sealed class Fixture(NpgsqlConnection connection, OutcomeV02Fixture facts, string root) : IAsyncDisposable
+    internal sealed class Fixture(NpgsqlConnection connection, OutcomeV02Fixture facts, string root) : IAsyncDisposable
     {
         internal NpgsqlConnection Connection { get; } = connection;
         internal OutcomeV02Fixture Facts { get; } = facts;

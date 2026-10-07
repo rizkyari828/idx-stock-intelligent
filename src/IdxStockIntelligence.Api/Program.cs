@@ -31,6 +31,7 @@ builder.Services.AddSingleton<DecisionSnapshotService>();
 builder.Services.AddSingleton<DecisionVerificationService>();
 builder.Services.AddSingleton<OutcomeTrackingService>();
 builder.Services.AddSingleton<OutcomeVerificationService>();
+builder.Services.AddSingleton(sp => new OutcomeV02VerificationService(sp.GetRequiredService<NpgsqlDataSource>(), Path.GetFullPath("data/raw")));
 builder.Services.AddSingleton<ResearchService>();
 var app = builder.Build();
 app.Use(async (context, next) =>
@@ -121,6 +122,21 @@ app.MapPost("/api/screener/decision-snapshots/{runId}/rows/{instrumentId}/outcom
         using var body = await JsonDocument.ParseAsync(request.Body, new() { MaxDepth = 8 }, ct);
         OutcomeVerification.ValidateRequest(run, instrument, horizon, body.RootElement);
         return Results.Ok(await service.VerifyAsync(run, instrument, horizon, ct));
+    }
+    catch (JsonException) { return Results.BadRequest(new { code = "OUTCOME_VERIFICATION_REQUEST_INVALID", error = "OUTCOME_VERIFICATION_REQUEST_INVALID" }); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
+});
+app.MapPost("/api/screener/outcome-v02/enrollments/{enrollmentId}/outcomes/{horizonSessions}/verify",
+    async (string enrollmentId, string horizonSessions, HttpRequest request, OutcomeV02VerificationService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Count != 0 || !Guid.TryParseExact(enrollmentId, "D", out var enrollment)
+            || !int.TryParse(horizonSessions, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var horizon))
+            throw new ScreenerException(400, "OUTCOME_VERIFICATION_REQUEST_INVALID");
+        using var body = await JsonDocument.ParseAsync(request.Body, new() { MaxDepth = 8 }, ct);
+        OutcomeV02Verification.ValidateRequest(enrollment, horizon, body.RootElement);
+        return Results.Ok(await service.VerifyAsync(enrollment, horizon, ct));
     }
     catch (JsonException) { return Results.BadRequest(new { code = "OUTCOME_VERIFICATION_REQUEST_INVALID", error = "OUTCOME_VERIFICATION_REQUEST_INVALID" }); }
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }

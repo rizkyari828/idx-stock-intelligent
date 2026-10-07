@@ -42,7 +42,7 @@ public static class OutcomeV02Store
             && p.OutcomeKnownAt == r.GetFieldValue<DateTimeOffset>(6) && p.RecordedAt == r.GetFieldValue<DateTimeOffset>(7), "OUTCOME_OBSERVATION_INTEGRITY_CONFLICT");
         return result;
     }
-    private static async Task<(ScreenerTechnicalCandidateDecision Candidate, ScreenerTechnicalCapture Capture)> Source(NpgsqlConnection c, NpgsqlTransaction t, Guid id, CancellationToken ct)
+    internal static async Task<(ScreenerTechnicalCandidateDecision Candidate, ScreenerTechnicalCapture Capture)> Source(NpgsqlConnection c, NpgsqlTransaction t, Guid id, CancellationToken ct)
     {
         ScreenerTechnicalCandidateDecision candidate;
         await using (var cmd = Command("SELECT candidate_policy_id,schema_version,replay_identity,recorded_at,projection,capture_id FROM screener_technical_candidate WHERE decision_id=$1", c, t))
@@ -59,7 +59,7 @@ public static class OutcomeV02Store
             ?? throw new EvidenceBindingException("OUTCOME_CAPTURE_NOT_FOUND");
         return (candidate, capture); // No Promote call or live qualification.
     }
-    private static async Task<OutcomeV02Evidence> Evidence(NpgsqlConnection c, NpgsqlTransaction t,
+    internal static async Task<OutcomeV02Evidence> Evidence(NpgsqlConnection c, NpgsqlTransaction t,
         IEnumerable<ScreenerEvidenceRecord> initial, string archiveRoot, CancellationToken ct)
     {
         var rows = initial.ToDictionary(r => r.EvidenceId); var queue = new Queue<ScreenerEvidenceRecord>(rows.Values); var seen = new HashSet<Guid>();

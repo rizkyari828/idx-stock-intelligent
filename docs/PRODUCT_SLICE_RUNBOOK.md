@@ -3500,3 +3500,60 @@ and pilot/operation files remained unchanged; owned database cleanup passed.
 No operational migration, capture, candidate or evidence write occurred. No frozen
 contract, existing migration, Outcome/Research implementation, dependency or
 frontend file changed.
+
+## Outcome V0.2 Slice 4E.2 — stored-only verification (2026-10-07)
+
+`POST /api/screener/outcome-v02/enrollments/{enrollmentId}/outcomes/{horizonSessions}/verify`
+accepts an exact enrollment UUID, horizon 1/5/10/20 and only an empty JSON object;
+query parameters and unknown body properties are rejected. An unmaterialized
+observation returns 404. Verification never evaluates a missing observation into
+existence. Invalid requests return 400; service/deadline failures return 503.
+
+The additive verifier supports outcome-v0.2.0/schema 1, candidate policy
+screener-technical-candidate-v0.2.0/schema 1, technical policy
+screener-evidence-v0.2.0/schema 1 and capture schema 1. It reuses V0.1 verification
+states, typed comparison and diagnostic limits, without changing V0.1 source
+assumptions. After request validation and exact subject lookup, precedence is
+POLICY_VERSION_UNAVAILABLE, INPUT_NOT_AVAILABLE, DIFFERENT_RESULT, then MATCH.
+All four verification states return HTTP 200.
+
+Replay authenticates the observation, enrollment, stored candidate, technical
+capture, evaluation-date StockBindings raw PriceValue.Bar.Close and the exact
+forward manifest. Evidence identities/revisions, premise links, hashes, artifact
+lengths and archived bytes must agree. Frozen selection runs only inside that
+authenticated closed retained set. Later revisions/candidates, compatible archives
+and current screening facts cannot substitute. Original capture/enrollment/outcome
+cutoffs and recording clocks are retained; verifiedAt is execution time and no
+clock is treated as a PostgreSQL commit timestamp. Exact exchange sessions and
+terminal states replay through the existing Outcome V0.2 evaluator and checked
+decimal return arithmetic, without rounding tolerance.
+
+Database reads use one REPEATABLE READ, READ ONLY transaction, 15-second commands
+and a 60-second deadline. Existing bounds remain: 512 evidence records, 64 KiB
+Outcome manifest, 366 calendar entries and at most 100 deterministic differences
+with a truncation flag. Responses expose scalar replay facts and safe diagnostics,
+not raw manifests, payloads, filesystem paths or exception details. Missing or
+corrupt required inputs fail closed; intact inputs with a different typed result
+return DIFFERENT_RESULT. MATCH means reproducible retained evidence, not strategy
+validity or profitability. No verification persistence or migration is required.
+
+Validation: build passed with **0 warnings/errors**. Focused verification pure
+tests: **37 passed, 0 failed/skipped**. Focused disposable verification database
+tests: **6 passed, 0 failed/skipped**, ownership/fingerprint wrapper **1/1**.
+Focused regressions all passed without failures/skips: Outcome Tracking V0.1 **31**,
+Outcome Verification V0.1 **34**, Research V0.1 **72**, technical capture **14**,
+candidate **25**, and Outcome V0.2 **28**. Standard full discovery:
+**1138 total, 939 passed, 199 database-only skipped, 0 failed**. Full disposable
+PostgreSQL discovery: **1138 passed, 0 failed/skipped**, wrapper **1/1**.
+
+Owned fixtures cover all four terminal states, exact horizons, closure/weekend
+counting, later revision/candidate isolation, signed scalar mismatches, unsupported
+policy precedence, missing/corrupt source links and changed/missing archive bytes.
+Protected operational tables, pilot/operation files, archives and frozen contracts
+remained unchanged; disposable cleanup passed. No operational outcomes were
+fabricated and no operational migration ran. Provider calls/units and external
+API calls were **0**; HTTP transport smoke was not executed. API request validation
+and the service/database boundary were tested. V0.1 verification and Research
+inclusion remain independent and unchanged. FullIdx and soak are unaffected.
+Existing typed corporate-action limitations remain; no UI, acquisition, daily
+runner or Research V0.2 integration is added.
