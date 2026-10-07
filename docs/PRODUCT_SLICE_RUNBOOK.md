@@ -3666,3 +3666,188 @@ Final full disposable PostgreSQL discovery: **1162 total, 1162 passed, 0 failed,
 0 skipped**; ownership/fingerprint wrapper **1/1**. Protected operational data,
 files, retained archives and frozen contracts remained unchanged, and owned
 database cleanup passed. No operational import or synthetic operational write ran.
+
+## Screener V0.2 Slice 5A.1 — operational source closure (2026-10-07)
+
+Outcome: **C — BOUNDED_SOURCE_STILL_BLOCKED**. No production source adapter can
+currently be admitted from the available retained inputs without supplying
+unproved source truth, permission or provenance. This is a documentation-only
+closure under the milestone's explicit no-adapter branch; the Slice 5A framework
+is reused unchanged. No production parser, source approval, operational evidence
+import, migration or daily runner is added. Authentic bounded `DATA_READY` remains
+unreachable from these inputs. FullIdx automation is not the reason for this stop.
+
+### Fresh local inventory
+
+Reviewed `main` at `28a533f400b505cc9924c283076bf26f21a4e29c`, clean, seven ahead
+and zero behind `origin/main`. Source review used only repository documentation,
+code, local retained bytes and bounded read-only operational database queries.
+Historical source reports are evidence of their stated review scope, not a new
+permission or current factual snapshot.
+
+- The database has **45 raw artifacts**, all from `eodhd`: 41 with parser
+  `eodhd-experimental-1`, one `eodhd-semantics-inspect-1`, three
+  `eodhd-spike-inspect-1`. All **45/45** retained files match their database byte
+  lengths and SHA-256 hashes. Nine ingestion runs are `DEGRADED`; 86 canonical
+  bar revisions span eight dates and eleven configured subjects. Hash integrity
+  proves retained bytes, not genuine-price authenticity.
+- The only source-registry row is `eodhd`, with **terms_status=UNKNOWN**. The
+  documented scoped personal-use review does not update that operational gate.
+  Reconciling permission metadata would be a separate supported operation after
+  review, but cannot resolve the missing price/session/action premises.
+- `pilot/sessions.json` has eight `ObservedTrading` entries and two closures;
+  only three entries include `completed_at`. One original closing-report HTML
+  exists for 2026-10-02 with retrieval metadata: **137,924 bytes**, exact SHA-256
+  `f1ef62a55f2370de12214ccc6dc604830f6ce47b41816c10897403da03bbf77c` verified.
+  Its metadata identifies the Okezone URL, retrieval time and HTTP status, but
+  does not install an admitted T2 source, source permission, native revision
+  contract or V0.2 parser. Earlier URLs are not interchangeable retained archives.
+  `market_session` contains zero rows. V0.1 manual proof acceptance is not an
+  automatic V0.2 production-source promotion.
+- The KSEI master ZIP and amended holiday PDF hashes documented in the Phase 0
+  spike have **no matching retained artifact files in the current local data
+  tree**. Historical successful downloads do not make missing bytes available.
+  `ksei-master-inspect-1` is a research-only candidate inspector, not an admitted
+  V0.2 adapter. Published master/holiday rights and correction semantics remain
+  unresolved in the repository review. No replacement download was attempted.
+- There are **18 listing observations**, nine labelled `VERIFIED`, but only six
+  carry retrieval metadata. The existing audit identifies usable dated reviewed
+  listing facts for RAJA, VKTR and PTRO; LPIN's reviewed year is insufficient for
+  an exact day. Issuer/IDX/KSEI links and human-curated summaries are not original
+  retained report bytes from which an adapter can reproduce the claims. No issuer
+  PDFs or original listing/status/action archives were found in the current raw
+  inventory. Historical listing labels are preserved, not promoted or erased.
+- `pilot/screener-reference.json` retains the authenticated
+  `pilot-universe-2026-10-02` membership snapshot: **10 equities plus JKSE.INDX**,
+  knowledge time `2026-10-02T07:31:15.184350Z`, hash
+  `d7a3266cd9aaa360e8ea6c373866c117f8fc3a13f4db2489cede297b1149aa8f`.
+  Its instrument snapshots are empty; `pilot/instrument-sessions.json` is empty.
+  The registry's eleven configured IDs/tickers are operational identity keys,
+  not authoritative identity/type/listing/board/status intervals.
+- No retained authoritative trading-status or complete corporate-action coverage
+  source exists. Public event examples in the source matrix are research
+  references, not a retained complete event set. Scale/hardening fixtures and
+  synthetic acceptance archives are excluded from operational source proof.
+- Operational schema versions remain **2,4,5,6**; the V0.2 evidence table is absent.
+  This deployment precondition is separate from source feasibility. Applying
+  existing migrations alone would not create any of the missing source facts.
+
+### Claim-by-claim admission matrix
+
+Statuses apply to **production admission now**, not hypothetical availability.
+Authority/class/scope below are frozen requirements, not grants to cited sources.
+Class abbreviations: P = PointObservation; C = ContinuingEffectiveState;
+S = SessionFact; V = VersionedRule; F = SourceConvention. I = instrument;
+X = exchange. No claim is `OPERATIONALLY_ADMISSIBLE_NOW` or resolvable by an
+`ADMISSIBLE_WITH_EXISTING_METADATA_FIX` alone. The registry permission gate is a
+metadata gap, while the claim-specific semantic/evidence gaps still block admission.
+
+| Claim / premise | Admission status | Available source / exact gap | Required authority; class; scope | Chronology available | Revision / parser / automation |
+|---|---|---|---|---|---|
+| A. GenuinePriceObservation | SEMANTICS_NOT_PROVEN | EODHD EOD raw observations retained; no positive non-synthetic/placeholder/substitution premises or exact admitted convention/session links | T3; S; I + exact exchange/date | Original fetch/known and canonical recording retained | Local append revisions exist; Python daily parser exists; bounded fetch exists for the earlier pilot only; no V0.2 adapter |
+| B. TradingStatus | SOURCE_NOT_AVAILABLE | No retained governing/admitted authoritative target-session status; prices and KSEI master Status cannot substitute | T1/T2 exact authoritative status; S; I/X with positive applicability | No applicable original status chronology | No source lineage, parser or admitted automated status route |
+| C. CompletedSession | SEMANTICS_NOT_PROVEN | One intact independent closing report plus manual URL ledger; T2 admission/permission/source binding and complete retained sequence not established | T1/T2 independent completion proof; S; X exact date | Three manual completed_at entries, one retained retrieval record; older entries incomplete | Manual ledger has no frozen source-native corrections; no production parser or automated proof feed |
+| D. Closure / session exception | MANUAL_RETAINED_ARTIFACT_ONLY | PANS closure links; historical KSEI amended PDF missing locally; require exact authoritative calendar/exception artifact, not a weekday | T1 calendar or admitted T2 independent closure proof; S; X exact date | Ledger known_at; historical notice effective/publication review only | Amendment relationships must be retained; no production PDF/notice parser or approved automated route |
+| E. StableIdentity | SEMANTICS_NOT_PROVEN | Configured registry/universe and cited KSEI pages do not authenticate the required identity interval and exchange binding | T1/T2; C/P; I | Configuration snapshot known_at; authoritative interval/bytes unavailable | Research KSEI inspector only; corrections unproved; no production/manual parser installed |
+| F. SecurityType | SEMANTICS_NOT_PROVEN | Registry label/vendor Common Stock/KSEI EQUITY candidate is not a retained admitted ORDINARY classification | T1/T2; C/P; I | Historical candidate/snapshot dates; no admitted scoped proof | Research inspector only; no production type parser or approved source lineage |
+| G. ListingCoverage / delisting | MANUAL_RETAINED_ARTIFACT_ONLY | Reviewed RAJA/VKTR/PTRO dates are limited factual references; original report bytes/permission/binding missing; no complete current listing/status evidence | Listing T1 or reviewed T2 issuer; delisting T1; C/P; I | Six retained retrieval-dated observations; legacy gaps preserved | boundary-reference-1/2 identifies review versions, not source correction lineage; no production document adapter |
+| H. Board / trading mechanism | SOURCE_NOT_AVAILABLE | No retained dated board, governing rule or instrument exception; board alone never proves continuous mechanism | T1/T2; board C/P, rule V, exception C; I/X | No applicable interval/version evidence | No admitted parser/lineage/automated source |
+| I. SourcePriceConvention | SEMANTICS_NOT_PROVEN | Repository review documents raw OHLC, but no complete retained admitted version envelope or positive non-synthetic capability; unproved zero capability blocks ambiguous zero bars only | T2/T3 documented convention; F; I/X exact endpoint/field/version | Historical documentation review date; no complete admitted version envelope | No V0.2 convention adapter; unknown source-native capability revisions; no approved acquisition added |
+| J. Quantity / volume basis (optional) | SEMANTICS_NOT_PROVEN | Provider integer and split-adjustment documented; sampled share/lot reconciliation is not universal JK unit/raw-quantity proof | Admitted source convention/metadata; F; exact feed scope | Original observation/review dates | Preserve exact integer and UNKNOWN premises; no positive operational basis adapter |
+| K. Market segment (optional) | SOURCE_NOT_AVAILABLE | JK upstream/segment not documented sufficiently; cannot assume regular market | Admitted source convention/metadata; F; exact feed scope | No applicable segment proof | No parser/source lineage/automation |
+| L. Corporate action / comparability inputs | SOURCE_NOT_AVAILABLE | No authenticated complete window coverage with retained exact events; empty searches do not prove no action | T1/T2 events and coverage; P; I finite event/window | No sufficient retained action/coverage chronology | Event endpoint documentation/examples only; no admitted complete source or parser; PriceComparability remains derived |
+| Currency / unit continuity | SEMANTICS_NOT_PROVEN | Configured/provider currency and sampled references lack an admitted retained continuity envelope | T1/T2; C/P; I | Configuration/review clocks only | No admitted reference adapter; no magnitude inference |
+
+### Minimum operational target and bounded readiness probe
+
+Reuse `ScreenerEvidenceReadinessService` / `ScreenerEvidenceReadiness.Compose`;
+do not create another readiness rule set. Required target eligibility needs
+verified stable identity, ordinary security type, listing boundary, supported board
+and mechanism, authoritative trading status and independent completed session.
+Applicable delisting, suspension/reopening and mechanism exceptions retain their
+existing effects; absence of notices is never substituted for positive status.
+
+The stock history needs exact genuine raw-price observations, admitted exact
+convention/completion links, identity/exchange and currency/unit continuity, sourced
+closures/independent sessions, exact bar revisions and **complete** action coverage
+for the active seed/recurrence segment. All six core features must be AVAILABLE:
+EMA20/50, ATR14, priorHigh20/priorLow20 and distance-to-high. EMA50 makes **50
+consecutive cleared stock observations** the minimum no-break warmup; required
+recurrence/continuity cannot be replaced by an arbitrary 50-row selection.
+Existing equities have eight observed dates and the benchmark six, already
+insufficient even before authenticity/coverage gates.
+
+Quantity/segment semantics, traded value, relative volume, liquidity proxies and
+benchmark/RS context are **optional** feature gates. Unknown quantities do not
+invalidate independently authenticated price; no optional gap is turned into a
+mandatory global readiness gate. Nevertheless, the current price authenticity and
+hard eligibility gaps independently prevent DATA_READY.
+
+Executed one temporary, non-persisted local probe of the **existing service**:
+universe `pilot-universe-2026-10-02`, BBCA UUID
+`81808734-9a0d-5fa6-aa94-ea723dcb414f`, target `2026-10-02`, history from
+`2026-08-01`, cutoff **2026-10-07T15:36:46.628232Z**, price-field candidate
+`eodhd/eod/close/eodhd-experimental-1`. The field candidate is not an admitted
+convention. Result: `marketEligibility=DataBlocked`, `DataReady=false`,
+`CanEvaluateSetup=false`, **0 references / 0 bars**. Diagnostics include
+`PERSISTED_EVIDENCE_READ_UNAVAILABLE` and `PERSISTED_EVIDENCE_INPUT_UNAVAILABLE`;
+the operational V0.2 table is absent. The service returns `FailureReason=null`
+at this composition boundary, so the retained read diagnostics must not be hidden.
+Its diagnostic `IDENTITY_CONFLICT` is a failed-input quality result, **not** proof
+of an authentic identity disagreement. This unavailable-service result does not
+determine genuine MARKET_ELIGIBLE status. The source matrix reports independent
+missing prerequisites; no nonexistent evidence was inserted to force a successful
+probe. The temporary probe used existing compiled services and was removed.
+
+No authentic retained end-to-end production adapter → evidence → PIT → DATA_READY
+case exists. New production-adapter mechanics/DB cases are not applicable because
+zero adapters are installed; disposable fixtures prove the unchanged framework
+and readiness rules, not operational source readiness.
+
+### Manual procedure and Daily Runner prerequisite
+
+Manual import is permitted **only after** an original authoritative artifact,
+lawful retained-use/source permission ALLOWED, exact subject/exchange/scope,
+receipt/publication/known chronology, documented semantics and revision identity
+are established. Retain original bytes/hash/length before parsing; review and
+install a deterministic Python normalization adapter into the existing trusted
+framework mapping, then use `ImportAsync` and ordinary PIT/readiness reads. Original
+known time cannot precede retrieval; later acquired premises cannot repair an old
+admission. The framework's exact retry/correction behavior remains unchanged.
+A manually downloaded official artifact is possible source evidence; a manually
+typed ACTIVE/CLEARED fact or a URL-only summary is not a substitute. No currently
+usable production manual-import command is claimed by this closure.
+
+Before Daily Runner: obtain the missing retained admitted source set, close
+permission/version/lineage bindings per source, install only proven adapters,
+deploy the existing V0.2 schema through a separately authorized operation and prove
+an authentic bounded DATA_READY path with sufficient cleared history. Do not add a
+scheduler to compensate for missing source truth. No bar→status, weekday→session,
+unknown unit→shares, empty action set→clearance or silent provider fallback exists.
+
+### Validation and operational safety
+
+Fresh build passed with **0 warnings/errors**. Focused ingestion database discovery
+passed **5 total / 5 passed / 0 failed / 0 skipped**, ownership/fingerprint wrapper
+**1/1**. Standard full discovery passed **1162 total / 958 passed / 0 failed /
+204 database-only skipped**. Focused pure ingestion passed **19/19**, and focused
+predecessor regressions passed **466/466**, all with **0 failed/skipped**:
+binding 172, PIT 16, readiness 19, technical 18, capture 14, candidate 25,
+Outcome V0.2 28, Verification V0.2 37, Outcome V0.1 31, Verification V0.1 34,
+Research V0.1 72. The **485** focused cases are fresh executions, not inherited
+Slice 5A totals. Full disposable PostgreSQL discovery passed **1162 total /
+1162 passed / 0 failed / 0 skipped**, ownership/fingerprint wrapper **1/1** and
+owned database cleanup passed. New production-adapter tests are not applicable.
+
+The source audit/probe's **20 protected table fingerprints** and **1386 protected
+file hashes** matched before/after; the full disposable wrapper independently
+confirmed protected data/files unchanged. Only this appended runbook section
+changes in Git. Full and staged diffs and whitespace checks are required before
+the authorized `docs: close bounded screener source feasibility` commit; no push.
+
+Source inventory/probe are read-only; no normal database migration or import ran.
+Provider calls, units, external network/API calls and paid API use are **0**; only
+owned local PostgreSQL/test process communication occurred. Frozen contracts,
+V0.1 and V0.2 semantic implementations, Slice 5A ingestion, FullIdx, prospective
+soak, portfolio/candidate/Outcome/Research behavior and retained evidence are
+unchanged. No synthetic operational market facts, captures or Outcomes were made.
