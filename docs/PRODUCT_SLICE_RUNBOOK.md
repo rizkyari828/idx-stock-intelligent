@@ -3897,3 +3897,31 @@ KSEI index, ZIP and disclaimer. Market-provider API calls/units **0/0**, paid us
 **0**, no provider recovery/access-control bypass. FullIdx remains disabled, soak
 **1/10**, frozen contracts and operational evidence/portfolio unchanged. Commit
 scope is this appended note and the research decision document; no push.
+
+## Screener V0.2 Slice 5A.2b — authoritative source confirmation (2026-10-08 WIB)
+
+Decision: **C — LEVEL1_SOURCE_STACK_BLOCKED_ON_EXACT_CLAIMS**. The dated additive
+[source confirmation](LEVEL1_SCREENER_SOURCE_STACK.md#slice-5a2b--authoritative-source-confirmation-2026-10-08-wib)
+preserves the previous ledger, records all six mandatory verdicts, exact artifact
+identities and a conditional BBCA 2026-07-23…2026-10-02 acquisition package.
+
+New research retained IDX SE-00010/BEI/07-2026 Remarks2, the actual 2 October
+Daily Statistics PDF (Trading Day 178), and KSEI's 8 January 2026 service-calendar
+notice. Current IDX terms support attributed noncommercial manual document use
+and prohibit scraping/crawling. These close narrower source/permission questions,
+not positive BBCA TradingStatus, the full completed-session clock/sequence,
+JK genuine/no-trade semantics, all-type action coverage or dated board/mechanism.
+KSEI/BCA retained-use permission remains UNKNOWN. The issuer report explicitly
+labels 31 May 2000 as the listing date; the separate IPO chronology is not merged.
+
+Next is **5A.2c: one official BBCA 2026-10-02 positive status record and operative
+status dictionary**, not another broad discovery pass. Paid necessity is unproved;
+Daily Runner and production adapters remain blocked. Existing 0007/0008 are
+sufficient but undeployed; operational schema stays 2/4/5/6, V0.2 evidence absent,
+committed V0.1 Outcomes 0. No imports, registry/permission mutations or operational
+artifacts. FullIdx disabled and soak 1/10 unchanged. Public research was nonzero;
+market-provider calls/units and paid use were 0. Documentation-only validation:
+exact diff/whitespace review, retained hash/length checks, append-only history and
+matching before/after 21 protected table/existence states and 1,386 protected
+file hashes; no build/test suite or push. Both prior documentation prefixes are
+unchanged and four research artifact hash/length checks passed.

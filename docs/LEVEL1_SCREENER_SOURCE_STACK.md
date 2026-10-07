@@ -326,3 +326,308 @@ not product test failures. No test suite/build ran; no production code changed.
 Exact documentation and staged diffs plus `git diff --check` are reviewed before
 commit. Frozen contracts, operational tables/archives/references/ledger files,
 source permission, portfolio and schema remain unchanged.
+
+## Slice 5A.2b — authoritative source confirmation (2026-10-08 WIB)
+
+Checked across **2026-10-07 UTC / 2026-10-08 WIB**. This is an additive research
+checkpoint; the preceding 5A.2 ledger and decision remain historical findings.
+Initial `main` HEAD `e39b59f5f0fb37fd1189a8ae475e0148f279de22`, clean,
+**9 ahead / 0 behind** local `origin/main`. No remote fetch or push.
+
+**C — `LEVEL1_SOURCE_STACK_BLOCKED_ON_EXACT_CLAIMS`.** Public official artifacts
+and a permitted manual IDX document path are demonstrated below. A complete
+50-session admitted stack is still unproved. **Paid source necessity is not
+proved. Daily Runner remains blocked.** No adapters or operational evidence were
+created, no permission/source registry was changed, and no schema was deployed.
+
+### Mandatory premise verdicts
+
+Each verdict covers the whole specified premise, including applicability and
+retained-use gates. A verified narrower fact does not upgrade the whole premise.
+
+| Mandatory premise | Verdict | Exact remaining limitation |
+|---|---|---|
+| Positive exact-session TradingStatus | STILL_UNCONFIRMED | No BBCA target-session normal/tradeable status artifact or authenticated initial state plus closed transition history |
+| Genuine/non-synthetic JK price semantics | STILL_UNCONFIRMED | Vendor documents do not resolve JK carry-forward, placeholders, non-trading dates or zero-volume semantics; generic raw OHLC text is insufficient |
+| Independent completed-session sequence | STILL_UNCONFIRMED | Actual dated IDX daily PDF obtained; all 50 reports, authoritative completion-clock binding and closure/amendment coverage not obtained |
+| Complete corporate-action coverage | STILL_UNCONFIRMED | Positive events and explicit remarks flags exist; no complete all-type window/amendment coverage basis establishes the negative side |
+| Applicable identity/listing/board/mechanism | STILL_UNCONFIRMED | BBCA identity/type and historical listing date corroborated; historical identity continuation, dated instrument board, operative mechanism and exceptions remain incomplete |
+| Source retrieval / retained-use permission for whole stack | STILL_UNCONFIRMED | IDX manual noncommercial use and qualifying EODHD private storage have published bases; KSEI/BCA retained-use scope and actual source admission remain unresolved |
+
+No mandatory premise is classified CONFIRMED_ADMISSIBLE or CONFIRMED_MANUAL_ONLY
+merely because one relevant document downloads. No source-wide rejection or
+proof that a free/manual path cannot exist is inferred from a failed request.
+
+### Surgical artifact ledger and exact support
+
+**X1 — IDX JATS Remarks2 dictionary.** The rendered [official circulars
+index](https://www.idx.id/id/peraturan/surat-edaran) exposed the actual
+[SE-00010/BEI/07-2026 PDF](https://www.idx.co.id/Media/nauhx32e/signed_se_00010_bei_2026_tampilan_informasi_perusahaan_tercatat_pada_kolom_remarks_dalam_jats.pdf).
+Normal browser file retrieval succeeded, without login/payment/challenge, despite
+web-reader failures. The 27-page document is dated **31 July 2026**, effective
+**3 August 2026**, and revokes **SE-00002/BEI.PB2/01-2025**. Preserve the predecessor
+for dates before 3 August, and its stated transitional notation dates; never
+apply the new dictionary to the entire July–October window by convenience.
+
+T1 for the exchange's own dictionary, not a BBCA observation. Appendix 1, page 3,
+defines action codes, pre-opening eligibility and board/index codes; appendix 4,
+page 27, defines special notations. Board digit 5 distinguishes MAIN,
+DEVELOPMENT, ACCELERATION, SPECIAL_MONITORING and NEW_ECONOMY, with the document's
+explicit board/index membership wording. It supplies interpretation, not an
+instrument/date roster. Neither margin eligibility nor pre-opening eligibility
+establishes unrestricted normal trading for a whole session. No BBCA Remarks2
+row was obtained. Do not map the dictionary alone to TradingStatus, BoardRegime,
+ExchangeRuleVersion mechanism or MechanismException facts.
+
+The action-position code `--` explicitly means no corporate action in that
+display convention. This is a useful positive dictionary definition, **not**
+complete V0.2 ActionCoverage: no dated row sequence was obtained and the listed
+codes do not establish all merger/conversion/ticker/basis/cancellation coverage.
+Publication/effectivity dates come from the body; knowledge is this retrieval,
+not July. Local raw hash/length binds this received version; a signed filename
+does not establish cryptographic signature validation. No native correction
+feed or immutable URL promise was demonstrated. Acquisition/retention mode is
+manual attributed noncommercial IDX use under X3; routine crawling is prohibited.
+
+**X2 — independent dated IDX statistics.** The normal rendered [daily-statistics
+index](https://www.idx.id/id/data-pasar/laporan-statistik/statistik/) contained
+dated rows and actual PDF links, rather than a Loading shell. Retained
+[2 October 2026 daily PDF](https://www.idx.co.id/Media/4mdb3i3d/ds_261002.pdf):
+nine pages; page 1 identifies the date and **Trading Day 178**; page 5 contains
+exchange trading recapitulation. This is T1 first-party independent exchange
+report evidence, not a session inferred from the chosen BBCA/EODHD bars. Its
+aggregate volume unit does not define EODHD JK volume. Top-stock transaction
+statistics do not prove BBCA's positive normal status or supply full BBCA OHLC.
+
+The index shows several September/October dates and a date-range control, but
+history back to 23 July and every intervening artifact have not been authenticated.
+The row date is not an exact publication instant. Appendix version **v.2.2.0** is
+publication-format information, not a native content-correction ID. The report
+does not give an authenticated session `completedAt` instant; do not invent one
+from the date, scheduled close, chart axis, download time or PDF metadata. The
+publication/date finding is established; the full typed CompletedSession binding
+still needs its required clock and sequence. Manual attributed noncommercial
+retention uses X3; original bytes are retainable and fit the 4 MiB raw bound.
+
+**X3 — current IDX permission text.** The actual linked [usage
+terms](https://www.idx.id/id/syarat-penggunaan/) rendered fully in the normal
+browser. Clauses 5–6 address downloaded information and allow noncommercial use
+with complete source/access-date attribution; clause 6 prohibits web
+scraping/crawling. Clause 12 permits changes without notice. X2's appendix and
+index repeat the noncommercial attribution basis. This supports
+**CONFIRMED_MANUAL_ONLY** for the narrow permission premise of private,
+attributed use of the exact official downloaded documents, including retaining
+the originals for that use. It does not license recurring website automation,
+redistribution, commercial use or an unrestricted perpetual license. Authority
+is the source owner's published permission; this is not a market evidence tier.
+Retain the applicable terms version and access date with any later admission;
+the current page has no immutable revision identifier. This research finding
+does not set any source row to ALLOWED.
+
+**X4 — KSEI revised 2026 service calendar.** Ordinary bounded GET retained the
+actual [PENG-0002/DIR/KSEI/0126
+PDF](https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf),
+dated **8 January 2026**, three pages. The literal four-dot suffix is the
+observed working filename. It cites IDX **Peng-00171/BEI.POP/09-2025**, dated
+**23 September 2025**, and reserves changes following IDX/Bank Indonesia notices.
+It revises the service instructions referenced in K3's October 2025 notice;
+preserve both identities rather than silently replacing the older ledger entry.
+Its appendix includes **17 August** and **25 August 2026**.
+
+T1 for KSEI's own service closure scope; only a candidate admitted T2 reference
+for exchange scheduling. KSEI service exceptions and exchange-session closures
+are different. The operative IDX calendar body and later exceptional closures
+were not obtained. The smallest admissible composition remains an operative
+IDX schedule (or admitted scoped reference with independent proof), all applicable
+closure/amendment notices, and independent completed-session proof for each open
+date. Weekday arithmetic, calendar silence and service closure alone are
+insufficient. Raw retention works technically; KSEI permission remains UNKNOWN.
+
+**X5 — BBCA identity and listing milestone.** Fresh [KSEI BBCA
+detail](https://web.ksei.co.id/services/registered-securities/shares/lc/BBCA)
+explicitly identifies issuer, BBCA, **ID1000109507**, **Saham Biasa**, IDX, IDR
+and listing **31 May 2000**. This is T1 for that exact published depository
+identity/type point; its registration Active is not TradingStatus. An as-of
+ownership date is not automatically the identity record's effective date.
+No complete historic identity/listing/delisting interval was obtained.
+
+The issuer's [company-profile PDF](https://www.bca.co.id/-/media/Feature/Report/File/S8/ACGS/Laporan-ACGS/Indeks-Laporan-Tahunan/2021/20210330-profil-perusahaan-EN.pdf),
+printed page **33**, explicitly labels **Listing Date: May 31, 2000**, with
+BBCA/ISIN/IDX. Thus the separate IPO chronology date is not a competing listing
+date. T2 reviewed issuer evidence is allowed for the listing fact by the frozen
+contract; permission and retained original bytes still gate admission. Important:
+the reader returned **Annual Report 2025** content under a 2021 filename. Do not
+derive publication time/revision identity from that filename or claim a 2021
+knowledge timestamp. Ordinary direct GET returned 403; no complete original was
+retained in this checkpoint. Historical milestone corroboration does not prove
+current board/mechanism or a closed continuing listing interval.
+
+**X6 — action coverage deep check.** The current [KSEI action
+calendar](https://www.ksei.co.id/en/service-support/schedule/schedule-of-corporate-actions)
+offers separate cum/record/effective date filters and multiple action categories.
+The tested category list is not an exhaustive frozen break-type coverage
+statement. Issuer-name results also include debt events: match the exact equity
+ISIN and effective market segment, never every event carrying BCA's name.
+The [BCA action index](https://www.bca.co.id/id/tentang-bca/tata-kelola/aksi-korporasi)
+shows RUPS/dividend/other categories, 2026 documents and historical material.
+Neither tested index promises a complete bounded BBCA all-type export with
+cancellations/amendments. K5/K6/B1 remain positive event examples, not absence
+proof. Public download controls alone do not close KSEI/BCA retention permission.
+
+Smallest safe manual procedure, **not performed or established admissible here**:
+retain all scoped IDX/KSEI/BCA publication-index pages and originals needed for
+BBCA/ISIN over the exact effective window; cover each split/reverse/bonus/rights/
+stock-dividend/conversion/merger/ticker/share-basis category and predecessor/
+amendment/cancellation chain, including earlier publications effective inside
+the window. Require an authoritative complete-scope basis or issuer/registrar
+statement explicitly closing the missing types/intervals. The review manifest
+records covered types, interval, exact primary references, cutoffs and revisions.
+A manual checkbox/search log is not that basis. If a gap remains, retain PARTIAL
+coverage and comparability UNRESOLVED; do not append FULL or CLEARED. Cash
+dividends preserve price-only treatment; a break restarts warmup.
+
+### JK vendor semantics and permission decisions
+
+Fresh [EOD documentation](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes)
+defines raw as-traded OHLC, split/dividend-adjusted close and split-adjusted volume.
+Its general one-row-per-trading-day statement does not document JK exceptions,
+zero/no-trade padding, genuine provenance or price-unit continuity. The linked
+[official OpenAPI reference](https://eodhistoricaldata.github.io/EODHD-openapi/redoc.html)
+has an EOD response example without synthetic/placeholder/revision fields; it
+does not resolve these premises. **JK genuine/synthetic and zero-volume meanings
+remain unconfirmed; JK shares/lots/contracts remain undocumented.** Quantity and
+liquidity remain feature-local. No extrapolation from US examples or exchange
+lot size. Adjusted history recomputes; native raw correction lineage is still
+undocumented. Append local received versions, never overwrite/backdate them.
+
+[EODHD terms](https://eodhd.com/financial-apis/terms-conditions) explicitly allow
+qualifying nonprofessional private storage/manipulation/analysis and restrict
+redistribution. Exact active-account private scope can support ALLOWED_JUSTIFIED;
+actual account/source admission was not changed or certified here. Post-termination
+retained-use rights remain unconfirmed. The generic disclaimer is not sufficient
+to label a particular JK row synthetic or genuine. No provider request was made.
+
+| Candidate source/mode | Research permission classification | Basis / limit |
+|---|---|---|
+| IDX official manual downloads | ALLOWED_JUSTIFIED | X3 clauses 5–6 and X2 disclaimer: private noncommercial use with full source/access-date attribution; retain terms; no broader perpetual/commercial grant |
+| IDX website scraping/crawling | DISALLOWED_JUSTIFIED | Current X3 clause 6; no implementation or prohibited endpoint traversal |
+| EODHD qualifying private active-account documented API | ALLOWED_JUSTIFIED within that explicit scope | Published storage/analysis grant; real registry stays UNKNOWN pending its own scoped admission; no entitlement/termination assumption |
+| KSEI public master/detail/calendar/action artifacts | REMAINS_UNKNOWN | Fresh [disclaimer](https://web.ksei.co.id/disclaimer) GET repeats accuracy limitations/copyright; no sufficient retrieval/immutable retained-use grant found |
+| BCA issuer disclosures | REMAINS_UNKNOWN | Downloadable issuer disclosures exist; no applicable published retained-use grant established; banking-product terms do not answer document rights |
+
+### Concrete BBCA 50-session acquisition package
+
+Instrument **BBCA / ID1000109507 / retained local instrument binding**.
+Candidate window **2026-07-23 through 2026-10-02 inclusive**. A standard-library
+count confirms **52 weekdays**, or **50 candidate dates** after removing the two
+X4 service-calendar dates. This is not a finding of 50 actual exchange sessions.
+Any different operative closure/break requires recounting or an earlier start;
+do not slide missing endpoints or invent a session to keep the count.
+
+The exact acquisition recipe, pending source/permission gates, is:
+
+1. Retain the per-security KSEI identity/type/currency artifact, issuer listing
+   original (X5), and dated IDX BBCA listing/board/status records, operative
+   mechanism/exception references. A current point alone cannot cover July.
+2. Retain IDX calendar **Peng-00171/BEI.POP/09-2025** and applicable amendments/
+   exceptional closures, with X4 as a separately scoped KSEI reference.
+3. Manually download a dated IDX Daily Statistics original for **each** validated
+   open date from the public date-range index. X2 is the concrete last-date
+   artifact; obtain the other originals and documented completion-clock binding.
+   Verify sequence, date identities and coverage independently of price rows.
+4. After JK-specific convention/authenticity proof, acquire one bounded
+   **BBCA.JK** EOD response with `from=2026-07-23`, `to=2026-10-02`, `period=d`,
+   ascending JSON and the existing owner's entitled key. No key in documentation,
+   no request now. Retain original response plus exact convention version,
+   currency/price-unit, row classification and corrections. Missing/ambiguous
+   rows fail closed; the daily-statistics PDF is not a full price replacement.
+5. Complete X6's bounded action/reference-continuity review and retain its
+   authoritative coverage basis and all applicable event/amendment originals.
+   Retain both Remarks2 dictionaries for their applicable subwindows if used.
+6. Retain source-specific terms, full attribution/access dates and approved
+   source/parser bindings before any separately authorized import.
+
+Expected later typed output is scoped StableIdentity, SecurityType, Currency,
+ListingCoverage, BoardRegime, ExchangeRuleVersion/required exceptions,
+TradingStatus for the exact target (plus suspension/reopening evidence where
+applicable), ScheduledSession and CompletedSession for the authenticated sequence,
+SourcePriceConvention, exact GenuinePriceObservation revisions and CorporateAction
+events/coverage. Preserve raw hash/length/native references, economic/publication/
+retrieved/known/recorded clocks separately. Missing publication/completion clocks
+are not filled with retrieval time. PriceComparability is derived, never imported.
+No existing prospective capture is retroactively repaired.
+
+Feasibility today: **not a complete package**. X1/X2/X4 each fit 4 MiB; the KSEI
+all-market master still exceeds the 512-record bound, so do not truncate it or
+expand the panel. Exact status, JK semantics, full action/identity continuity,
+all completion/closure clocks, dated board/mechanism and KSEI/BCA rights are still
+gates. Fifty comparable completed sessions and authentic readiness are unproved.
+
+### Minimum stack, top blockers and next surgical milestone
+
+**Complete admitted minimum: none.** One candidate composition remains KSEI/X5
+reference plus operative IDX status/board/rules; IDX calendar plus X4 and complete
+X2-style independent completion reports; authenticated EODHD JK raw prices; and
+IDX/KSEI/BCA action originals plus authoritative closed coverage. Use manual IDX
+documents and only separately admitted source modes. No substitute/latest feed.
+
+Top three exact blockers and a single next action for each:
+
+1. **BBCA positive TRADING on 2026-10-02.** Obtain that official dated security
+   status record with its operative status dictionary. X1 Remarks2 is not this proof.
+2. **BBCA.JK EOD genuine/no-trade classification.** Obtain an explicit zero-cost
+   vendor statement for `/api/eod` JK carry-forward/placeholder/non-trading-date/
+   zero-volume behavior and identification of genuine observations, including
+   field currency/unit and correction scope. No support message was sent.
+3. **BBCA no comparability break over 2026-07-23…2026-10-02.** Obtain one issuer/
+   registrar/exchange retained statement or complete-scope export covering every
+   frozen break type and amendments for that interval; search silence cannot close it.
+
+These are prioritized blockers, not claims that the other mandatory verdicts have
+passed. **Next: 5A.2c, the single BBCA 2026-10-02 status-record confirmation**;
+no production implementation slice is unblocked. The previous conditional 5A.3
+order remains gated, not reauthorized. Existing **0007 then 0008** remain sufficient
+for typed ingestion; schema stays **2/4/5/6**, V0.2 evidence table absent. No new
+migration, deployment, adapter, Daily Runner, scheduler, FullIdx or soak activity.
+
+### Retained research identities, failures and validation
+
+| Research artifact | Bytes | SHA-256 |
+|---|---:|---|
+| X1 exact 27-page remarks PDF | 1,011,785 | `c50ea85cdbd18e41274e20a6ccd2531868b7ef11a918bdebff4ddf048808462a` |
+| X2 exact nine-page 2 October daily PDF | 1,987,188 | `8809cf9d71c8474eff2d25962e36558c388d77f484c2716d1b40462b6779efa7` |
+| X4 exact three-page KSEI January notice | 1,036,672 | `ca444520365cb1d8a74eed4c0e9c72c5718333e9a2745b1002bf6256c454a96e` |
+| Fresh KSEI disclaimer HTML | 25,249 | `9d9d6794c2bef4d42e93f8ebeca5660f979f0be2a2e8f9545a06b52c8c028457` |
+
+Browser downloads are research copies outside the repository; bounded working
+copies are under temporary storage. No operational archiver/import was invoked.
+Relevant dictionary/date pages were extracted and visually checked; no signature
+validation is claimed. No downloaded market/document dataset is committed.
+
+Meaningful failures: direct IDX terms/calendar/data-service reads failed; stock
+summary/recap browser pages exposed controls without an actual dataset. Statistics
+history expansion and its ordinary download control displayed connection failure;
+the exact linked file was retrievable through normal browser file download.
+Observed index totals changed between renders, so no complete-history count was
+inferred. IDX PDF and BCA PDF direct GETs returned 403. Web-reader KSEI notice/
+disclaimer reads failed, but bounded ordinary GETs returned 200. No challenge,
+CAPTCHA, login, access-control bypass, undocumented API or hostname probing loop.
+PDF inspection reused bundled tools after system Python lacked pypdf; a fontconfig
+render failure was resolved with a temporary font/cache configuration, not an
+installation or operational change.
+
+External public research was nonzero: IDX terms/circular/daily-statistics and
+candidate status/calendar/reference pages, KSEI detail/calendars/actions/disclaimer,
+BCA listing/action disclosures and EODHD docs/terms/official OpenAPI. Four explicit
+ordinary GET attempts outside the readers/browser: two PDF 403s and two successful
+KSEI downloads. **Market-provider API calls/units 0/0; paid activation/cost 0.**
+No credentials created, support contacted, source permissions changed or paid
+service activated. Protected database/file fingerprint comparison, history-prefix
+preservation, exact documentation/staged diff and whitespace checks validate this
+checkpoint; no code build/test suite is required or claimed. FullIdx remains
+disabled; prospective soak remains **1/10**. Fresh before/after checks matched all
+**21 protected table/existence states** and **1,386 protected file hashes**, with
+both prior documentation prefixes unchanged and all four research hash/length
+checks passing. Operational Outcomes remain **0**, schema **2/4/5/6**, V0.2
+evidence absent; frozen contracts, references, source registry/permission and
+operational archives/ledger/portfolio are unchanged.
