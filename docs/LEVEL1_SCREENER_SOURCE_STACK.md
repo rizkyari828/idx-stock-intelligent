@@ -775,3 +775,231 @@ permission-bearing configuration. Operational committed Outcomes remain **0**;
 V0.2 evidence remains absent. All three PDF byte-length/SHA-256 checks passed,
 the complete prior ledger prefix is preserved, and the research ledger is the
 only changed file. The runbook and all frozen contracts are unchanged.
+
+## Slice 5A.2d — Trading Eligibility gate feasibility review (2026-10-08 WIB)
+
+**Decision A — KEEP_AFFIRMATIVE_TRADING_STATUS_REQUIRED.** Keep positive
+authoritative status as a necessary premise of this conservative Level-1
+market-eligibility boundary. Official actual-trade evidence is a distinct useful
+fact, but is not sufficient alternative proof of that boundary. This decision
+rests on the unclosed administrative-status risk below, not on the contract being
+frozen or a preference for a literal source label `TRADING`. No frozen semantics
+are amended and no source is admitted by this review.
+
+### Traced purpose and actual implementation
+
+The normative evidence contract §§7, 9, 13–16 separates target-scope status,
+supported mechanism, evidence visibility and technical readiness. Its explicit
+risks include unknown suspension, unsupported mechanisms, false/carry-forward
+prices and retroactive reopening. The original requirement is **authoritative
+meaning**, not that a source must spell an internal enum token. An explicitly
+documented equivalent status or properly authenticated reopening/transition may
+support that meaning; activity cannot be renamed into it.
+
+Inspected implementation and tests:
+
+- `ScreenerMarketEligibilityEvaluator.Evaluate` in
+  `src/IdxStockIntelligence.Application/ScreenerEvidenceV02Evaluators.cs` checks
+  identity, type, listing, board/mechanism, status and target completion. A resolved
+  suspension is INELIGIBLE; non-VERIFIED/non-TRADING status is DATA_BLOCKED.
+- `ScreenerEvidenceAsOf.TradingStatus` combines exact retained Suspension,
+  Reopening and TradingStatus claims. The readiness composer matches sessionId,
+  keeps incomplete suspension from positively excluding an instrument, and does
+  not derive status from prices or completion.
+- `ScreenerEvidenceReadinessService` reads one consistent bounded snapshot/cutoff
+  and retrieves each historical day's market facts for episode replay. Today's
+  status is not projected backwards. `ScreenerDataReadiness` separately requires
+  eligible market facts, cleared prices and required available core features.
+- Reviewed tests include `StatusRequiresPositiveCompleteAuthoritativeFacts`,
+  `StatusTransitionsUseRetainedFactsAndNeverSessionsOrPrices`,
+  `TechnicalFailuresNeverChangeMarketEligibility`,
+  `ZeroVolumeExplicitlyGenuineIsAdmitted`, `AmbiguousZeroVolumeFailsClosed`,
+  `GenuineZeroComputesMonetaryZeroWhileV01GateAndRelativeVolumeStayUnchanged`
+  and `HistoricalMarketExclusionInterruptsEpisodeUsingRetainedStatus`.
+  These tests were inspected, not rerun.
+
+The existing model is date/session scoped (`DateOnly` effective intervals), not
+an intraday state machine. This review does not invent a close-time status rule,
+an opening clock, continuous permission throughout every instant, or future
+tradability guarantees. It retains the requirement for affirmative status
+applicable to the target scope. An aggregate daily transaction count has no such
+administrative assertion and cannot resolve an intraday restriction's scope.
+
+### Independent controls and funnel placement
+
+| Risk / concern | Existing control and semantic placement | Residual role of status |
+|---|---|---|
+| Wrong identity / non-ordinary security | StableIdentity / SecurityType; MARKET_ELIGIBLE concerns the admissible subject | Not a replacement for these facts |
+| Pre-listing / post-delisting | ListingCoverage / Delisting; MARKET_ELIGIBLE concerns legal listing scope | Listing does not establish unsuspended trading permission |
+| Unsupported board / mechanism | BoardRegime/BoardChange, ExchangeRuleVersion/MechanismException; MARKET_ELIGIBLE defines product-supported regimes | A supported regime can still contain a suspended instrument |
+| Suspension / temporary trading restriction / unconfirmed reopening | Authoritative status acts with effective scope and positive termination; MARKET_ELIGIBLE | Not closed by listing, board, calendar, executed trades or valid prices |
+| Stale / synthetic / substituted / false OHLC | Exact provenance, SourcePriceConvention and GenuinePriceObservation admission; authenticated data dependencies | Status cannot authenticate a vendor bar; a bar cannot authenticate status |
+| Exchange did not complete / wrong session | Independent CompletedSession and exact session identity; market target and price dependencies | Exchange completion says nothing about one security's permission |
+| Incomparable prices / actions / insufficient warmup | Derived comparability and core feature readiness; DATA_READY | No reason to make an otherwise administratively eligible security ineligible |
+| No executions / illiquidity | Distinct activity fact and feature-local liquidity diagnostics | No execution is not suspension; permission need not produce trades |
+
+Placement finding: contract §12 names price authenticity among hard dependencies;
+the actual market-facts evaluator has no price input, and readiness/history
+composition enforces price admission. Tests explicitly keep market eligibility
+while synthetic/uncleared inputs prevent DATA_READY. Contract wording and code
+placement are not identical here. This review records that existing tension;
+it does not resolve it by reinterpreting §12, relax price authentication, move a
+gate, or claim that implementation uses price authenticity as a status substitute.
+
+### Distinct ObservedTradingActivity and BBCA evidence
+
+Provider-neutral hypothetical meaning: **instrument X on authenticated exchange
+session E had actual executed exchange transactions**, with retained exact
+security/exchange/session scope, documented executed-transaction field semantics,
+native revision/provenance and normal PIT clocks. Minimum proposed authority for
+this hypothetical fact is **T1 exchange-authored**; T3 vendor bars cannot supply
+administrative eligibility. This is analysis only: no new domain member, payload
+or persistence binding is frozen.
+
+One documented positive measure can suffice for that limited fact; all three of
+frequency/value/volume are not required. Positive transaction frequency is enough
+when the source defines actual executions. Quotation counts, orders, estimates,
+list membership and unexplained zeros do not suffice. Do not require positive
+volume universally or derive an execution count from a vendor candle.
+
+The retained **2 October 2026 IDX Daily Statistics**, page 3, gives BBCA
+**transaction frequency 27,304**. Its officially linked manual v1.2, page 4,
+defines Top Stocks by Frequency as stocks ranked by that day's total trading
+frequency. Thus **YES, the retained report/dictionary support actual exchange
+transaction activity for BBCA on E**; no further frequency-field dictionary
+research is needed. Both original byte lengths/SHA-256 identities from 5A.2c
+were rechecked against the Downloads copies; temporary working copies from the
+earlier checkpoint were no longer present. This does not authenticate new typed
+evidence, session completion clocks or a production import.
+The originals were first retained by this research on 8 October, not established
+known on 2 October. They cannot satisfy an earlier knowledge cutoff or reopen
+an expired prospective Outcome enrollment deadline.
+
+Executed transactions establish some exchange access and executed-price formation
+at some time on E, and are inconsistent with *no executions throughout E*.
+They support not being fully prevented from executing across the entire reported
+scope. They do **not** prove normal administrative status for the target scope,
+absence of an intraday suspension, product-supported execution segment, listing/
+type, price comparability, genuine vendor OHLC, or future access. The report's
+all-market transaction statistics are not a supported continuous-market status
+code. Independent regime evidence remains necessary; no board research is added.
+
+### Policy alternatives and source feasibility
+
+The following YES/NO source assessment isolates the **positive-proof branch**:
+assume all independent identity/listing/board/mechanism/completion gates were
+separately satisfied and evidence visible at the evaluated cutoff. It does not
+claim that those other BBCA gates currently pass.
+
+| Option | Retained report sufficient for the option's positive-proof branch? | Semantic decision |
+|---|---|---|
+| 1. Affirmative authoritative status | **NO** | Recommended. Proves administrative eligibility, allows authenticated no-trade securities, and keeps unknown status explicit. |
+| 2. Status OR T1 actual activity | **YES for the weaker activity branch only** | Rejected as an equivalent safe eligibility proof. A security can execute early and then become suspended; other independent gates can still pass. Known-negative overrides help only when the restriction is known and its scope resolved. Missing restriction evidence would now permit an administrative false positive. |
+| 3. Negative status override only | **YES under its assumed no-visible-negative default; report not even necessary** | Rejected. Missing/partial status is effectively treated as permission. PIT visibility constrains evidence, but cannot turn an incomplete negative inventory into complete clearance. |
+| 4. Retain activity as separate diagnostic fact | **YES for activity; NO for eligibility replacement** | Useful conceptual separation, not a different eligibility policy or authorization to implement a new claim now. |
+
+**Actual current BBCA MARKET_ELIGIBLE admission: NO.** Positive activity is proved
+in the research originals, positive status is not; other independently blocked
+source premises also remain unchanged. BBCA is not newly potentially admissible
+under the selected policy. Under the hypothetical weaker option 2 it would have
+one qualifying activity input, not a complete admitted stack or DATA_READY result.
+No `NEEDS_FIELD_DICTIONARY_CONFIRMATION` verdict is used for the inspected
+frequency field; the missing meaning is administrative status, not frequency.
+
+The decisive counterexample is early actual trades followed by a target-applicable
+suspension, with no listing/type/board/mechanism change and genuine prices.
+All non-status premises and activity can agree while administrative eligibility
+fails. If the notice is missing at cutoff, option 2 admits where option 1 remains
+UNKNOWN. Avoiding that result would require additional affirmative coverage/status
+proof or an explicitly weaker product boundary. This is not duplicate control
+of price authenticity and is not solved by a different label for executions.
+
+### Cases, zero trade and conflict precedence
+
+All cases assume the other independent market gates pass; data readiness remains
+a separate requirement:
+
+| Case | Recommended mapping |
+|---|---|
+| A: official positive activity | With VERIFIED supported status → ELIGIBLE; activity alone / missing status → DATA_BLOCKED. |
+| B: legitimate active security, no executions | Affirmative applicable status may establish ELIGIBLE; no positive-volume/frequency requirement. Unproved status → DATA_BLOCKED, not inferred suspension. |
+| C: authoritative resolved suspension | INELIGIBLE for its applicable scope; activity does not terminate it. |
+| D: activity evidence missing | No new mandatory activity dependency: VERIFIED supported status may still establish ELIGIBLE; missing status remains DATA_BLOCKED. |
+| E: only third-party bar | DATA_BLOCKED on missing authoritative market premises, regardless of apparent price/volume. |
+| F: activity before later suspension | Resolved target-applicable suspension → INELIGIBLE; irreconcilable or temporally unrepresented scope → DATA_BLOCKED. Earlier execution never proves reopening. |
+
+Genuine zero-volume/no-execution price observations remain admissible under their
+exact documented convention/explicit flag and independent session proof. They
+are not actual-trade evidence despite the existing `TRADED_OBSERVED_AT_T` price
+reason token. With positive administrative status and cleared required history,
+they can still reach DATA_READY/technical evaluation, as the inspected zero tests
+demonstrate. Ambiguous zero remains rejected; optional relative-volume limits
+remain feature-local. No new mandatory activity or volume gate is recommended.
+
+For activity plus suspension effective before open, activity cannot override a
+resolved applicable suspension; a documented same-scope assertion of forbidden
+executions is retained as a diagnostic inconsistency, not synthetic reopening.
+For intraday suspension, preserve its stated scope; daily aggregates cannot
+order or disprove it. Unsupported intraday precision fails closed rather than
+inventing sub-day intervals. Different security/exchange/session/market scopes
+do not compete merely because their dates coincide. Irreconcilable eligible-state
+evidence blocks the affected dimension; no newest-row-wins rule is introduced.
+
+Retain existing effective applicability, cutoff visibility, authority and scope
+specificity, then admitted correction/revision lineage. Activity and status are
+different claims: transaction counts cannot supersede administrative acts by
+being T1 or newer. Applicable suspension remains until affirmative same-scope
+reopening; expired suspension without it remains reopening-unconfirmed unless
+other applicable authoritative status covers. Later corrections/cancellations
+apply only at their actual known/retrieved/publication boundaries; earlier-cutoff
+replay and immutable captures remain unchanged. PARTIAL activity never proves
+absence, continuity or an administrative state.
+
+### Contract, capture and version boundary
+
+**No contract amendment/version change is selected.** Preserve
+`screener-evidence-v0.2.0`, its binding and TradingStatus semantics. No 5A.2e
+amendment milestone is authorized by this recommendation.
+
+If a future product decision deliberately accepts the weaker activity boundary,
+that materially changes eligibility: use an explicitly additive policy such as
+`screener-evidence-v0.2.1`, not a clarification of v0.2.0. A separate amendment
+would have to resolve temporal/market scope and negative/conflict precedence,
+new distinct domain claim/authority/payload/logical identity, persisted binding,
+PIT reader selection, MarketEligibility inputs/reasons, readiness and historical
+episode composition, capture projection/replay hashes, tests and documentation.
+Schema/migration need is not decided or authorized here; do not promise that a new
+claim can be stored without separately assessing immutable vocabulary constraints.
+
+Existing captures/candidates/Outcomes remain historically valid under their
+original policy/input bindings, not certified anew by this review. Capture hashes
+include readiness history and exact evidence references; candidates require the
+exact technical policy/schema. Outcome V0.2 enrollment and verification explicitly
+support `screener-technical-candidate-v0.2.0` / `screener-evidence-v0.2.0`, schema 1,
+capture schema 1. They would not automatically accept a new eligibility policy:
+any future compatibility extension must be explicit/additive, with old resolvers
+retained. No recalculation, conversion or repair of existing rows. Research V0.1
+membership, denominators and contracts remain wholly independent and unchanged.
+
+### Next exact action and validation
+
+Keep the **BBCA / 2026-10-02 affirmative supported status** source gate. Recommend
+targeted legitimate manual acquisition of the exact official historical status
+record and definition, or an authenticated positive state plus demonstrably closed
+transition history. No further broad survey. A different instrument/date can be
+used only in a separately authorized demonstrator with explicit status; it would
+not resolve this BBCA case. Paid-source investigation is not yet warranted by
+evidence of necessity; an inaccessible public page does not prove payment is
+required. No support message, purchase or provider request was made.
+
+The next-step gate is unchanged, so the runbook is unchanged; 5A.3a remains
+blocked. Review-only validation covers exact contract/code/test inspection,
+retained source hash/length/field checks, append-only history, protected local-file
+hash comparison and exact diff/whitespace review. No build/test suite was executed;
+production code is unchanged. No database operation, source/permission mutation, evidence import,
+adapter, migration, runner or soak operation. FullIdx disabled and soak 1/10
+unchanged. No new external research/network requests; provider API calls/units
+0/0. Other source blockers were not investigated.
+Fresh local validation passed: **1,386 protected file hashes unchanged**, complete
+prior ledger prefix preserved, no untracked files and only this research document
+changed. The runbook, frozen contracts/binding and production files are unchanged.
