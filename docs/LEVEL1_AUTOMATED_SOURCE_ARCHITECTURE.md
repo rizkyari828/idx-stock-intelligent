@@ -624,3 +624,184 @@ use **0**; accounts created **0**; credentials accessed **0**; no WAF/CAPTCHA
 bypass, no scraping loop, no paid activation. `git diff --check` clean; only this
 document and the appended runbook note change; commit message
 `docs: confirm automated idx control evidence route`; no push.
+
+---
+
+## Slice 5A.2f — EODHD JK price semantics confirmation (2026-10-08 WIB)
+
+**Decision: C — EODHD_JK_PRICE_NOT_YET_ADMISSIBLE.** The documented Free EOD
+interface is a feasible bounded acquisition candidate. Mandatory JK observation
+authenticity and exact currency/price-unit binding remain unconfirmed. No
+endpoint-specific contradiction establishes D; generic raw-price documentation
+does not establish A/B. Quantity/segment uncertainty and absent native revision
+IDs are not universal price blockers. The price-source gate remains closed, so
+the runbook gate is unchanged. No production adapter or source admission is made.
+
+Initial repository: `main`, `a19205548360e09d4630e4921d2251a31f9e761d`, clean,
+14 ahead / 0 behind locally recorded `origin/main`; no fetch. Earlier architecture,
+Slice 5A.2e, source ledger and frozen contracts remain unchanged. This milestone
+does not revisit IDX control evidence, KSEI actions or paid alternatives.
+
+### First-party sources actually inspected
+
+Directly opened on this review date; search snippets were discovery only. These
+were public documentation/page reads, not authenticated market-data requests.
+
+| ID | Source | Evidence scope |
+|---|---|---|
+| P1 | [EOD endpoint documentation](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes) | Field dictionary, daily date, raw/adjusted distinction, bounded GET and examples. |
+| P2 | [Official OpenAPI reference](https://eodhistoricaldata.github.io/EODHD-openapi/redoc.html) | `/eod/{ticker}` parameters and seven-field response specimen; no documented per-row authenticity/correction metadata. |
+| P3 | [Pricing](https://eodhd.com/pricing) | $0 Free package, global EOD/indices, one-year history. Actual account entitlement not checked. |
+| P4 | [API limits](https://eodhd.com/financial-apis/api-limits) | Daily/minute limits, endpoint costs, reset and usage counters. |
+| P5 | [Terms](https://eodhd.com/financial-apis/terms-conditions) | Nonprofessional private storage/analysis grant, redistribution restrictions, termination and disclaimers. |
+| P6 | [Data sources](https://eodhd.com/financial-apis/our-data-sources-and-data-partners) | Named exchange agreements and other CFD/market-maker EOD feeds; no JK-specific provenance assignment. |
+| P7 | [Exchange/ticker dictionary](https://eodhd.com/financial-apis/exchanges-api-list-of-tickers-and-trading-hours) | Listing currency, code/ISIN fields and documented symbol-bounded lookup; not raw-field unit continuity. |
+| P8 | [BBCA.JK page](https://eodhd.com/financial-summary/BBCA.JK), [BBNI.JK page](https://eodhd.com/financial-summary/BBNI.JK) | Vendor recognizes these symbols. BBCA displays `Rp`; neither inspected page establishes the required historical raw-field unit binding. |
+| P9 | [Personal/commercial licence FAQ](https://eodhd.com/financial-apis/commercial-vs-personal-license-use) | Personal-plan scope and professional-use distinction; no form submitted. |
+
+### Required semantic matrix
+
+Verdicts describe the exact proposition stated, within inspected documentation;
+NOT_DOCUMENTED is not a claim that no unpublished clarification could exist.
+
+| Proposition | Verdict | Finding / admission consequence |
+|---|---|---|
+| `open`, `high`, `low`, `close` are unadjusted | PROVEN | P1 defines as-traded OHLC without adjustments. Use raw `close` for the frozen technical path. |
+| `adjusted_close` includes splits and dividends | PROVEN | P1; separate from raw close. Other action-specific adjustment rules: NOT_DOCUMENTED. |
+| Daily `date` means trading date | PROVEN | P1 dictionary uses YYYY-MM-DD trading date. JK timezone/exception mapping: STILL_UNCONFIRMED. |
+| Every JK row is a genuine, non-synthetic observation | STILL_UNCONFIRMED | P1/P2 lack a JK guarantee or usable row flags for carry-forward, repeated prior-close substitution, placeholders or estimates. Matching OHLC/positive volume cannot prove this. |
+| JK weekends/holidays are always omitted | STILL_UNCONFIRMED | Generic trading-day wording is not an explicit JK exception contract. No independent calendar/completion authority assigned to EODHD. |
+| JK no-trade/inactive-session omission or row creation | NOT_DOCUMENTED | Cannot tell missing observation from provider padding or establish no-execution meaning. |
+| JK `volume = 0` means genuine no execution | NOT_DOCUMENTED | Do not map zero to unknown, genuine or synthetic by assumption. Ambiguous zero rows fail admission; this does not universally reject nonzero prices. |
+| JK volume unit is shares/lots/contracts | NOT_DOCUMENTED | No JK unit dictionary found. Generic volume is insufficient. |
+| Volume is unadjusted transaction quantity | CONTRADICTED | P1 expressly describes split-adjusted volume. Never label it `RAW_AS_TRADED` or silently undo adjustments. |
+| JK market segment is regular/all/consolidated | NOT_DOCUMENTED | Retain `UNKNOWN`; no invented segment or universal stock-only readiness gate. |
+| Exact JK raw OHLC is dated IDR per share, unconverted | STILL_UNCONFIRMED | P7 listing-currency metadata and P8 currency display are narrower facts; P1/P2 do not bind this endpoint's unit/scale or historical continuity. |
+| Raw historical OHLC correction behavior | NOT_DOCUMENTED | No immutable-history promise or JK correction protocol found; conservatively allow later changed observations. |
+| Adjusted history can change | PROVEN | P1 describes recomputation after dividends; never use adjusted close as stable raw identity. |
+| Native EOD row revision/update/correction ID | NOT_DOCUMENTED | P2 example has date/OHLC/adjusted close/volume only. No documented ETag/Last-Modified revision meaning. No live headers inspected. |
+| All EOD feeds are direct exchange feeds | CONTRADICTED | P6 distinguishes contracted feeds from other CFD/market-maker feeds. This does not identify a particular JK row as synthetic or establish its origin. |
+
+The [frozen observation rule](SCREENER_EVIDENCE_V0_2_CONTRACT.md#6-genuine-price-observation)
+requires positive non-synthetic/non-placeholder/no-substitution proof and an
+independent completed session. Repeated numbers, matching official prices or one
+successful request cannot replace a source convention. No local filling, weekend
+rows, estimates, adjusted-price substitution or volume-based authenticity rule.
+
+### Retention and free automated acquisition
+
+**ALLOWED_JUSTIFIED** for a qualifying nonprofessional user's private, noncommercial
+storage/manipulation/analysis under P5, supported by P9's personal-plan scope.
+This covers retained responses and personal derived analysis within that scope;
+redistribution/account sharing/public display are restricted. No Free-specific
+storage exception was found. Post-termination retained-use rights remain
+**REMAINS_UNKNOWN**: no perpetual licence or deletion obligation is invented.
+Actual account qualification/entitlement and source/permission registry admission
+remain separate, unchanged gates. No account/credentials were created or inspected.
+
+Candidate request shape, not executed: `GET https://eodhd.com/api/eod/BBCA.JK`
+with local `api_token`, explicit `fmt=json`, `period=d`, `order=a`, bounded ISO
+`from`/`to`. Preserve exact original bytes plus sanitized request parameters,
+source identity, receipt/admission clocks, hash and length; never retain the token
+in provenance. The documented API supports unattended requests; no manual
+operational download/import is proposed. This establishes transport feasibility,
+not genuine-price admission or actual entitlement.
+
+P3/P4: Free account/key, 20 units/day, EOD 1/request, usage `/api/user` 0 units,
+bulk 100 (excluded). Reset midnight GMT = 07:00 WIB; counter resets lazily.
+Default minute ceiling is 1,000 requests, with actual response limits/Retry-After
+controlling. Preserve local ceiling **16**, reservations before attempts, no
+automatic retries or purchased/bonus-unit reliance. Terms' generic 100,000 figure
+does not override the explicit Free allowance. No API counter was queried.
+
+| Bounded acquisition scenario | Units / feasibility |
+|---|---|
+| Ten equities + `JKSE.INDX`, one request each | 11; fits 16 local / 20 Free, subject to real entitlement/availability. |
+| Same day plus one explicit failed-symbol catch-up | 12; leaves at most 4 local units for correction reconciliation, less other account use. |
+| Entire eleven-symbol panel retried the same quota day | 22; exceeds both ceilings. Defer bounded outstanding symbols across quota days; never buy units. |
+| Initial bounded history for all eleven symbols | 11 if one window/symbol; replace that day's narrow request with the history window containing it, or schedule separately. A second full bootstrap plus daily panel costs 22 and does not fit. |
+| Routine correction overlap | Widen each daily window within bounds for the same 11-unit cost, or rotate separate checks within remaining units. No guarantee of detecting all transient/provider corrections. |
+
+P3's one-year entitlement can accommodate the existing conservative **330-calendar-
+day** collector ceiling. One range/symbol can retrieve candidate history for
+50+ sessions without one call per date. This is **candidate price-bootstrap
+feasibility**, not proof of 50 consecutive comparable completed sessions, actual
+BBCA row availability or post-break warmup. Independent session, currency/identity
+and complete action-continuity premises remain required. Preserve original
+acquisition bounds; no unbounded full-history/bulk call or new collector invoked.
+
+### Retained revisions and feature boundaries
+
+Existing `RawArtifactArchiver` hashes original bytes and records length; the pilot
+retains fetch observations and appends local bar revisions on changed canonical
+content. Source/reference + receipt chronology + content hash can preserve
+**locally observed versions** without a vendor revision number. Keep source,
+instrument, session/date, endpoint/parameters and exact bar/artifact bindings;
+local revision ordinals are never provider correction IDs/publication times.
+Changed range bytes alone do not prove every contained row changed. Retain old
+bytes, append newly authenticated observations at honest knownAt, never overwrite
+or backdate, and quarantine unresolved lineage rather than manufacture it.
+Unchanged-byte refetches do not create extended semantic scope. Missed intermediate
+versions cannot be reconstructed; raw corrections remain conservatively possible.
+This reuses the model conceptually, not a completed V0.2 adapter/mapping.
+
+Inspected `ScreenerEvidenceV02Readiness` and `ScreenerEvidenceV02Technical` agree
+with frozen sections 11–12: EMA20, EMA50, ATR14, priorHigh20, priorLow20 and
+distanceToHighPercent use price/session/comparability premises, not authenticated
+volume units. ATR percent, close change percent and price trend likewise need no
+quantity. EMA50 needs 50 cleared bars; ATR14 15 bars; prior extrema exclude the
+current bar and need 20 previous valid sessions. RS20/RS60 need independently
+admitted aligned benchmark prices, not volume, and remain optional.
+
+Relative volume, monetary liquidity proxy and liquidity-dependent features remain
+feature-level UNAVAILABLE without their required comparable quantity/basis/segment
+proof. Current readiness requires supported share units and `RAW_AS_TRADED`
+quantity basis; P1's split-adjusted volume is not that basis. Actual traded value
+needs its own evidence. No mandatory volume/liquidity gate is added. A zero row
+with ambiguous genuineness still fails the separate frozen price-admission rule.
+
+EODHD remains **T3 observation authority only**. It cannot supply TradingStatus,
+listing, board/mechanism, exchange completion or corporate-action completeness.
+No `GenuinePriceObservation` or `SourcePriceConvention` is admitted from this review.
+In particular, do not set synthetic/placeholder/substituted markers to NO or
+syntheticIdentification to DOCUMENTED_NON_SYNTHETIC from generic raw-OHLC wording.
+No source ID, convention version, exact evidence references or future mapping is
+frozen as operationally usable while mandatory facts remain unproved.
+
+### Exactly two mandatory unresolved premises and next actions
+
+1. **JK genuine-observation/date semantics.** Obtain an endpoint-specific retained
+   EODHD specification/answer, without sending it in this task: “For Free
+   `/api/eod/BBCA.JK` and the other pilot JK equities with `period=d`, what source
+   produces OHLC and what local trading date does `date` identify? Can rows be
+   carried forward, previous-close substitutions, synthetic, placeholders or
+   estimated, including weekends, holidays and no-execution/inactive sessions?
+   State each condition and the fields/conventions that positively distinguish
+   genuine observations; what exactly does zero volume mean?” This resolves the
+   mandatory authenticity family, not optional quantity units by guesswork.
+2. **Exact raw currency/unit continuity.** Obtain one retained field/metadata
+   specification/answer: “For the same JK EOD endpoint, are raw OHLC unconverted
+   IDR per ordinary share? Which dated symbol/ISIN/exchange metadata and convention
+   bind that currency/unit/scale to the fields, including historical code, currency
+   or unit changes?” Listing currency or price magnitude alone is insufficient.
+
+No further general vendor survey is recommended. Native revision IDs, raw correction
+protocol, optional volume/segment and post-termination rights remain explicit
+limitations, not extra universal blockers for qualifying active-account price use.
+**5A.3c — Automated EODHD JK Price Evidence Adapter remains conditional**, pending
+these two answers and ordinary scoped admission. Daily Runner remains blocked by
+the separate unchanged source gates. No support/licensing message was sent.
+
+### Validation and activity
+
+Documentation only; append to this file alone. No build/full test suite or live
+probe needed: a price sample cannot settle undocumented semantics. Fresh public
+first-party reads/searches were nonzero; authenticated/demo market-data API calls
+**0**, provider units **0**, paid use **0**. No credential search/exposure, account
+creation, paid activation, provider recovery, operational collector, DB connection/
+query/mutation, source/permission registry change or production evidence import.
+No IDX/KSEI research in this milestone. FullIdx/soak configuration unchanged;
+historical operational counts were not freshly measured. Checks passed: exact
+documentation diff/`git diff --check`, unchanged historical prefix, frozen binding,
+source ledger and runbook, and matching **1,386 protected file hashes** before/after.
+Only this documentation file changes; no push.
