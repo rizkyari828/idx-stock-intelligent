@@ -1260,3 +1260,164 @@ EODHD documentation GETs (all public, no login); market-data API calls **0**,
 provider units **0**, paid use **0**, accounts **0**, credentials **0**, support
 messages **0**, WAF/CAPTCHA bypass **0**. `git diff --check` clean; commit message
 `docs: finalize eodhd semantics assessment`; no push.
+
+---
+
+## Level-1 blocker matrix reconciliation (2026-10-08 WIB)
+
+**Outcome: Level-1 remains BLOCKED.** No admitted complete Level-1 source stack
+exists. The remaining blockers are **external** (source permission, authoritative
+evidence routes, provider semantics), not internal development gaps: the
+provider-neutral architecture and readiness gates are already sufficient. This
+re-run adds no new readiness enum, no requirement, and no frozen-contract change;
+it consolidates accepted evidence into one dependency map. The operational
+decision itself is deferred to the next milestone.
+
+Baseline: `main`, HEAD `107ac55b24ceebc423a2e1fc3c4dff428fe0437b`, clean worktree,
+19 ahead / 0 behind locally recorded `origin/main`; no fetch. Appends to this file
+alone. Sources consolidated: this document (5A.2e–5A.2g, delta review, EODHD final),
+[source ledger](LEVEL1_SCREENER_SOURCE_STACK.md),
+[V0.2 contract](SCREENER_EVIDENCE_V0_2_CONTRACT.md) and
+[persisted binding](SCREENER_EVIDENCE_V0_2_PERSISTED_BINDING.md).
+
+### Frozen mandatory requirements (contract §§3–13)
+
+Per-instrument/market claims: stable identity, security type, currency, listing
+coverage, delisting, board/regime, board change, exchange rule version, mechanism
+exception, suspension, reopening, scheduled session, completed session, corporate
+action (event + coverage), source price convention, genuine price observation;
+derived: price comparability (T4 only, never a base claim). Hard eligibility
+dependencies are identity, listing, board/mechanism, status and session; price
+authenticity gates price; optional features are feature-local. Incomplete mandatory
+evidence fails closed (`UNKNOWN`/`PARTIAL`/`DATA_BLOCKED`), never a green result.
+
+### Complete Level-1 blocker matrix
+
+Statuses reuse existing tokens. "Admission" = current operational admission (all
+are not admitted). "Root" = independent root blocker; "Derived" = consequence.
+
+| # | Requirement | Mandatory? | Candidate source | Evidence status | Admission | Exact blocker | Kind | Required resolution |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Stable identity | Yes | KSEI master/detail + IDX/issuer | CONDITIONALLY_ADMISSIBLE | Not admitted | Exact local-ID/ISIN/code interval; permission | Root | Permitted automated route + dated interval |
+| 2 | Security type | Yes | KSEI detail + issuer | CONDITIONALLY_ADMISSIBLE | Not admitted | Ordinary-equity classification/interval | Root | Authoritative type interval |
+| 3 | Listing/delisting | Yes | IDX acts + issuer/KSEI | NEEDS_CONFIRMATION | Not admitted | Operative listing/delisting act; PIT coverage | Root | Authoritative dated acts |
+| 4 | TradingStatus | Yes | IDX exact-session | NOT_OPERATIONALLY_ACCEPTABLE | Not admitted | Permission + complete transitions/checkpoint | Root | 5A.2e authorized route + completeness |
+| 5 | Board/mechanism | Yes | IDX roster + rules/exceptions | NEEDS_CONFIRMATION | Not admitted | Dated membership, rule version, exceptions | Root | Authoritative dated mapping |
+| 6 | Trading calendar | Yes | IDX annual + amendments | Not admitted automated | Not admitted | Unattended permission; amendment coverage | Root | Permitted calendar route |
+| 7 | Exceptional closures | Yes | Governing IDX notices/checkpoint | Not admitted automated | Not admitted | No complete free source | Root | Authoritative closure stream |
+| 8 | Session completion | Yes | Independent IDX artifact | SOURCE_NOT_AVAILABLE | Not admitted | No authenticated completion artifact/clock | Root | Affirmative `completedAt` evidence |
+| 9 | EOD OHLC (raw) | Yes | EODHD Free API (T3) | CONDITIONAL | Not admitted | Family A + Family B | Root | Provider confirmation |
+| 10 | Genuine price observation | Yes | EODHD | Not admitted | Not admitted | Rows not distinguishable from synthetic/carry-forward; date/session | Derived ← 9 | Close 9 |
+| 11 | Price currency/unit convention | Yes | EODHD | Not admitted | Not admitted | IDR per-share field/scale binding | Derived ← 9 | Close 9 (Family B) |
+| 12 | Historical instrument continuity | Yes | KSEI/IDX + EODHD | PARTIAL | Not admitted | Dated identity/ISIN/currency/scale continuity | Root/shared | Dated metadata continuity |
+| 13 | Corporate Action | Yes | KSEI/IDX/issuer | CORPORATE_ACTION_COVERAGE_PARTIAL + AUTOMATION_OR_PERMISSION_BLOCKED | Not admitted | Coverage + permission | Root | Complete all-type window + permission (5A.2g) |
+| 14 | Price comparability | Yes (derived T4) | Derived from 1/9/11/12/13 | UNRESOLVED | n/a | Missing action coverage; unbound convention | Derived ← 13 (+9/11/12) | Clear parents |
+| 15 | Historical/session coverage | Yes | Derived from 4/6/7/8 | Unproven | n/a | Control/session evidence absent | Derived ← 4/6/7/8 | Clear parents |
+| 16 | Source provenance | Yes | Ingestion framework | Implemented | Capability exists | No admitted rows | Internal (satisfied) | Admit evidence |
+| 17 | Revision / PIT correctness | Yes | As-of reader + lineage | Implemented | Capability exists | No admitted rows | Internal (satisfied) | Admit evidence |
+| 18 | Required source permissions | Yes | `source` registry | `eodhd` = UNKNOWN only | Not admitted | No ALLOWED source with evidence | Root (shared) | Permitted source registration |
+| 19 | Required evidence admission | Yes | — | None admitted | Not admitted | No admitted claim rows | Derived ← 1–13 | Admit roots |
+| 20 | Final Level-1 readiness | Yes | Derived | DATA_BLOCKED | Not ready | Multiple mandatory gaps | Derived ← all roots | Clear roots |
+
+Feature-specific rows (optional, contract §12): raw traded volume — **UNAVAILABLE**
+(EODHD volume split-adjusted, not `RAW_AS_TRADED`); relative volume/monetary
+liquidity proxy — **UNAVAILABLE**; benchmark — **CONDITIONAL** (EODHD `JKSE.INDX`,
+unadmitted); `rs20Pp`/`rs60Pp` — **UNAVAILABLE**; foreign/broker flow and sector
+rotation — **DEFERRED**. None of these is a universal mandatory blocker.
+
+### Independent root blockers vs derived outcomes
+
+Root (external) blockers: **R1** IDX automated control-evidence permission;
+**R2** TradingStatus completeness; **R3** board/mechanism dated evidence;
+**R4** calendar/exceptional closures; **R5** session completion; **R6** EODHD
+Family A; **R7** EODHD Family B; **R8** corporate-action coverage + permission;
+**R9** KSEI/IDX/issuer identity/listing/type permission and coverage; **R10**
+source-permission registry (no `ALLOWED` source).
+
+Derived (never counted as separate roots): genuine price observation ← R6+R7;
+currency/unit convention ← R7; historical continuity ← R9+R7; price comparability
+`UNRESOLVED` ← R8 (+R6/R7/R9); historical/session coverage ← R2+R4+R5;
+`MARKET_ELIGIBLE` blocked ← R2/R3/R9; `DATA_READY` blocked ← all mandatory roots.
+`DATA_BLOCKED` is the final readiness result, not an independent source gap.
+
+### Current source-admission matrix
+
+| Source | Technical | Automation | Permission | Semantics | Coverage | Registry | Admitted claims |
+|---|---|---|---|---|---|---|---|
+| EODHD | Yes | Yes (documented) | ALLOWED_JUSTIFIED (private) but registry UNKNOWN | Family A/B unresolved | Bounded pilot | `eodhd`/UNKNOWN | 0 |
+| IDX official/public | Yes | Prohibited (website) / paid (system-to-system) | Blocked | Partial | Incomplete | Absent | 0 |
+| KSEI | Yes (PDF/XLS) | Permission unresolved | Unknown | Partial | Incomplete | Absent | 0 |
+| Issuer disclosures | Yes | Unclear | Issuer-specific | Positive events | Per-issuer | Absent | 0 |
+| Stockbit | Yes | Terms require consent | Not suitable | Rich but no provenance | n/a | Absent | 0 |
+
+Configured ≠ admitted; public access ≠ automation permission; price availability ≠
+genuine observation; historical data ≠ PIT-correct; partial ≠ complete; fetch ≠
+completed session; candidate ≠ production adapter.
+
+### Root blocker prioritization (by resolution dependency)
+
+| Blocker | Exact missing element | External vs internal | Shared by | Changes feasibility? | Monetary cost | Narrower pilot? |
+|---|---|---|---|---|---|---|
+| R1 IDX permission | Authorized free machine route or terms decision | External (IDX) | 4, (5,6,7) | Yes, mandatory | Requested free; paid not justified | No |
+| R2 TradingStatus | Positive bootstrap + complete transitions | External (IDX) | 15 | Yes, mandatory | — | No |
+| R3 Board/mechanism | Dated roster + rule versions | External (IDX) | eligible scope | Yes, mandatory | — | No |
+| R4 Calendar/closures | Authoritative dated/amended schedule + exceptions | External (IDX) | 15, session | Yes, mandatory | — | No |
+| R5 Session completion | Affirmative `completedAt` artifact | External (IDX) | 15 | Yes, mandatory | — | No |
+| R6/R7 EODHD semantics | Endpoint-specific provider statements | External (EODHD) | 9,10,11,12,14 | Yes for price | Zero (free account) | Yes (conditional price) |
+| R8 Corporate action | Complete all-type window + permission | External (KSEI/IDX/issuer) | 13,14 | Yes, mandatory | — | No |
+| R9 Identity/listing/type | Permitted dated authoritative records | External | 1,2,3,12 | Yes, mandatory | — | No |
+| R10 Registry | An `ALLOWED` source with evidence | Internal process on external grant | all | Enables admission | — | No |
+
+Internal development alone resolves **none** of the mandatory roots; the missing
+elements are external permission/authority/semantics. Repository work could only
+build adapters *after* admission (deferred and not authorized here).
+
+### Historical versus prospective, pilot versus full-IDX
+
+- **Historical reconstruction:** blocked — control/session/action history unproven,
+  and current metadata cannot reconstruct historical PIT states.
+- **Prospective EOD:** blocked — the same permission/semantic gaps apply daily.
+- **Pilot-universe:** EODHD transport feasible; Level-1 readiness still blocked.
+- **Broader/full-IDX:** not feasible — bulk quota (100 units) exceeds Free, and
+  identity/status/action permission+coverage gaps remain.
+A future prospective warmup is conceivable only after all forward sources are
+admitted; it has not started and cannot currently run.
+
+### Decision-question answers
+
+- **Q1** No admitted complete Level-1 operational source stack exists.
+- **Q2** No — TradingStatus/session control is one of several mandatory root blockers.
+- **Q3** Yes — corporate-action coverage independently prevents `CLEARED`
+  comparability where required.
+- **Q4** Yes — EODHD remains independently blocked by Families A and B.
+- **Q5** No — internal development cannot resolve the external permission/authority/
+  semantics roots.
+- **Q6** No — the existing architecture is sufficient; no redesign is required.
+- **Q7** Portfolio ledger/thesis facts, read-only evidence storage/inspection,
+  diagnostic feature calculation and research storage remain usable independently
+  of Level-1 readiness; `setupEvaluated`/candidate promotion stay blocked.
+- **Q8** No — a bounded prospective Level-1 pilot is not currently admissible.
+- **Q9** No — a paid provider does not necessarily resolve undocumented semantics
+  or publisher permission.
+- **Q10** The smallest justified next decision is the **Level-1 Operational
+  Decision** (classify what may safely operate, what stays blocked, and whether
+  source pursuit continues or pauses pending external permission).
+
+### Prepared operational options (not activated)
+
+- **A —** Maintain strict BLOCKED status until mandatory source evidence is admitted.
+- **B —** Continue independent research/portfolio/evidence capabilities without
+  claiming `DATA_READY`.
+- **C —** Bounded prospective pilot only if every applicable frozen requirement can
+  actually be satisfied (not currently).
+- **D —** Future licensed/paid assessment only if it could close an exact mandatory
+  blocker (not demonstrated). No option is activated; no contract is weakened.
+
+### Validation and activity
+
+Documentation only; append to this file alone. No production code, adapter,
+migration, source/permission registry, operational DB, evidence, Daily Runner,
+FullIdx or soak change; no provider/network call in this milestone (provider units
+**0**, paid use **0**). Frozen contracts and persisted binding unchanged. Read-only
+repository inspection only. `git diff --check` clean; commit message
+`docs: reconcile level1 operational blockers`; no push.
