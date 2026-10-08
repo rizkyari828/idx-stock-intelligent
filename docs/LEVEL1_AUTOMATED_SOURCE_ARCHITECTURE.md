@@ -1113,3 +1113,150 @@ FullIdx or soak change. No provider/network call was made in this milestone
 (provider units **0**, paid use **0**, credentials **0**); the repository was
 inspected read-only. `git diff --check` clean; commit message
 `docs: clarify level1 source selection policy`; no push.
+
+---
+
+## EODHD semantics final determination (2026-10-08 WIB)
+
+**Decision: EODHD_JK_PRICE_NOT_YET_ADMISSIBLE is confirmed and final for the
+current evidence.** Both mandatory JK semantic families remain **UNRESOLVED**:
+they require an endpoint-specific provider confirmation that public EODHD
+documentation does not supply. EODHD stays **CONDITIONAL** (bounded T3 pilot price
+candidate), is **not ready for adapter implementation**, and no paid upgrade is
+justified because payment does not resolve undocumented semantics. This closes the
+bounded EODHD investigation for the currently identified questions; no further
+broad search will be started without a new evidence path.
+
+Baseline: `main`, HEAD `056065a9c2f712fd1f44abe6cb62c9763f70d5db`, clean worktree,
+18 ahead / 0 behind locally recorded `origin/main`; no fetch. This section appends
+to this file alone and supersedes no frozen contract. It continues Slice 5A.2f and
+reuses [EODHD semantics and rights](EODHD_SEMANTICS_RIGHTS.md) and the
+[data-spike empirical findings](DATA_SPIKE_RESULT.md).
+
+### Bounded re-check performed
+
+Only first-party EODHD documentation already used by Slice 5A.2f was re-read:
+the [EOD endpoint specification](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes),
+[data sources and partners](https://eodhd.com/financial-apis/our-data-sources-and-data-partners)
+and [covered tickers](https://eodhd.com/financial-apis/covered-tickers-eodhd)
+(each HTTP 200, public, no login). These describe raw as-traded OHLC,
+split/dividend-adjusted `adjusted_close`, split-adjusted volume, one row per
+trading day and nullable ISIN in the current ticker list. They contain **no**
+Jakarta/JK-specific statement on synthetic/placeholder/estimation, carry-forward,
+no-execution or zero-volume behavior, **no** JK timezone/date mapping, and **no**
+endpoint-field currency/unit binding. No market-data API request, account action,
+paid activation or support message was made.
+
+### Final semantics matrix
+
+Evidence types: **PD** provider documentation; **RE** retained empirical
+repository evidence; **INF** engineering inference. Statuses reuse existing tokens.
+
+| Item | Claim | Evidence | Type | Status | Operational consequence | Missing evidence |
+|---|---|---|---|---|---|---|
+| OHLC origin | `open/high/low/close` are raw, unadjusted, as-traded | EOD spec | PD | PROVEN (documentation) | Preserve raw fields for the frozen technical path | none |
+| Genuine observation | Every JK row is a genuine non-synthetic observation | EOD spec, OpenAPI | PD | STILL_UNCONFIRMED | Blocks `GenuinePriceObservation` admission | JK non-synthetic/no-substitution statement |
+| Trading date | Daily `date` identifies the local trading date | EOD spec | PD | PROVEN (YYYY-MM-DD) but JK timezone mapping STILL_UNCONFIRMED | Session binding uncertain | JK date/timezone mapping statement |
+| Weekend behavior | JK weekends omitted | generic one-row-per-trading-day | PD | NOT_DOCUMENTED (JK) | Independent calendar still required | JK exception contract |
+| Holiday behavior | JK holidays omitted | generic wording | PD | NOT_DOCUMENTED (JK) | Closure handling relies on independent proof | JK holiday contract |
+| Suspension behavior | Suspended sessions omitted or marked | none | — | NOT_DOCUMENTED | Cannot distinguish suspension from absence | JK suspension representation |
+| No-execution behavior | No-execution sessions omitted or zero row | none | — | NOT_DOCUMENTED | `NO_TRADE` vs missing row unresolved | JK no-execution convention |
+| Zero-volume meaning | JK `volume = 0` means genuine no execution | EOD spec | PD | NOT_DOCUMENTED; ambiguous zero fails admission | Zero rows not admitted | Zero-volume convention/flag |
+| Carry-forward | Prior close is not carried forward as a new row | data spike | RE | CONTRADICTED for tested rows (ANTM carry-forward zero-volume rows on Aug 17/25; GOTO padding) | Cannot assume row absence/presence is genuine | JK carry-forward/fill policy |
+| Synthetic/placeholder | No synthetic/placeholder/estimated rows | EOD spec, OpenAPI | PD | STILL_UNCONFIRMED | Blocks admission | JK synthetic/placeholder declaration |
+| Raw currency | Raw OHLC are unconverted IDR | listing-currency metadata | PD | STILL_UNCONFIRMED (endpoint field binding) | Currency/total-return interpretation at risk | Endpoint-field currency statement |
+| Per-share unit | Raw OHLC are IDR per ordinary share | listing metadata | PD | STILL_UNCONFIRMED | Price unit for indicators unbound | Per-share unit/scale binding |
+| Price scale | Historical scale continuity | EOD spec | PD | NOT_DOCUMENTED | Cross-period numeric continuity unproven | Scale/continuity statement |
+| Historical instrument binding | Rows bind to dated ISIN/identity | ticker list | PD | PARTIAL (nullable ISIN, current list); no historical continuity | Ticker-change continuity unproven | Dated identity/ISIN mapping |
+| Historical currency/unit continuity | Continuity across currency/code/unit changes | listing metadata | PD | NOT_DOCUMENTED | Long-window comparability unproven | Dated metadata continuity statement |
+
+### Confirmed versus unresolved
+
+Confirmed (reuse, no new work): documented raw/adjusted field split; Free
+20 units/day within a conservative 330-day window; private noncommercial
+storage/analysis granted; split-adjusted volume (so raw `RAW_AS_TRADED` volume is
+**not** available); `.JK` is a Jakarta catalogue namespace (not a MIC/class); a
+JK symbol is recognized and `JKSE.INDX` identity/recent closes were sampled;
+existing parser/admission controls reject known closures and treat ambiguous zero
+as UNKNOWN (**VERIFIED for the tested rows only**).
+
+Unresolved (**provider confirmation required**): Family A — JK genuineness,
+carry-forward/synthetic/placeholder, weekend/holiday/suspension/no-execution/zero
+semantics and the JK date mapping. Family B — endpoint-field IDR per-share
+currency/unit/scale binding and dated historical identity/currency continuity.
+
+### Exact missing provider confirmations (draft only; no message sent)
+
+1. **Family A — JK observation/date semantics.** For Free `/api/eod/BBCA.JK` and
+   the other pilot JK equities with `period=d`: what source produces OHLC, and what
+   local trading date does `date` identify? Can rows be carried forward,
+   previous-close substitutions, synthetic, placeholders or estimated, including
+   weekends, holidays, suspension and no-execution/inactive sessions? State the
+   conditions and the fields/conventions that positively distinguish genuine
+   observations, and what exactly `volume = 0` means.
+2. **Family B — raw currency/unit continuity.** For the same JK EOD endpoint, are
+   raw OHLC unconverted IDR per ordinary share? Which dated symbol/ISIN/exchange
+   metadata and convention bind that currency, unit and scale to the fields,
+   including historical code, currency or unit changes?
+
+These are endpoint-specific statements; generic raw-OHLC documentation cannot
+substitute for them, and an inference may not be promoted to a provider fact.
+
+### Price-correctness consequences
+
+`GenuinePriceObservation` and `SourcePriceConvention` remain **unadmitted**; the
+two families are the only universal price premises still open. Consequences:
+trading-date/session binding is unsafe without the JK date mapping; `priceComparability`
+cannot reach `CLEARED`; EMA20/50, ATR14, momentum, priorHigh/Low and relative
+strength cannot be computed from admitted observations; historical reproducibility
+is bounded to retained bytes plus local revision ordinals (never provider
+correction IDs); split/action handling keeps the frozen break semantics. Optional
+raw-volume/liquidity and benchmark limitations stay **feature-local** and are
+**not** promoted to universal price-readiness blockers. No new price-adjustment
+algorithm is introduced, and EODHD corporate-action fields are never treated as
+proof of complete action coverage.
+
+### EODHD continuation decision
+
+**CONDITIONAL** (unchanged). Confirmed capability: the only documented free bounded
+EOD candidate that fits the existing Python collector and provider-neutral evidence
+boundaries. Remaining gaps: the two families above. Operational limits: two
+unproven premises, split-adjusted volume, unknown JK upstream/segment, no native
+revision IDs. Pilot usefulness: a conditional price lead, not a complete stack.
+Free-tier implication: zero monetary cost at 11 units/panel within 16 local / 20
+Free. Provider confirmation: **required** (draft inquiry above; not sent). Adapter
+implementation: **not ready** until the two premises close and normal scoped
+admission passes. Paid upgrade: **not justified** — payment does not resolve
+undocumented semantics. Source registry admission is unchanged (only `eodhd`,
+`UNKNOWN`).
+
+### Level-1 blocker-matrix handoff
+
+- **A. Resolved EODHD claims:** raw vs adjusted field split; entitlement/private
+  storage; split-adjusted volume (raw volume unavailable); symbol namespace and
+  basic discovery.
+- **B. Unresolved EODHD claims:** JK genuineness/date/no-trade/carry-forward/
+  synthetic/zero semantics (Family A); IDR per-share currency/unit/scale and dated
+  historical continuity (Family B).
+- **C. Claims requiring official confirmation:** the two endpoint-specific
+  statements above.
+- **D. EODHD-specific admission consequences:** `GenuinePriceObservation` and
+  `SourcePriceConvention` unadmitted; `priceComparability` `UNRESOLVED`; volume/
+  liquidity features `UNAVAILABLE`.
+- **E. Independent blockers outside EODHD (preserved):** IDX automated
+  control-evidence permission; TradingStatus; board/mechanism; calendar/exceptional
+  closures; session completion; corporate-action completeness and automation
+  permission; price-comparability dependencies on admitted actions.
+
+No full Level-1 blocker-matrix re-run is performed here; no `DATA_READY` is
+declared, and TradingStatus/session control is **not** the sole remaining blocker.
+
+### Validation and activity
+
+Documentation only; append to this file alone. No production code, adapter,
+migration, source/permission registry, operational DB, evidence, Daily Runner,
+FullIdx or soak change. Fresh network activity was limited to three first-party
+EODHD documentation GETs (all public, no login); market-data API calls **0**,
+provider units **0**, paid use **0**, accounts **0**, credentials **0**, support
+messages **0**, WAF/CAPTCHA bypass **0**. `git diff --check` clean; commit message
+`docs: finalize eodhd semantics assessment`; no push.
