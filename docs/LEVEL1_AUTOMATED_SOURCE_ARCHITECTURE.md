@@ -475,3 +475,152 @@ prefix/source ledger/contracts, exact staged and unstaged diff, `git diff --chec
 No build/full tests required or claimed. Commit scope: this document and the
 runbook gate only, message `docs: define automated level1 source architecture`;
 no push. Commit/final status are reported after execution, not predicted here.
+
+---
+
+## Slice 5A.2e — automated IDX control-evidence route confirmation (2026-10-08 WIB)
+
+**Decision: D — IDX_AUTOMATION_PERMISSION_BLOCKED.** Relevant IDX control-data
+does exist on the public website (suspension notices, exchange trading-holiday
+schedule, dated statistical publications) and the exchange operates a documented
+system-to-system market-data programme, but the published terms prohibit
+unattended website automation (web scraping/crawling) and the only permitted
+automated delivery channel is a **paid, contractual data licence**. No free,
+permitted, automated, authoritative IDX route or composition was found for any
+mandatory Level-1 control claim. This section is additive; it does not rewrite
+the prior research prefix, the [source ledger](LEVEL1_SCREENER_SOURCE_STACK.md) or
+the frozen contracts.
+
+This resumes the interrupted Slice 5A.2e. The actual repository was re-inspected
+before work: `main` at `74d64065099c2e313a66a5a80d284aa4676ac1e4`, clean worktree,
+13 ahead / 0 behind locally recorded `origin/main`, no staged/unstaged/untracked
+changes — so the interrupted run had left **no partial files** to reuse and no
+unrelated user work to protect. Nothing was reset, restored or deleted.
+
+### Exact IDX routes inspected
+
+All probes were ordinary, bounded, attributed browser-style GETs. No WAF,
+CAPTCHA or rate-limit bypass; no login; no account creation; no aggressive
+crawl. `www.idx.id` is the current official site; `www.idx.co.id` is also
+official and sits behind a Cloudflare WAF that 403s non-browser clients.
+
+| Route | Response | Bearing on control evidence |
+|---|---|---|
+| [IDX Data Services product page](https://www.idx.id/id/produk/layanan-data-bei/) | 200 HTML, 253,443 B | Documents the licensed **system-to-system** market-data programme (Real Time / Delayed / EoD / Log Data) and product catalogue. Documentation page, not a data feed. |
+| [IDX website usage terms](https://www.idx.id/id/syarat-penggunaan/) | 200 HTML, 171,067 B | Noncommercial citation of website data permitted **with full source attribution and access date**; **web scrapping/crawling not permitted**; commercial redistribution requires prior written consent; terms may change without notice. |
+| `www.idx.co.id/id/data-pasar/laporan-statistik/statistik/` | 403 | WAF blocks non-browser clients (no login/JS challenge solved). |
+| `www.idx.id/id/data-pasar/laporan-statistik/statistik/` | 200 (SPA payload embeds dated `ds_YYMMDD.pdf`, `ws_*`, `ms_*` links) | Free data is **static PDF only**; no CSV/XLSX/JSON/feed; UI page. |
+| `www.idx.id/id/data-pasar/laporan-statistik/digital-statistic` | 200 (SPA shell; 23 text lines, 0 media/API links) | UI shell; records loaded client-side only. |
+| `www.idx.id/id/data-pasar/ringkasan-perdagangan/ringkasan-saham` | 200 (SPA shell; 20 text lines) | UI shell. |
+| `www.idx.id/id/berita/suspensi/` | 200 (SPA shell; 17 text lines) | UI shell; no feed. |
+| `www.idx.id/id/berita/jadwal-libur-bursa/` | 200 (SPA shell; 17 text lines) | UI shell; schedule not machine-retrievable as a documented feed. |
+| `www.idx.id/robots.txt` | 404 | No robots exclusion file. |
+| [www.idx.id/sitemap.xml](https://www.idx.id/sitemap.xml) | 200 XML, 464 URLs | No API/JSON/CSV/RSS/Atom path; only market-data pages, statistical reports, `news/suspension`, `news/trading-holiday`, `products/idx-data-services`. |
+| [`data.idx.co.id`](https://data.idx.co.id/) (IDX Data portal, "Register and Subscribe to IDX Data") | 403 on `/`, `/robots.txt`, `/en/market-data` | WAF-challenged; not automation-reachable. Access/entitlement **PERMISSION_UNCLEAR**, no free tier demonstrated. |
+
+### IDX system-to-system / data services
+
+The product page states the service is **system to system** and offers Real Time,
+Delayed, End of Day and Log Data. It is governed by a published
+[IDX Data License Agreement (2026)](https://www.idx.id/media/xu0bddem/idx-data-license-agreement-2026.docx)
+(77,855 B; SHA-256 `867b49bd7b261d5c8a77fb0aba94d6144313f49969e96ba3f19fb655820d56ae`),
+the latest [General Terms of Use](https://www.idx.id/media/vaupc3md/20240215_final-general-term-of-use-version-0-3-2024-efektif-1-january-2024-2.pdf)
+(1,881,521 B; SHA-256 `0f646e9c9eb3c415566c41b476836f5b8116d03350c127a8ccb05dc0dad98cd8`)
+and a [catalogue/price list (2026)](https://www.idx.id/media/rzfl4wzy/20260513_idx-data-services-catalogue-pricelist-non-ab-2026.pdf)
+(21,028,838 B; SHA-256 `57fb27132030e4383555eeb9a947b701beeb8365f46edd8d209bb4ef1b94401b`).
+The agreement text is explicit: a Licensee must pay **Fees including a Security
+Deposit**; the licence is non-exclusive, non-transferable, temporary and limited;
+the fee schedule is published; direct connection requires a leased line via an
+NSP (≥8.5 Mbps) or a registered Redistributor. **Automation is deliberately
+intended for paying licensees.** This is therefore a **paid, contractual** route,
+not a free public one. The 20 MB price list is published but its body text is
+CID-encoded; this review did not extract exact figures and asserts no price.
+
+| Product family | Free? | Access | Datasets documented | Administrative status? |
+|---|---|---|---|---|
+| IDX Market Data — Equity/Bond/Derivatives (Real Time, Delayed, EoD, Log/ITCH) | **Paid licence** | Agreement + Application Form + Fee + Deposit; NSP leased line or Redistributor | quotes, trade/depth, EoD equity (Basic/Professional/Indices/Indices Weight/Recapitulation), derivatives EoD, bond EoD/real-time, ITCH | no documented TradingStatus, suspension/resumption, calendar or session-completion product |
+| IDX Data Reference | **Paid licence** | same | financial reports, corporate actions, other disclosure; IDXNet XML push (`idxnetPushFE0X3`) | listing status only (`statusEmiten=tercatat`), plus `dataVersion`, `correctionFrom`, `publishStatus`, `submitDateTime`; no suspension/status form shown |
+| IDX Connection License (NSP) | Paid | licence | connectivity | n/a |
+| IDX Index License | Paid | licence | index use | no |
+| IDX Publication | Paid fee item/publication | licence | statistical publications reproduced from public reports | no |
+
+Free **sample-data specimens** are downloadable to demonstrate the paid
+products, but they are static specimens, not a live route, and using the data
+requires a licence:
+
+| Specimen | Identity | Content |
+|---|---|---|
+| [IDX Equity EoD Basic](https://www.idx.id/media/9651/idx-equity-eod-basic.zip) | 897,437 B; SHA-256 `aa570ccc74874fef121f81fb5d87bd9c92eccfff757e499e671197949f7f0cde` | fixed-width TEXT `STOCK QUOTATION`, one row per listed code: Code, Name, **Remarks**, Prev, Close, Change, %, Freq, Volume, Value and a trailing board-like digit; zero-volume rows included; **no explicit TRADING/SUSPENDED enum** |
+| [IDX Equity EoD Recapitulation](https://www.idx.id/media/9654/idx-equity-eod-recapitulation.zip) | 75,542 B; SHA-256 `632a86526de15cc4ccb99e7c50d8578ee8ce91ac86f3f54209f861e987a83122` | aggregate `TRADING RECAPITULATION` |
+| [IDX Data Reference sample](https://www.idx.id/media/3kynnbhi/20250206_idx-data-reference-sample_e0x3.txt) | 22,604 B; SHA-256 `69d43c810c859c6b7a9f46fba12713be59cc48408be2576b81bce80a94b870ef` | IDXNet XML push, form `E0X3` = corporate-action disclosure; no suspension/reopening/status message |
+
+### Trading status, completeness, calendar, closure, completion, board
+
+| Mandatory control claim | Free automated route found? | Finding |
+|---|---|---|
+| Affirmative TradingStatus (E) | **No** | No free automated affirmative status record. The free suspension page is a UI shell; the paid EoD quotation exposes only `Remarks` and a board-like digit, which prior frozen research already rejects as status substitutes. The paid programme's published product list does **not** document a TradingStatus/suspension/resumption product at all. |
+| Status transitions / checkpoints (completeness) | **No** | No documented sequence ID, watermark, updated-since cursor, gap-recovery or publisher-complete status feed on any free route. Search silence on the suspension filter is not completeness. Remains blocked. |
+| Exchange trading calendar (F) | **No automated route** | The annual/updated holiday schedule is published as a UI page; no documented free automated calendar file/feed. Automation of the page is scraping/crawling, which the terms prohibit. |
+| Exceptional closures / amendments (G) | **No automated route** | Same permission basis; notices exist but no reconciled, versioned free automated closure feed. |
+| Completed session (H) | **No** | The free daily statistics PDF carries a DATE only; no authenticated `completedAt` clock. The paid EoD product shows a DATE header, not a completion instant. No free automated completion artifact or clock was located. |
+| Board / mechanism / reference (D) | **Paid only, partial** | Free site has no automated reference export. The paid EoD product exposes a board-like digit and `Remarks`; IDX Data Reference exposes `statusEmiten`/listing and disclosure. None is a free automated, dictionary-authenticated board/mechanism/reference feed. |
+
+### Permission classification
+
+| Candidate route | Classification | Basis |
+|---|---|---|
+| Public website data (statistics PDFs, suspension/holiday pages, SPA data) | **AUTOMATION_PROHIBITED** | Terms: web scrapping/crawling not permitted; noncommercial manual citation only with attribution + access date. |
+| `data.idx.co.id` portal | **PERMISSION_UNCLEAR / ACCESS_BLOCKED** | WAF 403 to automation; no free tier demonstrated. |
+| IDX licensed system-to-system data services | **AUTOMATION_ALLOWED** but **PAID + CONTRACTUAL** (agreement, fees, deposit, non-transferable) | Data License Agreement 2026 + General Terms + catalogue. |
+| Redistributor-delivered products (e.g. RTI, IDX Solusi Teknologi Informasi, foreign vendors) | Paid; out of scope | Requires paid vendor subscription; not free. |
+
+No free authenticated IDX account or self-service free API was demonstrated. The
+only free account flow visible is the WAF-protected `data.idx.co.id` "Register and
+Subscribe" portal, which does not evidence a zero-cost entitlement.
+
+### Bounded automation feasibility and remaining blocker
+
+Bounded unattended operation on a **free** IDX control route is **not feasible**:
+the free data is UI/PDF-only and its automated retrieval is explicitly
+prohibited, and the permitted automated channel is a paid licence. The mandatory
+claims remain uncovered: no free affirmative TradingStatus, no completeness
+mechanism, no free automated calendar/closure feed and no free authenticated
+session-completion clock. **Daily Runner and adapters remain blocked.** The exact
+remaining blocker is unchanged in substance: an authoritative, complete,
+permitted, zero-cost automated IDX source for (1) affirmative exact-session
+status with closed transition coverage, (2) the operative calendar/exceptional
+closures and (3) a genuine session-completion clock. This review found the free
+route closed by permission and the automated route closed by price.
+
+### Paid-escalation status
+
+**PAID_EVALUATION_NOT_YET_JUSTIFIED.** The frozen escalation gate requires a paid
+provider *demonstrated* to close an exact remaining claim. IDX's paid programme is
+real and automated, but its own published product catalogue and specimen data do
+**not** demonstrate an affirmative TradingStatus / suspension-status /
+exchange-calendar / session-completion product; the EoD specimens expose only
+`Remarks`, a board-like digit, prices and a DATE. Paid necessity for the control
+claims therefore remains unproved, exactly as the prior gate found. A low-cost
+**inquiry** (not a purchase) to IDX licensing — whether a licensed product
+provides administrative trading status, suspension/resumption, the operative
+calendar and an authenticated session-completion clock, with retention terms — is
+the only justified next action; no purchase, account or paid service was
+activated.
+
+### Validation and network activity
+
+Documentation only. This section is appended; the prior architecture text, the
+source ledger and all frozen contracts are unchanged. No code, adapter, migration,
+source/permission registry, operational DB, evidence, Daily Runner, FullIdx or
+soak change. Research bytes live outside Git under temporary storage;
+no temporary research file was added to the repository. Ordinary HTTP probes:
+`www.idx.id` 200s for the data-services page, terms, statistics index, daily
+statistics, digital-statistic, ringkasan-saham, suspension, trading-holiday,
+`robots.txt` (404) and `sitemap.xml`; `www.idx.co.id` statistics index 403;
+`data.idx.co.id` 403 on three paths; four specimen/terms files downloaded
+(`eod-basic.zip`, `eod-recap.zip`, `data-reference-sample.txt`, and the
+docx/pdf terms + catalogue). Market-data provider API calls/units **0/0**; paid
+use **0**; accounts created **0**; credentials accessed **0**; no WAF/CAPTCHA
+bypass, no scraping loop, no paid activation. `git diff --check` clean; only this
+document and the appended runbook note change; commit message
+`docs: confirm automated idx control evidence route`; no push.

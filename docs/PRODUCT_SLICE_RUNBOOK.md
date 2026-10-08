@@ -3945,3 +3945,34 @@ combined export exceeds existing ingestion bounds. No paid capability has been
 shown to close the exact gaps, so paid escalation is not justified. Production
 adapters, automatic bootstrap, Daily Runner and soak remain blocked; FullIdx,
 source registry, operational data and frozen contracts are unchanged.
+
+## Screener V0.2 Slice 5A.2e — automated IDX control-evidence route confirmation (2026-10-08 WIB)
+
+Decision: **D — IDX_AUTOMATION_PERMISSION_BLOCKED**. The appended
+[automated IDX control-evidence section](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md#slice-5a2e--automated-idx-control-evidence-route-confirmation-2026-10-08-wib)
+records the exact routes inspected. Relevant IDX control data exists publicly
+(suspension notices, exchange trading-holiday schedule, dated statistical PDFs),
+but the published [usage terms](https://www.idx.id/id/syarat-penggunaan/) permit
+only attributed noncommercial manual use and prohibit web scrapping/crawling, so
+unattended website automation is prohibited. The exchange's documented
+system-to-system market-data programme is a **paid contractual licence** (Data
+License Agreement 2026, published General Terms, catalogue/price list, fees and
+security deposit), not a free route. `www.idx.co.id` and `data.idx.co.id` 403
+non-browser automation; no free authenticated IDX API/account was demonstrated.
+
+IDX route outcomes: **no** free affirmative TradingStatus (E), **no** status
+completeness/checkpoint mechanism, **no** free automated calendar (F) or
+closure/amendment (G) feed, **no** free authenticated session-completion clock
+(H), and only paid/partial board/reference data (D). The paid product catalogue
+and its free specimens (Equity EoD Basic quotation with `Remarks` and a
+board-like digit; Data Reference IDXNet XML `E0X3` corporate-action disclosure)
+do not demonstrate an administrative trading-status, suspension-status,
+calendar or session-completion product, so **paid escalation is not justified**
+for control evidence (**PAID_EVALUATION_NOT_YET_JUSTIFIED**). The only justified
+next action is a low-cost licensing **inquiry** (no purchase) covering status,
+suspension/resumption, calendar and completion clock. Daily Runner, adapters,
+automatic bootstrap and soak remain blocked; FullIdx, source registry, operational
+data, evidence and frozen contracts are unchanged. Documentation only: exact
+diff/`git diff --check` review; ordinary public GETs only, no WAF/CAPTCHA bypass,
+no account, no paid activation, provider API calls/units **0/0**; commit message
+`docs: confirm automated idx control evidence route`; no push.
