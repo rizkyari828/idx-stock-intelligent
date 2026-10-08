@@ -3925,3 +3925,23 @@ exact diff/whitespace review, retained hash/length checks, append-only history a
 matching before/after 21 protected table/existence states and 1,386 protected
 file hashes; no build/test suite or push. Both prior documentation prefixes are
 unchanged and four research artifact hash/length checks passed.
+
+## Automated Level-1 source architecture review V0.1 (2026-10-08 WIB)
+
+Decision: **C — FREE_FULLY_AUTOMATED_LEVEL1_BLOCKED_ON_EXACT_CLAIMS**.
+The [dedicated architecture decision](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md)
+selects free official state/events plus free observation feeds and reconciliation
+as a conditional target. **Manual operational data handling, including mandatory
+bootstrap, is excluded.** Prior manual-source research remains historical evidence,
+not the proposed production workflow. Preserve affirmative TradingStatus and all
+frozen V0.2 semantics; periodic snapshots cannot clear missed-event intervals.
+
+Next gate: targeted confirmation of (1) permitted free authoritative market/session
+control evidence, beginning with IDX positive status/checkpoint and completion-clock
+delivery; (2) EODHD JK genuine-price conventions; (3) KSEI complete action-window
+coverage/retention and bounded delivery. Newly inspected KSEI annual exports are
+machine-retrievable, but do not establish complete revision/absence semantics; the
+combined export exceeds existing ingestion bounds. No paid capability has been
+shown to close the exact gaps, so paid escalation is not justified. Production
+adapters, automatic bootstrap, Daily Runner and soak remain blocked; FullIdx,
+source registry, operational data and frozen contracts are unchanged.
