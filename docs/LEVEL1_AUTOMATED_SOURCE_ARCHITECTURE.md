@@ -957,3 +957,159 @@ EODHD market-data call was made. Provider units **0**, paid use **0**, accounts
 migration, source/permission registry, operational DB, evidence, Daily Runner,
 FullIdx or soak change. `git diff --check` clean; only this documentation file
 changes; commit message `docs: confirm corporate action evidence route`; no push.
+
+---
+
+## Source selection architecture delta review (2026-10-08 WIB)
+
+**Decisions.** Prior-Astra research completeness: **COMPLETE_WITH_OPEN_EXTERNAL_BLOCKERS**.
+Provider abstraction: **EXISTING_SUFFICIENT**. Source selection:
+**POLICY_CLARIFICATION_NEEDED** (clarified below; no code change). EODHD:
+**CONDITIONAL**. This review authorizes no production code, migration, registry
+activation, adapter, provider call or paid action.
+
+Baseline: `main`, HEAD `685e1af285d9d4eec139b1163e8c41be3449a522`, clean worktree,
+17 ahead / 0 behind locally recorded `origin/main`; no fetch. This section appends
+to this file alone and does not amend frozen contracts or prior decisions.
+
+### Prior-Astra completeness check
+
+[External source intelligence review](EXTERNAL_SOURCE_INTELLIGENCE_REVIEW.md) is
+present, complete (12 sections, no truncation/placeholders), internally consistent,
+and its recommendations/unresolved items are classified. It covered the eight
+repositories, IDX endpoint intelligence, permission, KSEI, EODHD, Stockbit,
+corporate actions, TradingStatus/session, official XBRL/XLSX, free-first
+architecture, automation/manual, provenance/PIT, cost/scale and next
+investigations. Execution closure is verified from commit `6d04eb1`, which changed
+only that documentation file (874 insertions) with a clean subsequent worktree and
+no production/DB change. The original task prompt and separate task report are not
+committed repository artifacts, so exact prompt text and the reported anonymous
+HTTP counts cannot be independently re-verified; no missing execution evidence is
+invented. Slice 5A.2g later refined corporate-action coverage (`PARTIAL`,
+permission/automation blocked); that refinement is preserved. **No material
+documentation gap.**
+
+### Provider-abstraction capability matrix
+
+Evidence is from inspected production code, not documentation intention.
+
+| Capability | Classification | Repository evidence |
+|---|---|---|
+| Multiple source registration | ALREADY_IMPLEMENTED | `source` table with `terms_status ∈ {UNKNOWN,ALLOWED,DISALLOWED}` (`src/IdxStockIntelligence.Infrastructure/Migrations/0001_phase0_foundation.sql`); `ingestion_run`/`raw_artifact` carry `source_id`. Production registers only `eodhd` (`UNKNOWN`) in `PilotDatabase`. |
+| Source-specific acquisition | CONTRACTED_BUT_NOT_IMPLEMENTED | `BoundedEvidenceSource` adapter record (`src/IdxStockIntelligence.Application/BoundedEvidenceIngestion.cs`); `BoundedEvidenceIngestionService` is constructed only in tests; service comment: "No production adapter is installed by default." |
+| Provider-specific normalization | CONTRACTED_BUT_NOT_IMPLEMENTED | Boundary accepts provider-neutral typed rows via `Normalize`; Python parses provider formats (`collectors/python/src/idx_stock_collector/contract.py`, `pilot.py`, `eodhd_experimental.py`); no production adapter registered. |
+| Immutable original evidence | ALREADY_IMPLEMENTED | `RawArtifactArchiver` content-addressed SHA-256 with atomic move; `raw_artifact` retains bytes/hash/length/URI/parser version. |
+| Source provenance | ALREADY_IMPLEMENTED | `raw_artifact` (`original_uri`, `fetched_at`, `parser_version`) + evidence `source_id`, `source_reference`, `raw_artifact_id`; `ingestion_run`. |
+| Source revision handling | ALREADY_IMPLEMENTED | `RevisionSeriesId == ScreenerEvidenceRevisionSeries.Canonical(SourceId, SourceReference)`; append-only supersession; DB update/delete triggers in `0007_screener_evidence_v02.sql`. |
+| Typed evidence binding | ALREADY_IMPLEMENTED | `ScreenerEvidenceBinding.Decode`/payload codecs; `ScreenerEvidenceV02Store` re-verifies payload SHA-256. |
+| Data-family-specific source admission | ALREADY_IMPLEMENTED | `ScreenerSourceAdmission.Admit` per claim + `terms_status = 'ALLOWED'` check in `BoundedEvidenceIngestionService`. |
+| Explicit provider selection | ALREADY_IMPLEMENTED (resolution) | `ScreenerEvidenceResolver.Resolve` selects by authority tier, then scope specificity; chronology only a tie-break. No declarative primary/reconciliation role label exists; see policy below. |
+| Provider replacement | CONTRACTED_BUT_NOT_IMPLEMENTED | Requires a reviewed adapter tuple + source row + mappings + admission; no automatic switch exists. |
+| Source reconciliation | ALREADY_IMPLEMENTED | Multiple candidates resolved; disagreeing survivors yield `CONFLICTING` rather than a convenient winner. |
+| Incompatible-source detection | ALREADY_IMPLEMENTED | Source-namespaced `SourcePriceConvention` identity (`[PriceSourceId, Endpoint, Field, Version]`) and the comparability evaluator prevent silent basis mixing. |
+| Source failure handling | ALREADY_IMPLEMENTED | Readiness fails closed (`DATA_BLOCKED`/`UNKNOWN`), no invented value, no silent provider fallback. |
+| Data-quality / readiness enforcement | ALREADY_IMPLEMENTED | `ScreenerEvidenceReadiness.Compose` + evaluators; `ScreenerEvidenceReadinessService` read-only snapshot. |
+| Historical reproducibility | ALREADY_IMPLEMENTED | `ScreenerEvidenceV02AsOfReader` stored-only, `RepeatableRead`, cutoff/knownAt visibility; 512-record bound (`MaximumRecords` in `ScreenerEvidenceV02AsOf`, enforced by `LIMIT 513` detection in the reader). |
+
+Deferred and not required: automatic failover/switch engine, provider-selection UI,
+generic plugin framework, new orchestration or schema.
+
+### Data-family source-selection policy
+
+Admission states reuse existing tokens; `NONE/BLOCKED` stays valid. One admitted
+source may serve several claims only where the contract permits. This is the
+minimum policy; it introduces no new class, table or service.
+
+| Family | Candidate source | Admission state | Role | Independent blocker |
+|---|---|---|---|---|
+| Security identity | KSEI master/detail + IDX acts | CONDITIONALLY_ADMISSIBLE | Primary candidate | Exact local-ID/ISIN/code interval; permissions |
+| Security type | KSEI detail + issuer evidence | CONDITIONALLY_ADMISSIBLE | Primary candidate | Ordinary-equity mapping and interval |
+| Listing/delisting history | IDX acts + KSEI/issuer originals | NEEDS_CONFIRMATION | Primary candidate + reconciliation | Operative listing act; complete PIT coverage |
+| TradingStatus | IDX exact-session status | NOT_OPERATIONALLY_ACCEPTABLE (5A.2e) | None admitted | Permission + completeness |
+| Board/mechanism | IDX dated roster + rules/exceptions | NEEDS_CONFIRMATION | Primary candidate | Dated membership, rule version, exceptions |
+| Trading calendar | IDX annual schedule + amendments | Not admitted automated | Primary candidate (manual) | Unattended permission; amendment coverage |
+| Exceptional closures | Governing IDX notices/checkpoint | Not admitted automated | Primary candidate | No complete free source (5A.2g) |
+| Session completion | Independent IDX final artifact | SOURCE_NOT_AVAILABLE | None admitted | No authenticated clock/artifact |
+| EOD OHLC | EODHD Free API (T3) | CONDITIONAL | Conditional primary (pilot only) | Two JK semantics premises (5A.2f) |
+| Raw traded volume | None (EODHD volume is split-adjusted) | NOT_ADMISSIBLE for raw basis | None | Feature-local; volume features UNAVAILABLE |
+| Corporate actions | KSEI/IDX disclosures/issuer originals | CORPORATE_ACTION_COVERAGE_PARTIAL + AUTOMATION_OR_PERMISSION_BLOCKED | Reconciliation / discovery | Coverage + permission (5A.2g) |
+| Benchmark/index | EODHD `JKSE.INDX` (T3), later permitted IDX index | CONDITIONAL / optional | Optional | Independent identity/convention admission |
+| Fundamentals (Phase 2) | Official issuer/IDX filings → XBRL/XLSX | DEFERRED | Future primary concept | Permitted unattended acquisition |
+| Optional market/flow | IDX foreign/nonregular aggregates | DISCOVERY_ONLY | Optional context | No admitted units/scope/route |
+
+### Provider-switching safety
+
+A switch is a **new admitted source**, never an in-place continuation. Existing
+contracts already require the following; this review clarifies them, and adds no
+new gate:
+
+- **Price basis:** raw/as-traded vs adjusted vs split-adjusted may not be spliced;
+  a new provider needs its own `SourcePriceConvention` identity and admission.
+- **Currency/unit/scale:** IDR per-share and unit continuity must be re-bound to the
+  new source; earlier proof does not transfer.
+- **Identity:** instrument/ISIN/ticker and effective-date continuity must be
+  re-mapped; no suffix or name guessing.
+- **Observation semantics:** genuine/non-synthetic/no-substitution, trading-date
+  meaning, session applicability, finality and revision chronology are source-specific.
+- **Provenance:** original source, artifact, retrieval/knownAt, revision and
+  normalization version are retained; replay uses retained inputs, never live fallback.
+- **Indicator continuity:** a provider change inside an indicator window is a
+  potential `PRICE_KNOWN_BREAK`; rebuild/restart the affected segment rather than
+  silently continue EMA20/50, ATR14, momentum, priorHigh/Low or relative strength.
+- **Failure handling:** on failure, keep evidence and leave the claim unavailable;
+  never invent an observation, silently substitute another source, or bypass readiness.
+
+### EODHD continuation decision
+
+**CONDITIONAL.** Repository evidence: EODHD is the only registered source
+(`terms_status = UNKNOWN`); Slice 5A.2f keeps the free bounded EOD interface a
+conditional T3 candidate and finds `EODHD_JK_PRICE_NOT_YET_ADMISSIBLE`; the
+documented free plan is 20 units/day with local ceiling 16 and private
+noncommercial storage allowed. Rationale: it remains the most plausible free
+automated price route and fits the existing Python collector and evidence
+boundaries, but its two mandatory JK premises are unproven, so it cannot be
+prioritized or admitted; it should not be rejected because no better free
+alternative is demonstrated. Remaining verification: (1) genuine-observation/date
+semantics; (2) exact raw IDR per-share currency/unit continuity. Cost: zero within
+the 16/20 units for the 11-symbol panel; no paid activation. EODHD remains an
+optional price source for the bounded pilot, not an application-wide dependency.
+
+### Zero-cost feasibility
+
+| Scenario | Feasibility | Limiting factors |
+|---|---|---|
+| A — zero-cost pilot universe | Transport feasible; Level-1 readiness still blocked | EODHD free 20/day (11-unit panel); control/calendar/completion/action gates open |
+| B — zero-cost full/broader IDX | Not feasible | EODHD bulk 100 units exceeds free allowance; whole-exchange is not a free entitlement; other free routes permission/coverage-blocked |
+| C — optional future paid | Architecturally accommodatable; not justified now | No paid capability demonstrated to close exact mandatory gaps; no purchase authorized |
+
+Pilot transport feasibility is not full-IDX feasibility and is not Level-1 readiness.
+
+### Level-1 blocker preservation
+
+Unchanged independent mandatory blockers: IDX automated control-evidence permission
+(5A.2e); TradingStatus; board/mechanism; calendar/exceptional closures; session
+completion; corporate-action completeness and automation permission (5A.2g); EODHD
+JK semantics; price comparability. Optional/feature-local evidence: raw volume
+(volume/liquidity features `UNAVAILABLE`), benchmark (RS `UNAVAILABLE`), optional
+market/flow context. TradingStatus/session control is **not** the sole remaining
+blocker, and corporate actions remain independently mandatory where price
+comparability depends on complete action evidence. No new readiness state and no
+full blocker-matrix re-run are introduced here.
+
+### Required versus deferred changes
+
+- **Required now:** none in code. This documentation clarification only.
+- **Required before any future adapter activation:** a reviewed
+  `BoundedEvidenceSource` adapter, an `ALLOWED` source row with evidence, and
+  claim/tier mappings; then normal admission.
+- **Optional/deferred:** declarative provider-role configuration, additional
+  reconciliation sources, any failover engine (not desired).
+
+### Validation and activity
+
+Documentation only; append to this file alone. No production code, adapter,
+migration, source/permission registry, operational DB, evidence, Daily Runner,
+FullIdx or soak change. No provider/network call was made in this milestone
+(provider units **0**, paid use **0**, credentials **0**); the repository was
+inspected read-only. `git diff --check` clean; commit message
+`docs: clarify level1 source selection policy`; no push.
