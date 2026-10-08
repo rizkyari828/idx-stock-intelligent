@@ -1519,3 +1519,86 @@ Documentation only; append to this file alone. No code, adapter, migration,
 registry, DB, evidence, Daily Runner, FullIdx or soak change; provider/network use
 **0**. `git diff --check` clean; commit message
 `docs: decide level1 operational disposition`; no push.
+
+---
+
+## External source unblock strategy (2026-10-08 WIB)
+
+**Purpose:** the smallest external actions that could materially improve Level-1
+source feasibility. This is a targeted inquiry plan, not another provider survey.
+**No message was sent, no account created, no paid service activated, and no
+credential handled.** Permission, automation and paid routes are separate claims;
+paying a provider never substitutes for missing correctness requirements.
+
+Baseline: `main`, HEAD `9bc146d` (this bundle's Task 1 commit), clean worktree.
+This section appends to this file alone.
+
+### External dependency matrix
+
+| Dependency | Owner | Exact missing evidence | Public docs sufficient? | Written confirmation? | Alternative permitted source | Paid route demonstrated? | If no response | Reopen trigger |
+|---|---|---|---|---|---|---|---|---|
+| IDX control evidence (TradingStatus, board/mechanism, calendar/closures, session completion) | PT BEI data services/licensing | Authorized machine route; status dictionary; positive bootstrap + complete transitions; completion clock | No | Yes | None free shown | Licensed system-to-system exists but not shown to include status/session | Level-1 stays BLOCKED | Documented permitted machine route or explicit terms decision |
+| KSEI corporate action (automation, coverage, revisions) | KSEI | Automation permission; complete all-type window; correction/cancellation lineage; effective-date semantics | No | Yes | IDX/issuer originals (partial) | None demonstrated | `priceComparability` stays `UNRESOLVED` | Documented permission + coverage basis |
+| EODHD JK semantics (Families A/B) | EODHD support | Endpoint-specific genuine/date/no-trade/zero statement; IDR per-share unit and historical continuity | No | Yes | None free demonstrated | Not justified | Price admission blocked | Endpoint-specific provider answer |
+| Issuer/IDX filing retrieval (Phase 2) | Issuers / IDX | Authorized structured filing discovery/retrieval; publication and revision semantics | No | Yes | Issuer IR archives (per-issuer) | None demonstrated | Phase-2 production waits | Permitted filing route + revision semantics |
+
+### Prioritized unblock actions
+
+1. **EODHD support inquiry** — lowest cost, could conditionally unblock the price
+   family; no account upgrade requested.
+2. **IDX control-evidence licensing inquiry** — highest impact; asks only whether a
+   permitted route exists and whether it covers status/calendar/completion.
+3. **KSEI corporate-action permission/coverage inquiry** — required for
+   comparability; asks for permission, coverage and revision semantics.
+4. **Issuer/filing route** — Phase-2 only; deferred until Phase-2 design and
+   authorization.
+
+### Inquiry drafts (prepared only; none sent)
+
+**IDX (data services/licensing).** "For a private, noncommercial personal system,
+does IDX offer a zero-cost or licensed machine-readable route (file, feed or API)
+covering: (a) positive per-security trading status per session and suspension/
+reopening transitions with a completeness/checkpoint guarantee; (b) the operative
+trading calendar and exceptional closures with amendments; (c) an authenticated
+session-completion value (`completedAt`); and (d) dated board/mechanism and
+listing coverage? Please state the permitted automation scope, recurring retrieval,
+retention of raw data, historical depth, revision monitoring and any quota or
+commercial conditions. If no such route exists, an explicit answer is requested."
+
+**KSEI.** "May KSEI's public corporate-action publications (rights/HMETD, merger/
+split/reverse, bonus, dividends) be retrieved by an unattended personal
+noncommercial process? Please state the permitted automation scope, retention of
+raw files, historical depth and revision policy, and whether a complete
+all-type, all-market coverage basis (including amendments and cancellations) and
+effective-date definitions are published. If unattended retrieval is not
+permitted, an explicit answer is requested."
+
+**EODHD (technical support).** Reuse the two endpoint-specific questions already
+recorded in the EODHD final determination above (JK genuine-observation/date
+semantics; exact raw IDR per-share currency/unit continuity). No account upgrade,
+paid feature or credential is requested.
+
+### Stop / resume policy
+
+- **Pause** repeated IDX endpoint discovery and any provider survey without new
+  evidence.
+- **Resume** IDX evaluation only when a permitted machine route or explicit terms
+  decision is documented; resume corporate-action evaluation only when permission
+  and a complete coverage basis are available; resume EODHD semantics only on an
+  endpoint-specific provider answer.
+- No deadlines, automatic retries or polling loops. A negative or absent response
+  is a terminal research result, and Level-1 remains BLOCKED.
+
+### Expected effect
+
+A positive EODHD answer could conditionally admit the price family (still subject
+to scoped admission). A positive IDX/KSEI answer could unblock the control and
+action families. Any single answer closes at most its own family; readiness still
+requires every mandatory root to clear.
+
+### Validation
+
+Documentation only; append to this file alone. No external contact, account, paid
+activation, credential or network provider call (units **0**, paid **0**).
+`git diff --check` clean; commit message
+`docs: define external source unblock strategy`; no push.
