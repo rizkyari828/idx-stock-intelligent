@@ -1421,3 +1421,101 @@ FullIdx or soak change; no provider/network call in this milestone (provider uni
 **0**, paid use **0**). Frozen contracts and persisted binding unchanged. Read-only
 repository inspection only. `git diff --check` clean; commit message
 `docs: reconcile level1 operational blockers`; no push.
+
+---
+
+## Level-1 operational disposition (2026-10-08 WIB)
+
+**Decision: OPTIONS A + B, selected together. OPTION C is not currently
+admissible; OPTION D is not justified.** Keep Level-1 operational readiness
+strictly BLOCKED (A) while continuing the independent, already-implemented
+research/portfolio/evidence capabilities that do not consume blocked Level-1
+evidence (B). A bounded prospective Level-1 pilot (C) cannot operate because
+mandatory control/action/price premises are unmet; licensed/paid investigation (D)
+is not justified because no paid capability is demonstrated to close an exact
+mandatory blocker. No frozen contract, source admission or readiness rule changes.
+
+Baseline: `main`, HEAD `7b04fbb03f8726e8d5af5fff8ee5aca30637da08`, clean worktree,
+20 ahead / 0 behind locally recorded `origin/main`; no fetch. This section consumes
+the blocker matrix above; it does not re-run source investigations.
+
+### Capability classification
+
+Code readiness and operational data readiness are assessed separately; no
+implemented feature is assumed to have admissible market evidence.
+
+| Capability | Class | Basis / limit |
+|---|---|---|
+| Portfolio ledger (append, replay, correction, idempotency) | SAFE_TO_CONTINUE | Ledger facts come from user/broker records and need no market observation (`PORTFOLIO_LEDGER.md`) |
+| Position reconciliation (ledger-derived shares/cash) | SAFE_TO_CONTINUE | Deterministic ledger replay; no external evidence |
+| Investment thesis tracking | SAFE_TO_CONTINUE | Thesis versions independent of prices; no mandate change on price moves |
+| Evidence storage/archive (immutable originals, provenance) | SAFE_TO_CONTINUE | Framework implemented; only already-authorized bytes may be retained |
+| Stored-only as-of readers / historical evidence inspection | SAFE_TO_CONTINUE | `ScreenerEvidenceV02AsOfReader` and Research V0.1 read retained data only |
+| Read-only canonical market enrichment (retained bars) | SAFE_TO_CONTINUE (retained-only) | `MarketState` returns STALE/UNKNOWN explicitly; never contacts a provider |
+| Portfolio valuation | CONDITIONAL | Works only from retained canonical bars; unpriced holdings keep quantity/cost with null valuation and PARTIAL coverage |
+| Diagnostic technical feature calculation | CONDITIONAL | Contract §14 permits diagnostic facts/features; `setupEvaluated=false`; no candidate promotion |
+| Outcome V0.1/V0.2 verification on retained evidence | CONDITIONAL | Existing machinery retained; no new V0.2 candidates exist to enroll |
+| Source-reconciliation framework | CONDITIONAL | Architecture exists; no admitted source to reconcile |
+| Screener `MARKET_ELIGIBLE` / `DATA_READY` / `setupEvaluated` | BLOCKED | Mandatory control/action/price premises unmet |
+| Candidate generation / promotion / `TECHNICAL_EVALUATED` | BLOCKED | Requires `DATA_READY` |
+| New V0.2 evidence admission for mandatory claims | BLOCKED | No `ALLOWED` source and no admitted adapter |
+| Daily ingestion / Daily Runner / automatic bootstrap | BLOCKED | Requires admitted sources and a reviewed adapter |
+| FullIdx operation | BLOCKED | Disabled; free entitlement cannot support bulk |
+| Optional volume/liquidity, benchmark/RS, foreign/broker flow, sector rotation | DEFERRED | Feature-local; missing optional evidence must not block stock-only readiness |
+| Phase-2 fundamentals implementation | DEFERRED | Design may proceed; production ingestion not authorized |
+
+### Root-blocker reconciliation
+
+Root blockers remain R1–R9 (IDX control-evidence permission; TradingStatus
+completeness; board/mechanism; calendar/closures; session completion; EODHD
+Families A/B; corporate-action coverage + permission; KSEI/IDX/issuer
+identity/listing/type permission and coverage). Two earlier classifications are
+corrected as classification hygiene only:
+
+- **R10 (no `ALLOWED` source) is an admission state, not an independent external
+  root blocker.** It is the registry consequence of missing permission/evidence and
+  is cleared by the same external grants.
+- **Missing production adapters are deferred internal implementation work**, not
+  external blockers. They become implementable only after admission; they are not
+  the reason sources are blocked.
+
+The conclusion stands: internal development alone cannot resolve missing
+authoritative source evidence. Derived readiness failures (`GenuinePriceObservation`,
+`SourcePriceConvention`, `priceComparability`, historical/session coverage,
+`MARKET_ELIGIBLE`, final `DATA_BLOCKED`) are consequences of the roots, not new roots.
+
+### Decision answers
+
+1. **What can operate now:** SAFE_TO_CONTINUE capabilities plus CONDITIONAL
+   retained-evidence functions within their explicit STALE/PARTIAL/UNAVAILABLE
+   semantics.
+2. **What must stay blocked:** screener readiness/evaluation, candidate promotion,
+   new evidence admission, ingestion/Daily Runner, FullIdx.
+3. **Can the screener produce `DATA_READY`:** No.
+4. **Can the prospective EOD pilot begin:** No — mandatory control/action/price
+   premises are unmet.
+5. **Can FullIdx begin:** No.
+6. **Should source investigation continue:** Yes, but only as targeted external
+   inquiries (see the unblock strategy section), not repeated internal discovery.
+7. **Should production collectors be implemented:** No — no admitted source, and
+   speculative collectors are prohibited.
+8. **Is paid-provider evaluation justified:** No — no paid capability is shown to
+   close an exact mandatory blocker.
+9. **Is architecture redesign necessary:** No — the provider-neutral architecture
+   is sufficient.
+10. **Can independent development continue:** Yes, within SAFE_TO_CONTINUE and
+    bounded design scope (see the backlog section).
+
+### Reconsideration conditions
+
+Reconsider the Level-1 disposition only when a documented, permitted, admissible
+route closes a mandatory root (IDX control evidence, corporate-action completeness,
+or the two EODHD JK premises), with the exact evidence admitted through the
+existing framework. No deadline or automatic retry is created.
+
+### Validation
+
+Documentation only; append to this file alone. No code, adapter, migration,
+registry, DB, evidence, Daily Runner, FullIdx or soak change; provider/network use
+**0**. `git diff --check` clean; commit message
+`docs: decide level1 operational disposition`; no push.
