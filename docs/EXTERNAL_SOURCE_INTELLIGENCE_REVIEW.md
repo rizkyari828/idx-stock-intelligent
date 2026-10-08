@@ -872,3 +872,94 @@ Limits: live endpoint responses, authenticated entitlements, original filing
 contents and actual end-to-end unattended operation were not tested. The material
 risk remains that permission or incomplete control/publication/revision coverage
 prevents the proposed free source concepts from becoming operational evidence.
+
+---
+
+## Phase-2 entry and fundamentals readiness (2026-10-08 WIB)
+
+**Decision: `GO_FOR_BOUNDED_DESIGN`, with production acquisition and ingestion on
+`HOLD_FOR_EVIDENCE`.** Fundamental Intelligence is an independent evidence family;
+bounded requirements/contract design may continue while Level-1 remains BLOCKED,
+but no production filing acquisition, parser, adapter or ingestion is authorized.
+This is a planning decision only — not a frozen contract, not a Phase-2
+implementation authorization, and not a claim of operational readiness. No
+thresholds are invented and no Stockbit integration is proposed.
+
+Baseline: `main`, HEAD `2a4f015` (this bundle's Task 2 commit), clean worktree.
+This section appends to this file alone and reuses the pinned-repository findings
+above rather than repeating them.
+
+### Dependency assessment
+
+| Question | Finding |
+|---|---|
+| A. Requires complete Level-1 readiness? | **No.** Fundamentals are a separate evidence family with their own claims (financial facts) and do not depend on TradingStatus/session/action gates. |
+| B. Developable independently with its own admitted evidence? | **Design: yes.** Production build: no, until an authorized acquisition route exists. |
+| C. Requires selected shared infrastructure? | **Yes.** Immutable originals, provenance, revision/PIT chronology, provider-neutral typed evidence and the existing evidence store are shared and designed to be reused. |
+| D. Must wait for authorized source acquisition before implementation? | **Yes** for any acquisition/parser/ingestion. Bounded design and a proposed additive contract may proceed. |
+
+Development feasibility, data-acquisition feasibility, evidence admission and
+operational readiness are distinct; only the first is currently satisfied.
+
+### Fundamental source strategy
+
+Retain the conditional concept from section 8: official issuer/IDX financial
+original -> authorized filing discovery -> immutable original -> XBRL preferred,
+validated XLSX second -> typed financial facts -> PIT/revision handling ->
+Fundamental Intelligence. `GetAllAnnouncement`/`GetFinancialReport` remain
+discovery concepts, not authorized routes; Stockbit remains non-authoritative
+secondary cross-check only; official files are not assumed to be completely or
+permissibly machine-retrievable. No GitHub survey is repeated.
+
+### Fundamental capability requirements (assessment targets only)
+
+Minimum facts: revenue, operating profit where meaningful, net income, EPS, CFO,
+capex, FCF, assets, equity, cash, debt, shares outstanding, dilution, margins and
+growth, plus valuation inputs and dividend evidence. Each fact needs stable concept
+identity, issuer/security identity, reporting period (duration/instant), period
+type, consolidation/dimensions, audit status, currency/unit/scale, filing identity,
+publication evidence, retrievedAt/knownAt and revision lineage. Bank versus
+non-bank statements must not be forced into one generic concept; consolidated
+versus standalone, audited versus unaudited, restatements and historical revisions
+must be explicit. Exact numeric representation and missingness are preserved; no
+float/zero substitution.
+
+### Profitability trajectory
+
+The existing project does not define rules or thresholds for
+CONSISTENTLY_PROFITABLE, IMPROVING_PROFIT, PROFIT_TURNAROUND, DETERIORATING_PROFIT,
+LOSS_TURNAROUND_ATTEMPT, PERSISTENT_LOSS, VOLATILE or INSUFFICIENT_DATA. Until a
+future explicit design and sufficient comparable multi-period data exist, the
+correct behavior is `INSUFFICIENT_DATA`; no thresholds or classifier are invented
+here.
+
+### Existing architecture reuse
+
+Reuse (conceptually, no mapping frozen): `RawArtifactArchiver` content-addressed
+original retention; archive-before-parse ingestion; provider-neutral typed evidence
+binding and immutable revision series; PIT/as-of readers and cutoff/knownAt
+visibility; readiness/diagnostic evaluators. A future fundamental claim vocabulary
+would be an **additive** payload version, not a reinterpretation of V0.2.
+
+### Missing requirements before implementation
+
+- An authorized, permitted filing-acquisition route (discovery + attachments).
+- A fundamental evidence claim/binding design (proposed, reviewed, frozen later).
+- Filing identity/publication model, period/duration model, restatement lineage,
+  taxonomy mapping, bank/non-bank concept handling.
+- Retention and revision rights.
+
+### First bounded slice (if pursued)
+
+A design-only deliverable: **Phase-2 Fundamental Evidence Binding V0.1** — a
+proposed additive claim schema and PIT/revision model for review. It must not
+freeze a contract, implement acquisition, or require blocked Level-1 sources.
+Acceptance gates: reviewed proposal, explicit unresolved-source list, no production
+code, no contract freeze without separate approval.
+
+### Validation
+
+Documentation only; append to this file alone. No acquisition, parser, adapter,
+contract freeze, DB change or Stockbit integration; network/provider use **0**.
+`git diff --check` clean; commit message
+`docs: assess phase2 fundamentals readiness`; no push.
