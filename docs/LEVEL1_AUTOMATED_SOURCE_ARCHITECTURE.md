@@ -805,3 +805,155 @@ historical operational counts were not freshly measured. Checks passed: exact
 documentation diff/`git diff --check`, unchanged historical prefix, frozen binding,
 source ledger and runbook, and matching **1,386 protected file hashes** before/after.
 Only this documentation file changes; no push.
+
+---
+
+## Slice 5A.2g — corporate-action source confirmation (2026-10-08 WIB)
+
+**Decision: `CORPORATE_ACTION_COVERAGE_PARTIAL`.** No admitted free, permitted,
+unattended, reproducible Indonesian corporate-action route establishes complete
+coverage for the five required categories. Positive individual events are
+obtainable from several official/reviewed sources, but no source proves a closed
+all-type, all-window, amendment/cancellation coverage basis, and no source grants
+permitted unattended automation. Independent permission/automation verdict on the
+operational axis: **`CORPORATE_ACTION_AUTOMATION_OR_PERMISSION_BLOCKED`** (IDX
+website automation prohibited and system-to-system paid per Slice 5A.2e; KSEI
+public pages have no login/payment but no granted automation permission; IDX
+`/primary` routes are discovery-only and must not be scraped). Both must be
+resolved before `priceComparability` can ever reach `CLEARED`. This section is
+additive and appends to this file alone; it does not amend the frozen contract,
+the source ledger, the external source review, or prior findings.
+
+Baseline: `main`, HEAD `6d04eb1a731df4483dcefba85be100c12c15ec12`, clean worktree,
+16 ahead / 0 behind locally recorded `origin/main`; no fetch. Slice 5A.2f remains
+the EODHD price decision; this milestone does not finish EODHD semantics.
+
+### Bounded verification of current source state
+
+Ordinary attributed public GETs on this review date (no login, no WAF/CAPTCHA
+bypass, no internal `/primary` call):
+
+| Source | Response | Bearing |
+|---|---|---|
+| [IDX corporate-action page](https://www.idx.id/id/perusahaan-tercatat/aksi-korporasi/) | 200 HTML, 406,277 B | Lists Stock Split, HMETD, Tanpa HMETD, **ESOP/MSOP**, Saham Bonus, IPO, Partial Delisting, Waran, Dividen Saham, Gabung Usaha, Reverse Stock, Kurang Modal, Konversi Saham. ESOP/MSOP is absent from the `idx-bei` 15-item `CA_TYPES`, confirming that wrapper enumeration is not an exhaustive authoritative universe. |
+| [KSEI rights/HMETD index](https://web.ksei.co.id/publications/corporate-action-schedules/rights-distribution) | 200 HTML, 33,843 B | Public category index; individual dated notices are separate PDFs. |
+| [KSEI merger/split/reverse index](https://web.ksei.co.id/publications/corporate-action-schedules/masr) | 200 HTML, 33,906 B | Public category index; earlier finding of a final schedule referencing an earlier announcement, separating conversion/suspension/delisting dates. |
+| [KSEI bonus index](https://web.ksei.co.id/publications/corporate-action-schedules/share-bonus?setLocale=en-US) | 200 HTML, 33,827 B | Earlier direct fetch returned 500; index reachable now, no completeness statement. |
+| [KSEI current announcements](https://www.ksei.co.id/en/publication/announcement) and [action calendar](https://www.ksei.co.id/en/service-support/schedule/schedule-of-corporate-actions) | 200 | Public dated references/categories; pagination only, no exhaustive historical/cancellation export or feed. |
+| [KSEI downloads](https://web.ksei.co.id/data/download-data-and-user-guide?setLocale=en-US) | 200 HTML, 87,922 B | Annual combined/category XLS downloads; combined 2026 export exceeds the 4 MiB/512-row ingestion bound (prior finding). |
+| [IDX disclosures](https://www.idx.id/id/perusahaan-tercatat/keterbukaan-informasi/) and [XBRL](https://www.idx.id/id/perusahaan-tercatat/xbrl/) | 200 | Product/taxonomy relevance; no complete public revision/feed or automation licence. |
+
+`GetIssuedHistory`, `GetAllAnnouncement` and other IDX `/primary` routes were
+assessed in the [external source review](EXTERNAL_SOURCE_INTELLIGENCE_REVIEW.md)
+from pinned repository code only; they were not called here and are not admitted.
+
+### Corporate-action coverage matrix
+
+`CONFIRMED_FIELD` = directly observed in an inspected official/reviewed artifact
+for at least one event. `PARTIAL` = present in some notices but not systematically
+across the type/window. `UNRESOLVED` = no authenticated universal source. No row is
+a completeness assertion.
+
+| Action type | Positive-event source(s) | Confirmed fields | Partial / unresolved fields | Automation | Permission | Historical / PIT / revision limitation |
+|---|---|---|---|---|---|---|
+| Stock split | IDX action page; KSEI merger/split/reverse index + final schedule PDFs; issuer originals (e.g. BCA 2021 split PDF) | Instrument identity; announced ratio and nominal split; some market-effective dates; KSEI publication/reference | Universal ex/effective semantics; all amendment/cancellation records; complete window | Index/PDF manual; no permitted feed | IDX website prohibited / system-to-system paid; KSEI automation permission unknown | Mutable pages; no immutable event chain; publication timezone not authenticated |
+| Reverse stock split | IDX action page; KSEI merger/split/reverse category | Instrument identity; category presence; some ratio/schedule via PDFs | Same as split; no exhaustive catalogue | Same | Same | Same |
+| Cash dividend | KSEI AUTO dividend notice PDF (reference + separate ex/record/payment dates); IDX action page (Dividen Saham) | Instrument identity; reference/publication date; ex/record/payment dates for the observed event | Universal coverage; amendment/cancellation; consistency of date semantics across issuers | Manual PDF; no feed | KSEI unknown; IDX blocked/paid | Frozen policy keeps cash dividends price-only; still needs no-break coverage for absence claims |
+| Rights issue / HMETD | KSEI rights/HMETD index + dated rights notice PDFs (security identity, segment-specific schedule); IDX action page (HMETD/Tanpa HMETD) | Instrument identity; exercise terms/ratio in notices; some cum/record/effective/payment dates | Universal ex-date/theoretical-price semantics; all amendments; complete window | Manual PDF; no feed | Same | Announcement time, cum/ex/record/effective distinctions not universally authenticated |
+| Bonus shares / stock dividend | IDX action page (Saham Bonus); KSEI bonus category; prior bonus guide | Instrument identity; category/ratio clues | Bonus direct fetch returned 500 earlier; no complete coverage | Manual; C-BEST reports need participant access | KSEI unknown; IDX blocked/paid | No native revision lineage |
+
+Field-level summary: **instrument identity** is the strongest confirmed field
+(KSEI master/detail, IDX disclosures). **announcement/publication date** is visible
+on KSEI notices but lacks an authenticated timezone/first-public definition.
+**cum/ex/record/effective/distribution** dates appear in some notices but are not
+proven universal or consistently defined across types and issuers. **ratios /
+amounts / exercise prices** appear in notices but are not systematically
+retained/authenticated. **amendments, cancellations and corrections** are the
+weakest: no source exposes a complete, immutable revision chain. `GetIssuedHistory`
+supplies `JumlahSaham`/`JumlahSahamSetelahTindakan` and `TanggalPencatatan`, but
+`TanggalPencatatan` is a listing-date clue, not a universal ex/effective date, and
+failed categories are recorded as empty (silence, not absence).
+
+### Automation, permission and source roles
+
+| Source | Role assigned | Basis |
+|---|---|---|
+| KSEI corporate-action publications (indices + notice PDFs) | **Reconciliation / manual research only** (positive events `CONDITIONALLY_ADMISSIBLE`) | Public no-login PDFs; automation permission not granted; no publisher-complete coverage or cancellation feed; XLS combined export exceeds ingestion bounds |
+| IDX official disclosures / aksi-korporasi / `GetIssuedHistory` / `GetAllAnnouncement` | **Discovery only** | Endpoint/category intelligence; unattended website automation prohibited; system-to-system route is a paid licence; wrapper enumeration not exhaustive and failures-to-empty |
+| Issuer originals (e.g. BCA chronology/split PDF) | **Reconciliation** | Positive corroboration where a reviewed issuer route is allowed; not a complete coverage basis |
+| EODHD splits/dividends endpoint | **Discovery only / corroboration** | Documented T3 API but cannot certify rights/bonus/merger/no-break completeness |
+| Any complete permitted unattended corporate-action feed | **Blocked / not admissible (none found)** | No source grants the required rights and coverage |
+
+Technical accessibility, public visibility and operational permission are
+**separate claims**: reachable official PDFs and internal `/primary` routes do not
+constitute an automation grant.
+
+### Historical and PIT findings
+
+- **Prospective EOD operation:** event acquisition can be planned (shared indices,
+  dated notices), but no permitted unattended feed exists; prospective coverage is
+  therefore also blocked, not merely historical.
+- **Historical reconstruction:** individual dated events are reconstructable from
+  retained originals; a closed all-window coverage basis is not proven.
+- **Publication vs first-seen:** KSEI publication/reference dates exist; timezone,
+  first-public meaning and original linkage are unproven. Local knownAt stays
+  separate and cannot be backdated.
+- **Effective-date handling:** cum/ex/record/effective/distribution distinctions are
+  not universally authenticated; `TanggalPencatatan` is not an ex-date.
+- **Revision/correction history:** no immutable correction/cancellation chain;
+  mutable pages and same-URL replacement mean a later fetch cannot prove the prior
+  version; missing revisions cannot be reconstructed.
+- **Immutable evidence / deterministic replay:** retain original bytes and hashes,
+  but hashes prove identity only. A missing event, an unsupported category or a
+  failure-to-empty leaves the window `PARTIAL`/`UNRESOLVED`; never `CLEARED`.
+
+### Price-adjustment and indicator consequences
+
+Frozen semantics are unchanged; this identifies required treatment, not new rules.
+
+| Action | Required explicit treatment | Downstream risk if untreated |
+|---|---|---|
+| Stock split, reverse split, bonus shares / stock dividend | Capital discontinuity: mark the affected segment `PRICE_KNOWN_BREAK`; restart/warmup per the frozen split-in-seed rule | Wrong returns, EMA20/50, momentum, ATR, priorHigh/Low and distance-to-high across the break |
+| Cash dividend | Retain frozen price-only treatment; do not invent an adjustment | Adjusted-close use would alter raw technicals; cash dividends alone do not create a capital-break claim |
+| Rights issue / HMETD | Must be evaluated per event: **split-like adjustment is not universally valid**; requires authenticated cum/ex/effective terms and a defensible adjustment basis, else `PRICE_KNOWN_BREAK`/`UNRESOLVED` | Theoretical ex-rights price distortion of returns/indicators; over- or under-adjustment |
+| Volume basis | EODHD documents split-adjusted volume, which is **not** the required raw `RAW_AS_TRADED` quantity basis | Volume/liquidity features remain `UNAVAILABLE`; never convert adjusted volume to raw shares |
+
+Because coverage is partial, `priceComparability` cannot be set `CLEARED` for any
+window containing an unproven action; affected dependencies are `UNRESOLVED` and
+`DATA_READY` is not reached (`CORPORATE_ACTION_COVERAGE_PARTIAL`).
+
+### Level-1 blocker impact
+
+Corporate-action completeness remains a **distinct mandatory Level-1 dependency**.
+It is not subsumed by TradingStatus or session completion, and those must **not** be
+declared the sole remaining blockers. The corporate-action gap independently blocks
+`priceComparability = CLEARED` and therefore `DATA_READY` for any segment crossing
+an unproven capital event. No complete Level-1 blocker-matrix re-run is performed
+here; that follows the EODHD-semantics finish.
+
+### Remaining EODHD questions carried forward
+
+Unchanged from Slice 5A.2f; this milestone does not resolve them:
+
+1. **JK genuine-observation/date semantics** for `/api/eod/BBCA.JK` and pilot JK
+   equities (`period=d`): source of OHLC; what local trading date `date` identifies;
+   carry-forward / previous-close substitution / synthetic / placeholder /
+   estimate behavior including weekends, holidays and no-execution sessions; what
+   zero volume means.
+2. **Exact raw currency/unit continuity:** whether raw OHLC are unconverted IDR per
+   ordinary share, and which dated symbol/ISIN/exchange metadata bind that
+   currency/unit/scale to the fields across historical code/currency/unit changes.
+
+EODHD splits/dividends remains corroboration only; it cannot certify complete
+corporate-action coverage.
+
+### Validation and activity
+
+Documentation only; append to this file alone. No build/full test suite required.
+Fresh public first-party GETs were bounded to official/reviewed pages; **no** IDX
+`/primary` endpoint, authenticated Stockbit endpoint, KSEI participant service or
+EODHD market-data call was made. Provider units **0**, paid use **0**, accounts
+**0**, credentials **0**, login **0**, WAF/CAPTCHA bypass **0**. No code, adapter,
+migration, source/permission registry, operational DB, evidence, Daily Runner,
+FullIdx or soak change. `git diff --check` clean; only this documentation file
+changes; commit message `docs: confirm corporate action evidence route`; no push.
