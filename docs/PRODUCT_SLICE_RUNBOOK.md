@@ -3976,3 +3976,62 @@ data, evidence and frozen contracts are unchanged. Documentation only: exact
 diff/`git diff --check` review; ordinary public GETs only, no WAF/CAPTCHA bypass,
 no account, no paid activation, provider API calls/units **0/0**; commit message
 `docs: confirm automated idx control evidence route`; no push.
+
+## Post-Level-1 execution roadmap and backlog (2026-10-08 WIB)
+
+Basis: Level-1 operational disposition (Options A+B) and the external unblock
+strategy in `LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md`, plus the Phase-2 entry
+decision (`GO_FOR_BOUNDED_DESIGN`, production on `HOLD_FOR_EVIDENCE`) in
+`EXTERNAL_SOURCE_INTELLIGENCE_REVIEW.md`. Backlog labels (READY/CONDITIONAL/
+BLOCKED/DEFERRED) are planning labels, not application readiness states. No
+production implementation occurs here.
+
+### Workstreams
+
+- **A — Independent existing-system development:** work that consumes no blocked
+  Level-1 evidence. Mostly already implemented; one read-only audit is READY.
+- **B — Level-1 source unblock dependencies:** external permission/semantics
+  actions; no development until an answer arrives.
+- **C — Conditional Fundamental Intelligence:** design READY; build BLOCKED.
+- **D — Deferred optional enrichment:** volume/liquidity, benchmark/RS, flow.
+
+### Backlog
+
+| ID | Title | Objective | Dependencies | Acceptance / deliverable | Source evidence | Model / effort | Readiness |
+|---|---|---|---|---|---|---|---|
+| OPS-1 | Operational schema & evidence-state reconciliation audit | Read-only reconcile repository migrations 0001–0011 against the operational DB; report applied/absent migrations, registered sources, retained-evidence/artifact counts and archive integrity | None (read-only; operational DB access) | Factual state report; no mutation; fingerprints before/after | Existing DB + repo migrations | High / Low | READY |
+| P2-D1 | Phase-2 Fundamental Evidence Binding V0.1 (design proposal) | Propose an additive fundamental claim schema, period/duration, restatement, currency/unit and PIT/revision model for review | Phase-2 entry decision (bounded design) | Reviewed design proposal; explicit unresolved-source list; no contract freeze | Astra Phase-2 concept; existing binding patterns | Max / High | READY |
+| B1 | IDX control-evidence inquiry | Send the prepared IDX inquiry; record the answer | User authorization to contact IDX | Sent/answered record; no purchase or account | Prepared draft | High / Low | CONDITIONAL (user approval) |
+| B2 | KSEI corporate-action inquiry | Send the prepared KSEI inquiry; record the answer | User authorization | Sent/answered record | Prepared draft | High / Low | CONDITIONAL (user approval) |
+| B3 | EODHD semantic inquiry | Send the two endpoint-specific questions; record the answer | User authorization | Sent/answered record | Prepared draft | High / Low | CONDITIONAL (user approval) |
+| B4 | EODHD JK price adapter (5A.3c) | Implement the reviewed EODHD adapter after scoped admission | B3 answer + both premises closed + admission | Conditional adapter accepted | EODHD docs | High / Medium | BLOCKED |
+| B5 | IDX control-evidence integration | Map a permitted IDX route into typed control evidence | B1 answer + permitted route | Integration design then adapter | IDX route | Max / High | BLOCKED |
+| B6 | Corporate-action integration | Map permitted KSEI/IDX action evidence with coverage | B2 answer + coverage basis | Coverage + reconciliation design | KSEI/IDX | Max / High | BLOCKED |
+| A1 | V0.2/V0.3 schema deployment preflight | Authorized deployment of existing migrations when an adapter is near admission | Explicit authorization + adapter need | Deployment runbook + acceptance | Migrations 0007–0011 | High / Low | CONDITIONAL |
+| C1 | Phase-2 acquisition/parser implementation | Build XBRL/XLSX ingestion after contract freeze | P2-D1 review + authorized source route | Adapter + parser tests | Official filings | High / High | BLOCKED |
+| D1 | Optional volume/liquidity features | Volume-dependent signals | Raw quantity basis admitted | Feature availability | None now | — | DEFERRED |
+| D2 | Benchmark/relative strength | RS20/RS60 | Admitted benchmark | RS availability | EODHD index | — | DEFERRED |
+| D3 | Foreign/broker flow, sector rotation | Optional context | Admitted units/scope/route | Context availability | IDX aggregates | — | DEFERRED |
+
+### Recommended execution sequence
+
+1. **OPS-1** and **P2-D1** now — both READY and independent of blocked sources.
+2. **B1–B3** once the user authorizes external inquiries; then wait for answers.
+3. On an EODHD answer, re-open the EODHD admission path (B4).
+4. On IDX/KSEI answers, re-open control/action integration (B5/B6).
+5. Revisit the Level-1 operational disposition only when a mandatory root closes.
+6. Phase-2 build (C1) only after the contract is reviewed and an authorized source
+   route exists; optional enrichment (D1–D3) remains last.
+
+### Ready-to-execute coverage
+
+Two READY tasks (OPS-1, P2-D1); their complete standalone prompts follow the final
+report. The remaining backlog is CONDITIONAL on user authorization or external
+answers, or BLOCKED. No adapter may be implemented before source admission.
+
+### Validation
+
+Documentation only; append to this file alone. No code, adapter, migration,
+registry, DB, evidence, Daily Runner, FullIdx or soak change; network/provider use
+**0**. `git diff --check` clean; commit message
+`docs: plan post-level1 execution backlog`; no push.
