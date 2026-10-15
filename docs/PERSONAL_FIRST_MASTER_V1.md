@@ -67,19 +67,82 @@ charts, ledger and committed-outcome Research remain intact.
 |---|---|---|
 | A — reuse audit/design | COMPLETE | Existing proposal retained; exact bounded decisions above |
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
-| C — Research vertical slice | READY after B | Source-independent diagnostics only; real-data rights not re-established |
+| C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
 | D — Fundamental review | READY | Current candidate remains PROPOSAL — NOT FROZEN |
 | E — Fundamental implementation | CONDITIONAL | Freeze/build approval absent; prepare handoff only |
 
-Current task: C. B's implementation is the commit introducing `SourceUsagePolicy.cs`
-and this record (resolve with `git log -- src/IdxStockIntelligence.Application/SourceUsagePolicy.cs`).
-Latest previously verified commit: initial baseline above. Next READY task: C.
+Current task: D. B commit:
+`143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
+Latest previously committed milestone: B. C is the commit introducing
+`ResearchSourceDiagnostics.cs` and updating this checkpoint. Next READY task: D.
 Check actual HEAD/status and rerun applicable acceptance before adopting this record.
 The initial full run predates the final grant/source binding refinement; the focused
-32-case discovery checks that refinement. A final full regression is planned after C.
+32-case discovery checks that refinement. The final full regression after C covers
+the latest code: 1,203 total, 999 passed, 204 opt-in DB cases skipped, zero failures.
+Its TRX was retained outside the repository under `/private/tmp/idx-master-v1-tests`;
+it is local execution evidence, not portable acceptance to trust without context.
 Sandboxed discovery initially stalled and was interrupted; normal discovery outside
 the sandbox compiled and executed. Analyzer naming/options errors were corrected;
 no failing test or compiler result is treated as acceptance.
+
+## Research diagnostic boundary and local use
+
+`GET /api/research/source-diagnostics` (optional `?mode=RESEARCH` or
+`?mode=VERIFIED`) reports four usage-intent decisions and explicit diagnostic-only
+limitations. Provenance is **TRUSTED_LOCAL_CONFIGURATION_ONLY**, not market evidence.
+It reads no market rows, archive files or financial facts, performs no calculation,
+checks no positive evidence admission and calls no candidate promotion. Market-data
+readiness is not assessed. No third-party data rights were newly demonstrated in
+this run, so C3 uses the authorized source-independent diagnostic fallback.
+
+The trusted server setting `IDX_SOURCE_USAGE_CONFIG` optionally contains bounded
+JSON in the B schema. If absent, all sources/features are disabled. An explicit
+invalid value returns HTTP 503 / SOURCE_USAGE_CONFIG_INVALID on this endpoint,
+never a fallback grant. Query parameters cannot supply sources, rights, clocks or
+admission; invalid/duplicate parameters return HTTP 400 with a safe code. Review
+references, scope IDs, credentials and raw configuration are not returned.
+
+Minimal explicit disabled configuration (no real-provider authorization):
+
+```json
+{"schemaVersion":1,"profile":"PERSONAL","enabledFeatures":[],"sources":[],"selections":[]}
+```
+
+Configuration enum tokens are uppercase snake case; the endpoint uses the existing
+API enum serialization unchanged. Positive examples exist **only as authored test
+fixtures**, with source/scope-bound synthetic decisions. A capability evidence ref
+must identify reviewed route/field/version/history/unit/currency/adjustment/revision/
+publication semantics; it is not source truth or an admission. A scope ID identifies
+exact reviewed input coverage, not a pattern. Only one active scope per source and
+one selected source per capability are supported in this increment.
+
+The new setting affects **only this new diagnostic boundary**. It is not a global
+switch or a retrofit of acquisition, legacy market readers, existing export or
+Research V0.1. There is no source acquisition or live analytical execution even if
+synthetic configuration produces USAGE_PERMITTED. New consumers must authenticate
+actual input provenance, enforce all operational/source limits, check current
+registry/rights and apply the existing complete evidence gates before using data.
+Changing an environment setting requires operator restart; no hot-revocation,
+background job/cache protocol or durable permission history is claimed.
+
+Run against the existing local API; normal API startup still requires its existing
+database connection configuration, but this endpoint never resolves a DB service.
+HTTP acceptance deliberately uses a non-operational, unusable connection, owned
+temporary working directory and synthetic configuration. It needs no PostgreSQL
+server or schema/migration operations. Existing loopback-only/same-origin controls
+are untouched. No UI, new package or orchestration service is needed.
+
+Deterministic checks:
+
+```text
+rtk proxy dotnet test --filter-class IdxStockIntelligence.Tests.SourceUsagePolicyTests
+rtk proxy dotnet test --filter-class IdxStockIntelligence.Tests.ResearchSourceDiagnosticsTests
+rtk proxy python3 -m unittest discover -s scripts -p test_research_source_diagnostics.py -v
+```
+
+Use root standard discovery for full regression, not a test executable. The first
+attempt at a combined wildcard class filter matched zero cases and was correctly
+rejected by the minimum-expected-tests check; exact class filters then passed.
 
 ## Approval and operational boundaries
 

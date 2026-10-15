@@ -191,6 +191,22 @@ app.MapGet("/api/instruments/{id}/decision-snapshots", async (string id, HttpReq
     catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 
+// Source-independent policy diagnostics; callers cannot supply grants or evidence admission.
+app.MapGet("/api/research/source-diagnostics", (HttpRequest request) =>
+{
+    try
+    {
+        if (request.Query.Any(p => p.Value.Count != 1)) throw new ArgumentException("RESEARCH_DIAGNOSTICS_QUERY_INVALID");
+        var mode = ResearchSourceDiagnostics.ParseMode(request.Query.ToDictionary(p => p.Key, p => (string?)p.Value[0], StringComparer.Ordinal));
+        return Results.Ok(ResearchSourceDiagnostics.Read(builder.Configuration["IDX_SOURCE_USAGE_CONFIG"], mode, DateTimeOffset.UtcNow));
+    }
+    catch (ArgumentException error)
+    {
+        var code = error.Message == "SOURCE_USAGE_CONFIG_INVALID" ? error.Message : "RESEARCH_DIAGNOSTICS_QUERY_INVALID";
+        return Results.Json(new { code, error = code }, statusCode: code == "SOURCE_USAGE_CONFIG_INVALID" ? 503 : 400);
+    }
+});
+
 // Read-only research delivery: one committed-only dataset per request, pinned by datasetId.
 app.MapGet("/api/research/outcomes", async (HttpRequest request, ResearchService service, CancellationToken ct) =>
 {
