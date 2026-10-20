@@ -1,7 +1,9 @@
 # Fundamental Evidence Binding V0.1 — freeze decision package
 
-Status: **DECISION_PACKAGE — NOT FROZEN**. Prepared 2026-10-20 WIB on `main` at
-`a0275c1`, clean worktree; no fetch. Candidate unchanged since `1fffb58`.
+Status: **DECISION_PACKAGE — decisions recorded 2026-10-20 WIB; freeze execution
+pending**. Prepared on `main` at `a0275c1`, clean worktree; no fetch. Candidate
+unchanged since `1fffb58`. Recorded outcome: P1–P3 APPROVED, P4 APPROVED (freeze
+only), P5 NOT AUTHORIZED — see §9.
 
 This package exists to support **one human decision**. It does not freeze the
 candidate, does not approve it on the owner's behalf, does not authorize a build
@@ -120,17 +122,27 @@ fixture admission, E5 revision/PIT/premise fixtures. Each slice is separately
 scoped, standard root .NET discovery plus focused deterministic checks; no parser,
 no table, no source adapter inside E1–E5.
 
-## 9. Decision record (to be completed by the owner)
+## 9. Decision record (owner-recorded)
 
 ```text
-DATE (WIB):
-P1 statement-only scope:      APPROVED / DECLINED / REVISED
-P2 FCF boundary:              APPROVED / DECLINED / REVISED
-P3 exact contract bundle:     APPROVED / DECLINED / REVISED
-P4 freeze authorization:      APPROVED / DECLINED
-P5 bounded build E1–E5:       APPROVED / DECLINED
+DATE (WIB): 2026-10-20
+P1 statement-only scope:      APPROVED
+P2 FCF boundary:              APPROVED
+P3 exact contract bundle:     APPROVED
+P4 freeze authorization:      APPROVED — freeze execution only, no build
+P5 bounded build E1–E5:       NOT AUTHORIZED — revisit after the frozen text exists
 Notes / accepted deviations:
+  - Approval recorded from the owner's explicit directive after §4 was presented;
+    the owner chose "P4 freeze only, P5 later" from the stated options.
+  - P4 authorizes one documentation action: promoting this exact candidate to
+    frozen text. It authorizes no code, test, migration, registry, DB, source or
+    provider action, and no semantics beyond what P1–P3 accept.
+  - The freeze run must stop and report if the package, the candidate or the
+    repository state disagree with this record.
 ```
+
+Recorded by the same execution line that prepared this package, not by an
+independent reviewer; the D2 caveat in §2 and §5 still applies.
 
 ## 10. Validation and boundary of this package
 
