@@ -139,6 +139,10 @@ Notes / accepted deviations:
     provider action, and no semantics beyond what P1–P3 accept.
   - The freeze run must stop and report if the package, the candidate or the
     repository state disagree with this record.
+  - P4 scope explicitly includes replacing the two internal `PROPOSAL — NOT FROZEN`
+    status labels (§18 heading and §25.3 disposition) that would otherwise
+    contradict a frozen status block. Those two labels are status metadata, not
+    semantics; no other text inside §§18–25 may change.
 ```
 
 Recorded by the same execution line that prepared this package, not by an

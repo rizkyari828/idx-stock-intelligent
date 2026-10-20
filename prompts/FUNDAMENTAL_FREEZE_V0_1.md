@@ -46,12 +46,19 @@ anything.
 P1 statement-only scope:  APPROVED
 P2 FCF boundary:          APPROVED
 P3 exact contract bundle: APPROVED
-P4 freeze:                APPROVED (this prompt is its execution)
+P4 freeze:                APPROVED — this prompt is its execution, and its scope
+                          includes exactly the two status-label replacements in step 4
 P5 build E1–E5:           NOT AUTHORIZED
 ```
 
 If the §9 record, the candidate file or the working tree disagree with this block,
 stop and report the mismatch. Do not reconcile it by editing the record.
+
+Known and authorized deviations from "body byte-identical": the candidate contains
+two internal `PROPOSAL — NOT FROZEN` markers (§18 heading line and §25.3
+disposition) that would contradict a document whose status block says FROZEN.
+Step 4 replaces exactly those two labels and nothing else. This is the only
+permitted edit inside §§18–25.
 
 ## Task
 
@@ -68,21 +75,32 @@ stop and report the mismatch. Do not reconcile it by editing the record.
    - which sections are normative (§§18–22 plus the accepted D01–D03, D06, D09
      dispositions), which are rationale (§§1–17), which are non-normative (§23
      examples), and which are review record (§§24–25).
-4. Add one short `Freeze record` section stating:
+4. Apply **exactly two** body replacements, locating them by string (line numbers may
+   have moved). Do not reflow, reindent or "improve" anything around them:
+   - In §18: replace `**PROPOSAL — NOT FROZEN.**` with
+     `**Frozen — see the status block and Freeze record.**`
+   - In §25.3: replace `Keep PROPOSAL — NOT FROZEN until separately authorized freeze.`
+     with `Keep PROPOSAL — NOT FROZEN until separately authorized freeze (authorized
+     2026-10-20 WIB; executed in the Freeze record).`
+   If either string is missing or appears more than once, stop and report — do not
+   guess a location.
+5. Add one short `Freeze record` section stating:
    - frozen: the exact schemas, keys, numeric domain, period/PIT rules, admission
      behaviour and logical storage boundaries;
    - explicitly not frozen: typed corporate-action events (D04 scope limit), FCF and
      other formulas (D07), classification/valuation policy (D08), physical DDL,
      `0012` numbering and deployment (D09), source admission (F13);
    - amendment rule: additive version only, no reinterpretation of frozen V0.1/V0.2
-     or of this text by implementation convenience.
-5. Update every reference so none points at a `PROPOSAL — NOT FROZEN` file:
+     or of this text by implementation convenience;
+   - the two step-4 label replacements are status metadata, not semantic changes.
+6. Update every reference so none points at a `PROPOSAL — NOT FROZEN` file:
    `docs/PERSONAL_FIRST_MASTER_V1.md` (D/E rows and the E handoff opening),
    `docs/FUNDAMENTAL_SOURCE_FEASIBILITY_GATE_V0_1.md`,
    `docs/SOURCE_USAGE_POLICY_AND_CAPABILITY_GATING_V0_1_PROPOSAL.md`, and the
-   decision package's status block.
-6. Change no normative word. If you find a semantic contradiction, dead reference or
-   missing decision, stop and report it instead of fixing it quietly.
+   decision package's status block. Leave `prompts/` untouched: the instruction
+   record legitimately cites the old filename.
+7. Change no other word. If you find a further semantic contradiction, dead reference
+   or missing decision, stop and report it instead of fixing it quietly.
 
 ## Boundaries
 
@@ -94,13 +112,15 @@ stop and report the mismatch. Do not reconcile it by editing the record.
 
 ## Acceptance
 
-- `grep -rn "FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL" .` returns nothing.
-- No `PROPOSAL — NOT FROZEN` text remains attached to the frozen file or to any link
-  that resolves to it.
-- Proof that the normative body is untouched: paste `git diff -M --stat` and
-  `git diff -M -U0 | grep '^@@'`. Every hunk must sit in the status header (top of
-  file), the new freeze-record section, or a reference line in the four documents.
-  **Any hunk inside §§18–22 is a failed run** — stop, do not patch it.
+- `grep -rn "FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL" docs src tests collectors scripts README.md AGENTS.md .ai`
+  returns nothing. `prompts/` is excluded on purpose: this instruction record cites
+  the old filename as the thing being renamed.
+- The first lines of the renamed file show a `FROZEN` status with identity
+  `fundamental-evidence-v0.1.0`, the statement-only scope and the decision reference.
+- Proof of the edit surface: paste `git diff -M --stat` and `git diff -M -U0 | grep '^@@'`.
+  Allowed hunks: the top status block, the new Freeze record, the four reference
+  files, and **exactly two** body hunks at the step-4 strings. A third body hunk, or
+  any hunk inside §§19–22, is a failed run — stop, do not patch it.
 - `git diff --check` clean; no non-documentation file touched.
 - Runtime suites are not required for a documentation-only change: say so explicitly
   rather than claiming tests passed.
