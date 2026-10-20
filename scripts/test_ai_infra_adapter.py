@@ -29,9 +29,10 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
             script.chmod(0o755)
         self.capture = Path(self.tmp.name) / "capture"
 
-    def run_adapter(self, *args, lai=None, unset_lai=False):
-        env = {k: v for k, v in os.environ.items() if k != "LAI_REPO"}
+    def run_adapter(self, *args, lai=None, unset_lai=False, extra_env=None):
+        env = {k: v for k, v in os.environ.items() if k not in ("LAI_REPO", "AI_INFRA_ALLOW_MODEL_LAUNCH")}
         env["CAPTURE"] = str(self.capture)
+        env.update(extra_env or {})
         if lai is not None:
             env["LAI_REPO"] = lai
         if not unset_lai and lai is None:
@@ -77,6 +78,31 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
             result = self.run_adapter(command)
             self.assertEqual(64, result.returncode, command)
         self.assertEqual("", self.captured(), "refused commands must never reach the sibling")
+
+    def test_dispatch_is_dry_run_without_the_human_flag(self):
+        result = self.run_adapter("dispatch", "--objective", "goal", "--read-only")
+        self.assertEqual(0, result.returncode, result.stderr)
+        captured = self.captured()
+        self.assertIn("|run|--objective|goal|--workspace|", captured)
+        self.assertIn("|--max-ai-calls|1|--read-only|--dry-run", captured)
+        self.assertNotIn("--confirm", captured)
+
+    def test_dispatch_confirms_only_with_the_human_flag(self):
+        result = self.run_adapter("dispatch", "--objective", "goal",
+                                  extra_env={"AI_INFRA_ALLOW_MODEL_LAUNCH": "1"})
+        self.assertEqual(0, result.returncode, result.stderr)
+        captured = self.captured()
+        self.assertIn("|--confirm", captured)
+        self.assertNotIn("--dry-run", captured)
+        self.assertIn("CONFIRMED", result.stderr)
+
+    def test_dispatch_rejects_unbounded_or_missing_objective(self):
+        for args in (("dispatch",), ("dispatch", "--objective", "x", "--max-ai-calls", "0"),
+                     ("dispatch", "--objective", "x", "--max-ai-calls", "many"),
+                     ("dispatch", "--objective", "x", "--confirm-now")):
+            result = self.run_adapter(*args)
+            self.assertEqual(2, result.returncode, args)
+        self.assertEqual("", self.captured())
 
     def test_span_requires_the_sibling_script(self):
         (self.repo / "scripts/record-span").unlink()

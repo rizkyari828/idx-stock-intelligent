@@ -76,7 +76,8 @@ class AiInfraMcpAcceptance(unittest.TestCase):
         replies = self.speak([{"jsonrpc": "2.0", "id": 3, "method": "tools/list"}])
         tools = replies[0]["result"]["tools"]
         names = {tool["name"] for tool in tools}
-        self.assertEqual({"ai_infra_check", "ai_infra_route", "ai_infra_plan", "ai_infra_report", "ai_infra_span"}, names)
+        self.assertEqual({"ai_infra_check", "ai_infra_route", "ai_infra_plan", "ai_infra_dispatch",
+                          "ai_infra_report", "ai_infra_span"}, names)
         for forbidden in ("ai_infra_run", "ai_infra_agent_run", "ai_infra_bootstrap"):
             self.assertNotIn(forbidden, names)
         for tool in tools:
@@ -100,6 +101,31 @@ class AiInfraMcpAcceptance(unittest.TestCase):
                                "params": {"name": "ai_infra_plan", "arguments": {"objective": "goal"}}}])
         self.assertFalse(replies[0]["result"]["isError"], replies[0])
         self.assertEqual(str(self.repo / "scripts/orchestrate") + "|plan|--objective|goal|--json|--read-only", self.captured())
+
+    def test_dispatch_tool_is_dry_run_by_default(self):
+        replies = self.speak([{"jsonrpc": "2.0", "id": 12, "method": "tools/call",
+                               "params": {"name": "ai_infra_dispatch", "arguments": {"objective": "goal"}}}])
+        self.assertFalse(replies[0]["result"]["isError"], replies[0])
+        captured = self.captured()
+        self.assertIn("|run|--objective|goal|", captured)
+        self.assertIn("|--dry-run", captured)
+        self.assertNotIn("--confirm", captured)
+
+    def test_dispatch_tool_honours_the_human_flag_from_server_env(self):
+        env_flag = os.environ.get("AI_INFRA_ALLOW_MODEL_LAUNCH")
+        os.environ["AI_INFRA_ALLOW_MODEL_LAUNCH"] = "1"
+        try:
+            replies = self.speak([{"jsonrpc": "2.0", "id": 13, "method": "tools/call",
+                                   "params": {"name": "ai_infra_dispatch",
+                                              "arguments": {"objective": "goal", "max_ai_calls": 2}}}])
+        finally:
+            if env_flag is None:
+                os.environ.pop("AI_INFRA_ALLOW_MODEL_LAUNCH", None)
+            else:
+                os.environ["AI_INFRA_ALLOW_MODEL_LAUNCH"] = env_flag
+        self.assertFalse(replies[0]["result"]["isError"], replies[0])
+        captured = self.captured()
+        self.assertIn("|--max-ai-calls|2|--confirm", captured)
 
     def test_missing_lai_repo_returns_tool_error_not_crash(self):
         replies = self.speak([{"jsonrpc": "2.0", "id": 7, "method": "tools/call",

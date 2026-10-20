@@ -27,9 +27,14 @@ Commands (deterministic, offline; no model call, no network):
   plan --objective TEXT     offline task-graph plan
   report [--json]           trace report rebuilt from recorded spans
   span <record-span args>   append one sanitized span to infra telemetry
+  dispatch --objective TEXT run the orchestrator for this repo; DRY-RUN unless
+                            AI_INFRA_ALLOW_MODEL_LAUNCH=1 is set by the human, in
+                            which case it passes --confirm and may launch models
+                            (capped by --max-ai-calls, default 1)
 
-Deliberately not exposed: orchestrate run, agent-run, model pulls, bootstrap,
-profile apply, or any command that launches inference or mutates the sibling.
+Never exposed: agent-run, model pulls, bootstrap, profile apply. Model launches are
+possible only through dispatch, only with the human-set environment flag, and always
+bounded to this repository workspace.
 EOF
 }
 
@@ -39,7 +44,7 @@ shift
 
 case "$command_name" in
     -h|--help|help) usage; exit 0 ;;
-    check|route|plan|report|span) ;;
+    check|route|plan|report|span|dispatch) ;;
     *)
         printf 'ai-infra: unknown command: %s\n' "$command_name" >&2
         usage >&2
@@ -60,6 +65,40 @@ esac
 
 require() {
     [ -x "$LAI_REPO/scripts/$1" ] || fail "required sibling script missing: $1"
+}
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+
+dispatch() {
+    objective=
+    max_calls=1
+    read_only=0
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --objective) [ $# -ge 2 ] || fail "dispatch: --objective needs a value"; objective=$2; shift 2 ;;
+            --max-ai-calls) [ $# -ge 2 ] || fail "dispatch: --max-ai-calls needs a number"; max_calls=$2; shift 2 ;;
+            --read-only) read_only=1; shift ;;
+            *) fail "dispatch: unsupported argument: $1" ;;
+        esac
+    done
+    [ -n "$objective" ] || fail "dispatch: --objective is required"
+    case "$max_calls" in
+        ''|*[!0-9]*) fail "dispatch: --max-ai-calls must be a non-negative integer" ;;
+    esac
+    [ "$max_calls" -ge 1 ] || fail "dispatch: --max-ai-calls must be at least 1"
+
+    set -- run --objective "$objective" --workspace "$repo_root" --max-ai-calls "$max_calls"
+    if [ "$read_only" -eq 1 ]; then
+        set -- "$@" --read-only
+    fi
+    if [ "${AI_INFRA_ALLOW_MODEL_LAUNCH:-0}" = "1" ]; then
+        printf 'ai-infra: dispatch is CONFIRMED; models may launch (cap %s)\n' "$max_calls" >&2
+        set -- "$@" --confirm
+    else
+        printf 'ai-infra: dispatch is DRY-RUN; set AI_INFRA_ALLOW_MODEL_LAUNCH=1 to allow launches\n' >&2
+        set -- "$@" --dry-run
+    fi
+    exec "$LAI_REPO/scripts/orchestrate" "$@"
 }
 
 check() {
@@ -90,6 +129,10 @@ case "$command_name" in
     report)
         require trace-report
         exec "$LAI_REPO/scripts/trace-report" "$@"
+        ;;
+    dispatch)
+        require orchestrate
+        dispatch "$@"
         ;;
     span)
         require record-span

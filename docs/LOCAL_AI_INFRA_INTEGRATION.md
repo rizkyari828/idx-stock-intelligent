@@ -108,6 +108,21 @@ newline-delimited JSON-RPC (MCP stdio), standard library only, with five tools:
 — so the facade keeps sole ownership of refusals. `ai_infra_plan` defaults to
 read-only; no tool can launch a model or reach `orchestrate run`/`agent-run`.
 
+A sixth tool, `ai_infra_dispatch`, routes one objective through the sibling
+orchestrator for **this repository only** (`--workspace` is the repository root,
+`--max-ai-calls` defaults to 1). It is **dry-run unless the human sets
+`AI_INFRA_ALLOW_MODEL_LAUNCH=1`** in the server environment; only then does it pass
+`--confirm`. An agent cannot spend tokens on its own, and `--read-only` is opt-in
+because a mutating objective is genuinely invalid under a read-only plan.
+
+Observed prerequisite (2026-10-20): dispatch plans correctly — workspace resolves to
+this repository and T1 routes `BALANCED` — but execution stops at
+`NOT_CONFIGURED_BY_MACHINE_POLICY` with `backend=opencode`. Routing enforcement is
+therefore a **machine-configuration gap in the sibling**, not a missing feature here.
+The sibling's handoff and cache surfaces (`--state-dir`, `--no-cache`/`--refresh`,
+typed acceptance) become usable only after that backend exists; building a parallel
+cache in this repository would duplicate an upstream mechanism and is not planned.
+
 Install path: [`scripts/install-ai-infra-mcp-bundle.sh`](../scripts/install-ai-infra-mcp-bundle.sh)
 renders an installable bundle (absolute paths) from the path-free template in
 [`tools/dsh-mcp-ai-infra/`](../tools/dsh-mcp-ai-infra/), using the documented

@@ -63,6 +63,23 @@ TOOLS = [
         },
     },
     {
+        "name": "ai_infra_dispatch",
+        "description": ("Run the local-ai-infra orchestrator for this repository. DRY-RUN unless "
+                        "the human set AI_INFRA_ALLOW_MODEL_LAUNCH=1 in the server environment; "
+                        "a confirmed run may launch models and costs tokens."),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "objective": {"type": "string", "minLength": 1, "maxLength": 4000},
+                "max_ai_calls": {"type": "integer", "minimum": 1, "maximum": 8, "default": 1},
+                "read_only": {"type": "boolean", "default": False,
+                              "description": "Reject mutating nodes before execution. Defaults to false for dispatch."},
+            },
+            "required": ["objective"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "ai_infra_report",
         "description": "Trace report rebuilt from recorded spans. Read-only, offline.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
@@ -96,6 +113,12 @@ def _build_argv(name: str, args: dict) -> list[str]:
     if name == "ai_infra_plan":
         argv = [FACADE, "plan", "--objective", str(args["objective"]), "--json"]
         if args.get("read_only", True):
+            argv.append("--read-only")
+        return argv
+    if name == "ai_infra_dispatch":
+        argv = [FACADE, "dispatch", "--objective", str(args["objective"]),
+                "--max-ai-calls", str(int(args.get("max_ai_calls", 1)))]
+        if args.get("read_only", False):
             argv.append("--read-only")
         return argv
     if name == "ai_infra_report":
