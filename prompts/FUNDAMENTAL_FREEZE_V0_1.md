@@ -1,5 +1,19 @@
 # Coding Agent Prompt — freeze Fundamental Evidence Binding V0.1
 
+```text
+Recommended:
+Codex
+Model: Sol
+Thinking: Medium
+```
+
+Why Medium and not High/Astra: the contract is already reviewed and approved, the
+work is rename + header + reference updates with mechanically checkable acceptance,
+and the prompt forbids semantic edits. No architecture reasoning, no migration, no
+new design. Escalate to **Sol High** only if the run finds a real semantic
+contradiction or a normative section that cannot be left byte-identical — then stop
+and report instead of rewriting text. Astra is not justified here.
+
 Freeze the already-approved candidate. Do not redesign, implement, deploy or admit
 anything.
 
