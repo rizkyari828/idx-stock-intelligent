@@ -99,11 +99,31 @@ calls it.
   fail-closed discovery, unchanged argument passthrough, and proof that refused
   commands never reach the sibling.
 
-Not integrated and not claimed: MCP exposure of these commands, cross-model routing
-enforcement (the harness model is chosen per session, not per task), verified result
-handoff or cache reuse, and DSH session import into infra telemetry. Making those
-real needs an MCP server living in the sibling or a separate tools repository — with
-explicit authorization to modify shared infrastructure — plus acceptance of the
-sibling's still-unverified handoff. Until then, "integration" means the agent can ask
-for a recommendation or plan and record spans, while the product keeps working with
-the sibling absent.
+### MCP bridge (stdio)
+
+[`scripts/ai_infra_mcp.py`](../scripts/ai_infra_mcp.py) exposes the same facade over
+newline-delimited JSON-RPC (MCP stdio), standard library only, with five tools:
+`ai_infra_check`, `ai_infra_route`, `ai_infra_plan`, `ai_infra_report`,
+`ai_infra_span`. It maps typed arguments to facade argv lists — never a shell string
+— so the facade keeps sole ownership of refusals. `ai_infra_plan` defaults to
+read-only; no tool can launch a model or reach `orchestrate run`/`agent-run`.
+
+Install path: [`scripts/install-ai-infra-mcp-bundle.sh`](../scripts/install-ai-infra-mcp-bundle.sh)
+renders an installable bundle (absolute paths) from the path-free template in
+[`tools/dsh-mcp-ai-infra/`](../tools/dsh-mcp-ai-infra/), using the documented
+`@deepseek-ai/dsh-mcp-client` configuration: `serverName: ai-infra`, `transport:
+stdio`, explicit `env.LAI_REPO` (DSH scrubs ambient environment for stdio servers)
+and `failOnStartupError: false`, so a broken optional dev tool can never stop the
+harness from booting. Installing the rendered bundle into the `desktop` profile is a
+GUI/`plugin_manager` action, because that profile is application-managed.
+
+Verified: [`scripts/test_ai_infra_mcp.py`](../scripts/test_ai_infra_mcp.py) covers the
+handshake, notification silence, tool inventory, argument mapping, fail-closed
+`LAI_REPO`, protocol-error handling for unknown tools, and malformed-line recovery.
+A live exchange against the real sibling returns `check` and `route` output.
+
+Not integrated and not claimed: cross-model routing enforcement (the harness model is
+chosen per session, not per task), verified result handoff or cache reuse, and DSH
+session import into infra telemetry. Those need acceptance of the sibling's
+still-unverified handoff; until then the product keeps working with the sibling
+absent.

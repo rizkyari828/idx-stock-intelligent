@@ -1,0 +1,22 @@
+# DSH bundle patch: expose the read-only ai-local-infra facade as MCP tools.
+#
+# This committed template keeps the repository free of absolute developer paths.
+# Install a rendered copy (literal paths) with:
+#   LAI_REPO=/abs/path/to/ai-local-infra scripts/install-ai-infra-mcp-bundle.sh
+#
+# The server only shells out to scripts/ai-infra, which refuses every mutating or
+# model-launching sibling surface. DSH scrubs ambient environment for stdio servers,
+# so LAI_REPO must be passed explicitly here.
+- insert:
+    - id: ai-infra-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: ai-infra
+        transport: stdio
+        command: !!js process.env.AI_INFRA_MCP_PYTHON ?? 'python3'
+        args:
+          - !!js process.env.AI_INFRA_MCP_SERVER
+        env:
+          LAI_REPO: !!js process.env.LAI_REPO
+        failOnStartupError: false
+        toolCallTimeoutMs: 60000

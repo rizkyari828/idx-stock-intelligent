@@ -1,0 +1,9 @@
+{
+  "name": "@local/dsh-ai-infra-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only MCP bridge from DeepSeek Harness to the sibling local-ai-infra CLI.",
+  "files": ["cordis.patch.yml"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}
