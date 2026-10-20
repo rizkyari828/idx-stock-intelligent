@@ -68,14 +68,16 @@ charts, ledger and committed-outcome Research remain intact.
 | A — reuse audit/design | COMPLETE | Existing proposal retained; exact bounded decisions above |
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
 | C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
-| D — Fundamental review | READY | Current candidate remains PROPOSAL — NOT FROZEN |
-| E — Fundamental implementation | CONDITIONAL | Freeze/build approval absent; prepare handoff only |
+| D — Fundamental review | COMPLETE | Internal review delivered in the [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md); recommendation `READY_FOR_USER_APPROVAL`, candidate still PROPOSAL — NOT FROZEN, independent review not performed |
+| E — Fundamental implementation | CONDITIONAL | Freeze/build approval absent; handoff prepared only |
 
-Current task: D. B commit:
+Current task: D (complete). B commit:
 `143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
-Latest previously committed milestone: B. C is the commit introducing
-`ResearchSourceDiagnostics.cs` and updating this checkpoint. Next READY task: D.
-Check actual HEAD/status and rerun applicable acceptance before adopting this record.
+Latest previously committed milestone: C, the commit introducing
+`ResearchSourceDiagnostics.cs` and updating this checkpoint. Next READY task: the
+owner's freeze decisions P1–P5 in the decision package, then E1–E5 once separately
+authorized. Check actual HEAD/status and rerun applicable acceptance before
+adopting this record.
 The initial full run predates the final grant/source binding refinement; the focused
 32-case discovery checks that refinement. The final full regression after C covers
 the latest code: 1,203 total, 999 passed, 204 opt-in DB cases skipped, zero failures.
@@ -179,6 +181,33 @@ owned disposable DB acceptance would be a later explicit scope; operational
 migration deployment, original-byte ingestion and live source activation remain
 separately gated. No fundamental migration or source-independent production types
 are added as a shortcut while freeze approval is missing.
+
+## Fundamental freeze decision package — D (2026-10-20 WIB)
+
+D1 is complete as a bounded **internal** review in the
+[freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md). D2's
+independent-review condition is unmet: no verified second model route or
+independent reviewer was used, so no independent approval is claimed. The
+recommendation is `READY_FOR_USER_APPROVAL` for the **statement-only** candidate,
+conditional on the owner's decisions P1–P5; it is not `NEEDS_TARGETED_REVISION`
+and not `NOT_READY` because the open items are scope/deferred-capability decisions
+and external evidence, not defects in the proposed text.
+
+Corroborated in this pass: the exact numeric domain is the existing
+`EvidenceDecimal` (200-character literal, decimal 96-bit coefficient path,
+string-only converter); migrations `0007`–`0011` each guard their predecessor, so a
+provisional `0012` must follow `0011`; frozen V0.2 §1/§3 defines market-evidence
+dimensions only, so the fundamental family must be additive under its own
+identity. Not performed and not certified: line-by-line re-derivation of §§18–20,
+golden canonical bytes, DB concurrency/restore, parser budgets and any source check.
+
+Acceptance evidence for this run: full root .NET discovery 1,203 total / 999
+passed / 204 skipped / 0 failed; focused `SourceUsagePolicyTests` and
+`ResearchSourceDiagnosticsTests` 41 passed; Python diagnostic acceptance 3 passed.
+Those numbers re-verify the recorded baseline; they are not acceptance of the
+fundamental candidate. Approval gates, frozen contracts and source dispositions are
+unchanged by this review, and no freeze, build, migration or source action follows
+from it.
 
 ## Approval and operational boundaries
 
