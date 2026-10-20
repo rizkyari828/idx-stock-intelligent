@@ -1,0 +1,98 @@
+#!/bin/sh
+# Read-only facade over the sibling local-ai-infra CLI.
+#
+# This repository never imports local-ai-infra source and never edits it. The
+# facade resolves the sibling through the uncommitted LAI_REPO setting and refuses
+# every mutating or model-launching surface, so a stock-repository command can
+# never start a model worker or rewrite shared infrastructure state by accident.
+#
+# Allowed: deterministic, offline, read-only helpers (route, plan, report) plus
+# explicit span recording into the sibling's sanitized telemetry.
+set -u
+
+fail() {
+    printf 'ai-infra: %s\n' "$1" >&2
+    exit "${2:-2}"
+}
+
+usage() {
+    cat <<'EOF'
+usage: scripts/ai-infra <command> [args...]
+
+Requires LAI_REPO=/absolute/path/to/ai-local-infra (uncommitted environment).
+
+Commands (deterministic, offline; no model call, no network):
+  check                     verify LAI_REPO and the required sibling scripts
+  route --task TEXT         cheapest-sufficient tier/effort recommendation
+  plan --objective TEXT     offline task-graph plan
+  report [--json]           trace report rebuilt from recorded spans
+  span <record-span args>   append one sanitized span to infra telemetry
+
+Deliberately not exposed: orchestrate run, agent-run, model pulls, bootstrap,
+profile apply, or any command that launches inference or mutates the sibling.
+EOF
+}
+
+[ $# -eq 0 ] && { usage; exit 64; }
+command_name=$1
+shift
+
+case "$command_name" in
+    -h|--help|help) usage; exit 0 ;;
+    check|route|plan|report|span) ;;
+    *)
+        printf 'ai-infra: unknown command: %s\n' "$command_name" >&2
+        usage >&2
+        exit 64
+        ;;
+esac
+
+[ -n "${LAI_REPO:-}" ] || fail "LAI_REPO is unset; point it at the absolute local-ai-infra path"
+
+case "$LAI_REPO" in
+    /*) ;;
+    *) fail "LAI_REPO must be an absolute path: $LAI_REPO" ;;
+esac
+
+[ -d "$LAI_REPO" ] || fail "LAI_REPO is not a directory: $LAI_REPO"
+[ -x "$LAI_REPO/scripts/orchestrate" ] ||
+    fail "not a local-ai-infra checkout (scripts/orchestrate missing): $LAI_REPO"
+
+require() {
+    [ -x "$LAI_REPO/scripts/$1" ] || fail "required sibling script missing: $1"
+}
+
+check() {
+    printf 'repo: %s\n' "$LAI_REPO"
+    if git -C "$LAI_REPO" rev-parse --short HEAD >/dev/null 2>&1; then
+        printf 'head: %s\n' "$(git -C "$LAI_REPO" rev-parse --short HEAD)"
+        dirty=$(git -C "$LAI_REPO" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+        printf 'uncommitted: %s\n' "${dirty:-0}"
+    else
+        printf 'head: not-a-git-checkout\n'
+    fi
+    for script in route orchestrate trace-report record-span; do
+        require "$script"
+        printf 'script: %s ok\n' "$script"
+    done
+}
+
+case "$command_name" in
+    check) check ;;
+    route)
+        require route
+        exec "$LAI_REPO/scripts/route" "$@"
+        ;;
+    plan)
+        require orchestrate
+        exec "$LAI_REPO/scripts/orchestrate" plan "$@"
+        ;;
+    report)
+        require trace-report
+        exec "$LAI_REPO/scripts/trace-report" "$@"
+        ;;
+    span)
+        require record-span
+        exec "$LAI_REPO/scripts/record-span" "$@"
+        ;;
+esac

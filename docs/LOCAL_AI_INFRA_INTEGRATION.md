@@ -79,3 +79,31 @@ It must never directly modify production strategy.
 A later location-independent adapter may discover the external sibling through an uncommitted `LAI_REPO` setting and exchange an `EvidenceBundle`. No absolute developer path belongs in source or canonical data. There are no cross-repository source imports.
 
 The integration must degrade safely: if the AI runtime is absent, slow, or wrong, canonical ingestion and deterministic behavior continue unchanged.
+
+## Dev-time agent integration (V0.1)
+
+The product adapter above stays deferred. A smaller, separate integration exists for
+development-time tooling: [`scripts/ai-infra`](../scripts/ai-infra), a **read-only
+facade** over the sibling CLI. It is not a product dependency; the application never
+calls it.
+
+- Discovery uses the uncommitted `LAI_REPO` setting (absolute path). Without it every
+  command fails closed with exit status 2.
+- Exposed: `check`, `route --task`, `plan --objective`, `report`, `span`. These are
+  deterministic and offline, except `span`, which appends one sanitized span to the
+  sibling's own telemetry store.
+- Refused on purpose: `orchestrate run`, `agent-run`, model pulls, bootstrap and
+  profile apply. This repository must never launch inference workers or mutate
+  shared infrastructure. Unknown commands exit 64 before any sibling process starts.
+- Verified by [`scripts/test_ai_infra_adapter.py`](../scripts/test_ai_infra_adapter.py):
+  fail-closed discovery, unchanged argument passthrough, and proof that refused
+  commands never reach the sibling.
+
+Not integrated and not claimed: MCP exposure of these commands, cross-model routing
+enforcement (the harness model is chosen per session, not per task), verified result
+handoff or cache reuse, and DSH session import into infra telemetry. Making those
+real needs an MCP server living in the sibling or a separate tools repository — with
+explicit authorization to modify shared infrastructure — plus acceptance of the
+sibling's still-unverified handoff. Until then, "integration" means the agent can ask
+for a recommendation or plan and record spans, while the product keeps working with
+the sibling absent.
