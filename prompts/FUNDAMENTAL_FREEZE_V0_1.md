@@ -1,29 +1,28 @@
 # Coding Agent Prompt — freeze Fundamental Evidence Binding V0.1
 
 ```text
-Default (Codex available):
+Cheapest sufficient (use this):
+DeepSeek
+Model: DeepSeek Flash
+
+Escalate only on a concrete failure:
 Codex
 Model: Sol
 Thinking: Medium
-
-Fallback (Codex limit or cheaper):
-DeepSeek
-Model: DeepSeek Pro
 ```
 
-Why these levels: the contract is already reviewed and approved; the work is rename
-+ header + reference updates with mechanically checkable acceptance, and the prompt
-forbids semantic edits. No architecture reasoning, no migration, no new design.
+Why Flash is enough here: the contract is already reviewed and approved, every edit
+is mechanical (`git mv`, status header, freeze record, six reference updates), the
+acceptance below is machine-checkable, and the change is a local commit with no push
+— so a bad run costs one `git revert` or one re-run, not a corrupted contract.
 
-- Sol **Medium** is enough: mechanical edits, diff-checkable acceptance.
-- DeepSeek **Pro**, not Flash: this run must read a long frozen candidate, stop and
-  report on any semantic conflict, and prove "normative body unchanged" with
-  `git diff -M`. Flash is for cheap, low-risk work; if you use it anyway, review the
-  full diff and the rename hunks yourself before accepting the commit.
-- **Astra** is not justified at all.
-- Escalate to Sol High only if the run finds a real semantic contradiction or a
-  normative section that cannot be left byte-identical — then stop and report
-  instead of rewriting text.
+- **Flash** is the default: cheapest, and the failure mode is visible in the diff.
+- **Pro / Sol Medium** only if Flash's diff touches a normative line, misses a
+  reference, or the run finds a semantic conflict. Re-run with the higher tier; do
+  not hand-patch the bad attempt.
+- **Astra / Sol High** are not justified for this task at any point.
+- Do not loop: one pass, one commit, then verify. No re-reads of unrelated docs, no
+  web research, no second opinion request.
 
 Report the model and effort actually used. If the runtime does not expose them, write
 `UNKNOWN` — never infer or upgrade the label.
@@ -98,8 +97,10 @@ stop and report the mismatch. Do not reconcile it by editing the record.
 - `grep -rn "FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL" .` returns nothing.
 - No `PROPOSAL — NOT FROZEN` text remains attached to the frozen file or to any link
   that resolves to it.
-- `git diff -M` shows a rename plus header/freeze-record/reference hunks only; the
-  normative body is unchanged. State the evidence you used to confirm this.
+- Proof that the normative body is untouched: paste `git diff -M --stat` and
+  `git diff -M -U0 | grep '^@@'`. Every hunk must sit in the status header (top of
+  file), the new freeze-record section, or a reference line in the four documents.
+  **Any hunk inside §§18–22 is a failed run** — stop, do not patch it.
 - `git diff --check` clean; no non-documentation file touched.
 - Runtime suites are not required for a documentation-only change: say so explicitly
   rather than claiming tests passed.
