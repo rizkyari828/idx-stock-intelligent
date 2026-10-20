@@ -69,7 +69,7 @@ charts, ledger and committed-outcome Research remain intact.
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
 | C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
 | D — Fundamental review | COMPLETE | Internal review in the [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md); P1–P3 and P4 recorded APPROVED 2026-10-20, P5 not authorized; candidate frozen 2026-10-20 as [the contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md) |
-| E — Fundamental implementation | CONDITIONAL | Freeze executed 2026-10-20; build authorization (P5) absent; handoff prepared only |
+| E — Fundamental implementation | CONDITIONAL | Freeze executed 2026-10-20; P5 granted for E1 only; E2–E5 unauthorized |
 
 Current task: D (complete). B commit:
 `143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
@@ -151,8 +151,13 @@ rejected by the minimum-expected-tests check; exact class filters then passed.
 **CONDITIONAL; no Fundamental production code is implemented.** The candidate is
 now [FROZEN V0.1](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md). Review
 findings, the statement-only scope and the exact contract bundle are accepted by the
-owner (P1–P3, 2026-10-20), and P4 authorizes the freeze run only; the frozen text
-now exists and the build (P5) is not authorized.
+owner (P1–P3, 2026-10-20), and P4 authorized the freeze, which is now executed.
+
+Owner decision recorded 2026-10-20 WIB: **P5 is granted for E1 only**, after the
+owner directed that the next slice be executed in-session instead of through a
+pasted prompt. E2–E5 remain unauthorized. E1 stays inside its row below: no parser,
+table, migration, source adapter, registry row or financial formula; widening E1 or
+starting E2 needs a new explicit decision.
 
 | Future slice | Smallest authorized-after-approval work | Acceptance / boundary |
 |---|---|---|
