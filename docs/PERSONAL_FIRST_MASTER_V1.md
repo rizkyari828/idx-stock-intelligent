@@ -144,6 +144,42 @@ Use root standard discovery for full regression, not a test executable. The firs
 attempt at a combined wildcard class filter matched zero cases and was correctly
 rejected by the minimum-expected-tests check; exact class filters then passed.
 
+## Conditional Fundamental implementation handoff — E
+
+**CONDITIONAL; no Fundamental production code is implemented.** The candidate is
+still [PROPOSAL — NOT FROZEN](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL.md).
+First resolve review findings and obtain explicit approval of the exact candidate,
+its statement-only scope and separately bounded build. Neither the master request
+nor the new generic source policy supplies that freeze/build authorization.
+
+| Future slice | Smallest authorized-after-approval work | Acceptance / boundary |
+|---|---|---|
+| E1 | Three exact typed bindings/envelope from §§18–19, required-null/closed shapes and family-specific validation | T01/T23/T24/T32/T36/T43; no parser, table or source adapter; reserved derived grammar cannot enable financial formulas |
+| E2 | Reuse existing `EvidenceDecimal`; add family applicability/unit/scale validation, exact normalization/result checks | T03–T07/T28/T42, including max coefficient, negative/zero/null, inexact parse and repeated scale; no wider numeric domain or guessed FX |
+| E3 | Reuse canonical writer after strict family decoding; bind exact payload bytes/hash and literal instants | T36/T44 and golden bytes; no JSONB-only canonical bytes, hidden property defaults or microsecond rounding |
+| E4 | Pure fixture validation of identity, statement periods/dimensions, mapped concepts and scoped admission | T08–T16/T26/T41/T43; fixture-only permissions; no local registry insertion or approved accounting formula inferred from fixture |
+| E5 | Pure revision/cancel/reinstatement/PIT and role-bound closure resolver fixtures | T17–T22/T29/T30/T35/T37–T40; no latest fallback, inactive-premise resurrection or retroactive knowledge |
+
+T01–T44 remain future specifications; mapping them is not running them. Reconcile
+all 44 in an implementation acceptance table rather than replacing them with the
+new source-policy tests. Parser XML/ZIP budgets, financial formula rules, exact DB
+concurrency/restore proof and provider coverage need their own later scopes.
+
+Do not reuse `SourceUsagePolicy` as a Fundamental codec/admission. Its initial
+finite half-open permission intervals are different from the Fundamental candidate's
+explicitly evidenced no-expiry/inclusive Admission semantics. Any bridge needs exact
+review; neither existing source enums nor V0.2 evidence fields may be reinterpreted.
+Preserve exact economic/publication/retrieval/known/recorded clocks, entity/security
+mapping and source/decision/current-use separation. Existing bounded ingestion is
+Screener-specific; only its safe patterns are reusable, not an unchanged importer.
+
+After an approved pure-binding slice, standard root .NET discovery and focused
+deterministic fixture checks are required. Logical persistence/DDL design and
+owned disposable DB acceptance would be a later explicit scope; operational
+migration deployment, original-byte ingestion and live source activation remain
+separately gated. No fundamental migration or source-independent production types
+are added as a shortcut while freeze approval is missing.
+
 ## Approval and operational boundaries
 
 Level-1 operational screening remains BLOCKED; Fundamental acquisition remains
