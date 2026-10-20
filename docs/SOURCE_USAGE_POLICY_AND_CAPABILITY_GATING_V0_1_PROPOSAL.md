@@ -28,8 +28,8 @@ Boundaries and authorities:
   records unresolved exact claims.
 - [Fundamental feasibility](FUNDAMENTAL_SOURCE_FEASIBILITY_GATE_V0_1.md) remains
   BLOCKED; Phase-2 production remains HOLD_FOR_EVIDENCE.
-- [Fundamental binding proposal](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL.md)
-  §§18–25 is READY_FOR_FREEZE_REVIEW, not frozen. Its §21 current retained-use
+- [Frozen fundamental contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md)
+  §§18–25 is FROZEN (2026-10-20 WIB). Its §21 current retained-use
   gate is compatible with this proposal, not replaced by it.
 - Relevant [runbook](PRODUCT_SLICE_RUNBOOK.md) entries are the Level-1 operational
   disposition, external-source review/backlog and Phase-2 fundamental reviews.

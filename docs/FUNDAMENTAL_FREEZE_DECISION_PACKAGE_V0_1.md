@@ -1,21 +1,21 @@
 # Fundamental Evidence Binding V0.1 — freeze decision package
 
-Status: **DECISION_PACKAGE — decisions recorded 2026-10-20 WIB; freeze execution
-pending**. Prepared on `main` at `a0275c1`, clean worktree; no fetch. Candidate
+Status: **DECISION_PACKAGE — decisions recorded 2026-10-20 WIB; freeze executed
+2026-10-20 WIB**. Prepared on `main` at `a0275c1`, clean worktree; no fetch. Candidate
 unchanged since `1fffb58`. Recorded outcome: P1–P3 APPROVED, P4 APPROVED (freeze
 only), P5 NOT AUTHORIZED — see §9.
 
 This package exists to support **one human decision**. It does not freeze the
 candidate, does not approve it on the owner's behalf, does not authorize a build
-and does not admit any source. The candidate remains
-[PROPOSAL — NOT FROZEN](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL.md); nothing
+and does not admit any source. The candidate is now
+[FROZEN](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md); nothing
 in this file changes it.
 
 ## 1. Candidate under decision
 
 | Item | Value |
 |---|---|
-| Document | [FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL.md](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL.md) |
+| Document | [FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md) |
 | Proposed policy identity | `fundamental-evidence-v0.1.0` (new, additive) |
 | Exact candidate sections | §§18–22 schemas/keys/numeric/period/PIT/store; §23 synthetic examples; §24 D01–D09; §25 findings and test reconciliation |
 | Proposed scope | **statement-only** (D04); typed corporate-action events excluded |

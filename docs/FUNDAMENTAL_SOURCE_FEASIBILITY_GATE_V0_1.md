@@ -30,9 +30,9 @@ Governing repository evidence:
   §3 R1–R8, §4 endpoint intelligence, §8 and Phase-2 entry.
 - [Automated source architecture](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md),
   evidence ledger I1 and existing source gates; [source stack](LEVEL1_SCREENER_SOURCE_STACK.md).
-- [Fundamental proposal](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_PROPOSAL.md), §§18–22,
-  §24 D01–D09 and §25: **PROPOSAL — NOT FROZEN**, **READY_FOR_FREEZE_REVIEW**
-  only for the proposed statement scope; no implementation approval.
+- [Frozen fundamental contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md), §§18–22,
+  §24 D01–D09 and §25: **FROZEN** 2026-10-20 WIB for the statement-only scope;
+  no implementation approval.
 - [Frozen V0.2](SCREENER_EVIDENCE_V0_2_CONTRACT.md) and
   [persisted binding](SCREENER_EVIDENCE_V0_2_PERSISTED_BINDING.md), unchanged.
 - [Runbook](PRODUCT_SLICE_RUNBOOK.md), current evidence-readiness boundary;

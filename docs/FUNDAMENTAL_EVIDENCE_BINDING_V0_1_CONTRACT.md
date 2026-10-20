@@ -1,22 +1,37 @@
 # Fundamental Evidence Binding V0.1
 
-Status: **PROPOSAL — NOT FROZEN**
+Status: **FROZEN** — 2026-10-20 WIB.
 
-Policy identity proposed: `fundamental-evidence-v0.1.0` (new, additive).
-Date: 2026-10-09 WIB. Baseline: `main` at `b8cea49`, clean worktree.
-Independent P2-R1/R2/R3 review baseline: `49c4069`; findings in §16,
-historical decisions in §13 and readiness in §17. P2-R4 baseline: `897af2d`,
-clean `main`, 2 ahead / 0 behind local `origin/main` (no fetch).
-Current exact candidate: §§18–22; synthetic examples: §23; current decisions:
-§24; freeze-review package: §25. **READY_FOR_FREEZE_REVIEW** of the proposed
-statement-only scope, subject to the explicit approvals in §24. This is not approval, freeze or build permission.
+Policy identity: `fundamental-evidence-v0.1.0` (new, additive). Scope:
+**statement-only** (issuer statement facts and conventions; typed corporate-action
+events excluded). Decision: [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md) §9,
+recorded 2026-10-20 WIB (P1–P3 and P4 APPROVED; P5 NOT AUTHORIZED). Frozen from
+candidate `1fffb58` (unchanged since that commit), on `main`.
+
+Normative: §§18–22 plus the accepted D01–D03, D06 and D09 dispositions.
+Rationale (historical): §§1–17. Non-normative: §23 examples.
+Review record: §§24–25.
+
 Related decision: [Phase-2 entry](EXTERNAL_SOURCE_INTELLIGENCE_REVIEW.md#phase-2-entry-and-fundamentals-readiness-2026-10-08-wib)
 (`GO_FOR_BOUNDED_DESIGN`, production `HOLD_FOR_EVIDENCE`).
 
-This document is a design proposal only. It authorizes no implementation, migration,
-acquisition, parser, ingestion, source admission, registry activation or contract
-freeze. It does not modify or reinterpret any frozen contract. It must be reviewed
-under the repository execution rules before any part of it can be frozen.
+This document is frozen. It authorizes no implementation, migration, acquisition,
+parser, ingestion, source admission, registry activation or deployment, and it does
+not modify or reinterpret any frozen contract. Amendment is additive only; see the
+Freeze record below.
+
+## Freeze record
+
+- **Frozen:** the exact schemas, keys, numeric domain, period/PIT rules, admission
+  behaviour and logical storage boundaries in §§18–22 (with the accepted D01–D03,
+  D06 and D09 dispositions).
+- **Explicitly not frozen:** typed corporate-action events (D04 scope limit); FCF and
+  other formulas (D07); classification/valuation policy (D08); physical DDL, `0012`
+  numbering and deployment (D09); source admission (F13).
+- **Amendment rule:** additive version only. No reinterpretation of frozen V0.1/V0.2
+  or of this text by implementation convenience.
+- The two label replacements in §§18 and 25.3 are status metadata, not semantic
+  changes.
 
 ## 1. Scope and goals
 
@@ -768,7 +783,7 @@ worktree/ahead/behind observations are reported with the task result. No push.
 
 ## 18. P2-R4 exact binding candidate (2026-10-09 WIB)
 
-**PROPOSAL — NOT FROZEN.** P2-R4A technical resolution and P2-R4B schemas below
+**Frozen — see the status block and Freeze record.** P2-R4A technical resolution and P2-R4B schemas below
 replace earlier preliminary sketches, not frozen contracts. Proposed scope:
 statement financial facts, filing identity and bounded supporting conventions.
 Corporate actions, dividend/issuance notices, entitlement/payment events and
@@ -2163,7 +2178,7 @@ no agent launched, task/message dispatched or reviewer approval claimed):
    Level-1 BLOCKED/Options A+B and Phase-2 HOLD_FOR_EVIDENCE remain unchanged.
 7. Recommended disposition: independently review the candidate, then request
    explicit acceptance or targeted changes. Keep PROPOSAL — NOT FROZEN until
-   separately authorized freeze. Do not repeat broad provider research, acquire
+   separately authorized freeze (authorized 2026-10-20 WIB; executed in the Freeze record). Do not repeat broad provider research, acquire
    data, deploy, implement or contact anyone as part of this review.
 
 ### 25.4 Validation and execution boundary
