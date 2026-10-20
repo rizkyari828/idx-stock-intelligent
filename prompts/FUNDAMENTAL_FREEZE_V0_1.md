@@ -8,8 +8,7 @@ Thinking: Medium
 
 Fallback (Codex limit or cheaper):
 DeepSeek
-Model: DeepSeek V4.1
-Thinking: High
+Model: DeepSeek Pro
 ```
 
 Why these levels: the contract is already reviewed and approved; the work is rename
@@ -17,12 +16,10 @@ Why these levels: the contract is already reviewed and approved; the work is ren
 forbids semantic edits. No architecture reasoning, no migration, no new design.
 
 - Sol **Medium** is enough: mechanical edits, diff-checkable acceptance.
-- DeepSeek **High**, not Flash: this run must read a long frozen candidate, stop and
+- DeepSeek **Pro**, not Flash: this run must read a long frozen candidate, stop and
   report on any semantic conflict, and prove "normative body unchanged" with
-  `git diff -M`. Flash-class runs tend to compress those verification steps. If you
-  use Flash anyway, review the full diff and the rename hunks yourself before
-  accepting the commit.
-- DeepSeek **Max** is not justified: nothing here needs re-design or re-review.
+  `git diff -M`. Flash is for cheap, low-risk work; if you use it anyway, review the
+  full diff and the rename hunks yourself before accepting the commit.
 - **Astra** is not justified at all.
 - Escalate to Sol High only if the run finds a real semantic contradiction or a
   normative section that cannot be left byte-identical — then stop and report
