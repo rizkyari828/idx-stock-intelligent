@@ -1,18 +1,35 @@
 # Coding Agent Prompt — freeze Fundamental Evidence Binding V0.1
 
 ```text
-Recommended:
+Default (Codex available):
 Codex
 Model: Sol
 Thinking: Medium
+
+Fallback (Codex limit or cheaper):
+DeepSeek
+Model: DeepSeek V4.1
+Thinking: High
 ```
 
-Why Medium and not High/Astra: the contract is already reviewed and approved, the
-work is rename + header + reference updates with mechanically checkable acceptance,
-and the prompt forbids semantic edits. No architecture reasoning, no migration, no
-new design. Escalate to **Sol High** only if the run finds a real semantic
-contradiction or a normative section that cannot be left byte-identical — then stop
-and report instead of rewriting text. Astra is not justified here.
+Why these levels: the contract is already reviewed and approved; the work is rename
++ header + reference updates with mechanically checkable acceptance, and the prompt
+forbids semantic edits. No architecture reasoning, no migration, no new design.
+
+- Sol **Medium** is enough: mechanical edits, diff-checkable acceptance.
+- DeepSeek **High**, not Flash: this run must read a long frozen candidate, stop and
+  report on any semantic conflict, and prove "normative body unchanged" with
+  `git diff -M`. Flash-class runs tend to compress those verification steps. If you
+  use Flash anyway, review the full diff and the rename hunks yourself before
+  accepting the commit.
+- DeepSeek **Max** is not justified: nothing here needs re-design or re-review.
+- **Astra** is not justified at all.
+- Escalate to Sol High only if the run finds a real semantic contradiction or a
+  normative section that cannot be left byte-identical — then stop and report
+  instead of rewriting text.
+
+Report the model and effort actually used. If the runtime does not expose them, write
+`UNKNOWN` — never infer or upgrade the label.
 
 Freeze the already-approved candidate. Do not redesign, implement, deploy or admit
 anything.
