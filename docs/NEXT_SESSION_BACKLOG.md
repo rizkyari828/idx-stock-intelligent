@@ -48,7 +48,7 @@ dependency; PARKED = deliberately deferred.
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| B1 | Close the two EODHD premises (genuine bar vs synthetic; `.JK` price/volume/currency/continuity) | READY | public docs only; no contact, no cost |
+| B1 | Close the two EODHD premises (genuine bar vs synthetic; `.JK` price/volume/currency/continuity) | DONE 2026-10-26 — NOT CLOSED | public docs exhausted, zero calls/cost: Family A adverse (VWAP/non-exchange notice), Family B narrowed to denomination binding; see [B1 record](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md#backlog-b1--eodhd-jk-premise-closure-attempt-2026-10-26-wib) |
 | B2 | Re-run the Level-1 blocker matrix after B1 | READY after B1 | price, benchmark, corporate action, liquidity, board, status, calendar |
 | B5 | Exchange calendar + session-completion evidence | READY | research; IDX "calendar" endpoint is an agenda feed |
 | B3 | KSEI corporate-action coverage/permission inquiry | NEEDS DECISION | requires owner authorization to contact |
@@ -80,7 +80,8 @@ dependency; PARKED = deliberately deferred.
 
 ## Recommended order
 
-1. **B1 → B2** — highest product value, no permission, no cost.
+1. **B2** — B1 closed as *not closed* on 2026-10-26 (premises remain, so no row flips);
+   re-running the matrix consolidates rather than unlocks. No permission, no cost.
 2. **A1 → A2** — persistence design and an honest acceptance table.
 3. **A4 → A5** — harden tests, close E4 edges.
 4. **C2** — cheap real runs; then decide **C1**.

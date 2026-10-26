@@ -1602,3 +1602,167 @@ Documentation only; append to this file alone. No external contact, account, pai
 activation, credential or network provider call (units **0**, paid **0**).
 `git diff --check` clean; commit message
 `docs: define external source unblock strategy`; no push.
+
+---
+
+## Backlog B1 — EODHD JK premise closure attempt (2026-10-26 WIB)
+
+**Decision: `EODHD_PREMISES_NOT_CLOSED_ADVERSE_PROVENANCE`.** Public documentation
+does not close either mandatory EODHD JK premise, and the Family A (genuine-observation)
+premise now carries documentation that points *against* a positive finding. Two load-bearing
+statements were already in the ledger — the CFD/market-maker source class and the bulk
+holiday-date fallback warning ([provider strategy](PROVIDER_STRATEGY.md)) — and this review
+reproduced them rather than discovering them. What is genuinely new: the current EOD page
+states "one row per trading day" and defines `date` as "Trading date"; the site-wide footer
+adds a verbatim "not using exchanges data feeds for the pricing data … VWAP method"
+statement that was not previously quoted; and the documented article corpus was enumerated
+(77 slugs) with no JK-specific or data-quality page in it.
+No admission changes: matrix rows 9–11, roots R6/R7, `DATA_BLOCKED` and the conditional
+price adapter all stay as they were. No frozen contract, source registry, permission or
+schema changed.
+
+Baseline: `main`, HEAD `7256432` (the handoff-doc commit; the backlog snapshot names its
+parent `064203c`), clean worktree, 0 ahead / 0 behind locally recorded `origin/main`; no
+fetch. Appends to this file alone.
+
+### Scope and method
+
+Zero EODHD API requests and zero billable units; no token, account body, dashboard or
+credential was loaded; no message was sent to the provider. Research was limited to
+first-party public documentation: the 77 article pages enumerated from the first-party
+`sitemap`, the OpenAPI 2.0.0 specification served from the provider's own GitHub Pages,
+and the public per-exchange catalogue page. Pages were retrieved once, held outside the
+repository, converted to text locally for reading, and discarded; only hashes and lengths
+are recorded.
+
+| Document | HTTP | Bytes | SHA-256 | Retrieved (UTC) |
+|---|---|---:|---|---|
+| EOD reference page | 200 | 182,788 | `0bdbbb6ba110ee4acb3e82098bb45971169b1a9b4850e6c12379d51294ac3dc8` | 2026-10-26T07:03:40Z |
+| Data sources / partners | 200 | 134,568 | `42234484fac788afb38c409c102b3ccb6aeab11f9fa6de48fbf3a14380322f09` | 2026-10-26T07:03:47Z |
+| Bulk EOD page | 200 | 189,008 | `b3c175370d77b86f65eb270769ed0ceaea5820f09b30e62e80e74f273f136374` | 2026-10-26T07:04:36Z |
+| Exchanges / ticker list | 200 | 168,323 | `876d2906d8742718bda09933064a1473812a08c7f716ff03263b102777006748` | 2026-10-26T07:03:43Z |
+| Trading hours / holidays | 200 | 167,433 | `3c51bc7cdf9d3ab97445902e69a487ee72160001240dad32369ddc30f3c74563` | 2026-10-26T07:03:45Z |
+| `JK` exchange catalogue | 200 | 133,958 | `77976648315ceb8a2c3cd4a08332e3038de555eb958ca4b3d02fb060159d8f10` | 2026-10-26T07:04:56Z |
+| OpenAPI spec 2.0.0 | 200 | 410,295 | `ba843a16df76b1dfd2f68acc643fdce71cdf1a9f24aa36ada605024c163f6409` | 2026-10-26T07:03:25Z |
+
+These hashes identify the bytes actually retrieved at that time; a later page revision is
+a new artifact, not a correction of this observation. No vendor text is committed.
+
+### Family A — genuine observation and date semantics: NOT CLOSED (adverse)
+
+The provider states, per endpoint, only that the series is `open, high, low, close,
+adjusted close and volume, one row per trading day`, and defines the field as
+`date — Trading date, YYYY-MM-DD`. The field table labels open and close
+`as traded — not adjusted`. The word *synthetic* does not occur in the OpenAPI
+specification or on any page read here; the EOD object exposes no status, provenance,
+placeholder, revision or flag field. The documented article corpus was enumerated
+(77 slugs from the first-party sitemap; none about data quality, gaps, zero rows or
+Jakarta) but only the pages cited below were read in full — the negative claim is
+scoped accordingly.
+
+Four further documented statements bear directly on the premise:
+
+| Statement (verbatim, abbreviated) | Document | Bearing |
+|---|---|---|
+| Direct exchange contracts are named for **USA (Nasdaq)**, **Europe (Cboe)**, **Australia (ASX)** and **NEO/TSX/TSXV (Quotemedia)**; no Indonesian venue is listed | Data sources | The `.JK` feed is not inside the named exchange-contract set |
+| "Another end-of-day (EOD) and delayed (LIVE) API data comes from CFDs and market makers." | Data sources | Documents a non-exchange provenance class actually in use |
+| "…are not provided by exchanges but rather by market makers… We are not using exchanges data feeds for the pricing data, we are using OTC, peer to peer trades and trading platforms over 100+ sources, we are aggregating our data feeds via VWAP method." | Site-wide footer notice (present on every page read) | Unqualified statement that pricing is aggregated, not exchange-sourced |
+| "Two silent fallbacks: a past non-trading day returns the previous trading day relative to the date you asked for… Read the date field in the response rather than assuming." / "check it, it is not always the date you asked for" | Bulk EOD page | Documents silent prior-trading-day substitution, with no marker distinguishing it |
+
+All four statements are consistent with what the ledger already recorded: the
+[provider-strategy note](PROVIDER_STRATEGY.md) and dimension notes already say that page
+names contracted exchanges plus CFD/market-maker sources, does not identify JK, and warns
+that holiday requests can return a different session. The additions this review makes are
+the verbatim "not using exchanges data feeds … VWAP" sentence and the EOD page's own
+"one row per trading day" / "Trading date" wording. Nothing about the provider's position
+changed; what changed is that the position can now be quoted exactly.
+
+Two scope limits must be stated rather than glossed. The substitution behaviour is
+documented for the **bulk** endpoint only; the single-symbol `/eod` page describes a
+`from`/`to` range and does not describe substitution, so the bulk statement cannot be
+transferred to `/eod` as a documented rule. And the site-wide notice is a liability
+disclaimer that brackets "stocks" inside a list beginning "All CFDs"; it is not an
+endpoint specification. Neither point rescues the premise, but neither licenses the
+opposite claim either.
+
+The internal tension is the decisive finding: "as traded" (field table) and "not using
+exchanges data feeds … VWAP" (site-wide notice) cannot both be read as an exchange tape.
+A quoted, VWAP-aggregated price can still be raw and unadjusted, so the two statements
+are not strictly contradictory — but "raw and unadjusted" is now demonstrably weaker
+than "genuine exchange observation", which is the claim the frozen layer requires.
+
+Retained empirical evidence already shows the "one row per trading day" wording does not
+describe every `.JK` row: ANTM and GOTO returned flat `O=H=L=C` rows with volume `0` on
+2026-08-17 and 2026-08-25, both independently documented exchange closures, while BBCA
+omitted the same dates ([spike evidence](DATA_SPIKE_RESULT.md#2-holiday-rows-adjacent-dates-and-reproducibility)).
+The payload for those rows carries no field that distinguishes them from an ordinary
+session. The documentation therefore neither predicts nor marks the observed behaviour,
+and no positive non-substitution guarantee exists to read into the normal rows either.
+
+**Verdict: Family A `NOT_CLOSED`, with adverse documented provenance.** This is a
+research closure, not a positive clearance and not a finding of syntheticness. The
+provider has never stated that `.JK` bars are synthetic, and nothing here proves that;
+what is now documented is that the platform's pricing is aggregated from non-exchange
+sources and that no `.JK`-specific genuine-observation guarantee was found anywhere in
+the public documentation reviewed or enumerated. Under the frozen fail-closed rule,
+absence of a positive premise is inability to admit — which is exactly the existing outcome.
+
+### Family B — raw currency, unit and continuity: NOT CLOSED (narrowed)
+
+| Documented element | Exact text | What it does not establish |
+|---|---|---|
+| Exchange metadata `Currency` | "Default trading currency, or 'Unknown' where instruments are quoted in several currencies" | Any binding to OHLC values |
+| Symbol-list `Currency` | "Trading currency of the listing" | That the price fields are denominated in it |
+| `JK` catalogue page | Exchange `JK` / "Jakarta Exchange - JK", Indonesia, `GMT+07:00 Asia/Jakarta`, symbols labelled `IDR` | Unit (share vs lot), scale, or history |
+| EOD record | Seven fields; **no currency, unit, segment or scale field** | Per-row denomination |
+| Any statement that OHLC are unconverted IDR per ordinary share | None found | The premise itself |
+| Any continuity statement across code/currency/unit changes | None found | Historical continuity |
+
+The public catalogue does confirm, without an API call, that `.JK` is bound to Indonesia,
+the `Asia/Jakarta` zone and an `IDR` listing-currency label. That is a label at listing
+level, not a binding from the label to the numbers, and price magnitude is explicitly
+insufficient on its own. The volume dimension is unchanged from the earlier verdict:
+integers and split-adjustment remain documented, the `.JK` share/lot unit and market
+segment remain undocumented, and the only zero-volume statement found on the pages read
+is a precedent *against* reading zero as no-trade — "volume is reported as zero because
+funds do not trade on an order book".
+
+**Verdict: Family B `NOT_CLOSED`, but narrowed** to the missing denomination binding and
+the missing continuity basis. The currency label is no longer the gap; the binding is.
+
+### Consequence for the blocker matrix (bounded; not a B2 re-run)
+
+Rows 9, 10 and 11 keep `CONDITIONAL`/`Not admitted`; R6/R7 remain independent external
+roots; `DATA_BLOCKED` and the conditional 5A.3c price adapter are unchanged, as are
+soak 0/10 and FullIdx. The dated 2026-10-08 matrix is left as the historical record, but
+its row 9 resolution — "provider confirmation" — is no longer sufficient on its own:
+a JK-specific answer now has to **reconcile with the site-wide VWAP/non-exchange
+statement** before it could be credited, because a bare "we source JK from an exchange"
+would leave the provider's own published provenance unresolved. That is a stricter, not
+a relaxed, admission path, and it makes the price family harder rather than easier.
+
+B2 remains outstanding and is not pre-empted here: the other families (status, board,
+calendar/closures, session completion, corporate-action coverage, identity/listing
+permission) were not re-investigated and no new evidence about them was introduced.
+
+### What would actually close each family — prepared, not sent
+
+1. **Family A:** an endpoint-specific written answer for Free `/eod/{SYMBOL}.JK` with
+   `period=d` stating the actual upstream of OHLC, whether rows may be carried forward,
+   previous-close substituted, estimated or padded, what `date` identifies, what zero
+   volume means, and how genuine rows are positively distinguished — **and** reconciling
+   that answer with the published "VWAP / not exchange feeds" notice.
+2. **Family B:** which dated symbol/ISIN/currency metadata binds the OHLC numbers to
+   unconverted IDR per ordinary share, including the unit and scale, and how historical
+   code, currency or unit changes are tracked.
+
+Both remain unsent. A negative or absent answer is a terminal research result and leaves
+Level-1 BLOCKED; neither question authorises a purchase, upgrade or credential use.
+
+### Validation and activity
+
+Documentation only; append to this file alone. Provider API calls **0**, units **0**,
+paid activation **0**, provider contact **0**, credentials loaded **0**. Public
+documentation was read only; no test suite, build or live probe was run and none is
+claimed above. Runtime acceptance is not applicable to a documentation-only change.
+`git diff --check` reviewed; no push.

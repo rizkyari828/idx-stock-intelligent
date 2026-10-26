@@ -174,6 +174,13 @@ must cover the calculation segment. New clarification cannot be backdated to
 repair old captured evidence. A local reconciliation sample cannot substitute for
 a missing source-wide semantic guarantee.
 
+**Backlog B1 re-check (2026-10-26):** this table was re-read against the current public
+corpus. No verdict improves. `JK actual tape upstream / non-synthetic guarantee` now
+additionally carries adverse documented provenance (a site-wide "VWAP / not exchange
+feeds" notice, with no Indonesian venue among the named exchange contracts), and
+`JK feed currency/price unit/window continuity` narrows to a missing denomination
+binding rather than a missing currency label. See [B1 record](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md#backlog-b1--eodhd-jk-premise-closure-attempt-2026-10-26-wib).
+
 ## Minimum Level-1 stack and acquisition boundary
 
 **Complete admitted minimum today: none.** The smallest concrete *candidate* is:
