@@ -36,7 +36,7 @@ dependency; PARKED = deliberately deferred.
 |---|---|---|---|
 | A1 | Persisted binding + logical DDL design (STORE01 §22, provisional `0012`) | DONE 2026-10-26 | [design](FUNDAMENTAL_BINDING_PERSISTENCE_DESIGN_V0_1.md): logical only; 5 open decisions (D1 receipt, D2 artifact refs, D3 subject key, D4 discriminators, D5 lineage ambiguity) need an owner; no migration authored, no DB touched |
 | A2 | T01–T44 implementation acceptance table | DONE 2026-10-26 | [table](FUNDAMENTAL_ACCEPTANCE_T01_T44.md): 16 implemented / 15 partial / 13 gap, mapped by reading assertions not names; focused run 50/50 pass; gaps trace to A5, A6, A7/A8, A1/A9 |
-| A4 | Permanent golden-byte fixtures pinning the canonical writer | READY | E3 currently proves it in-code only |
+| A4 | Permanent golden-byte fixtures pinning the canonical writer | DONE 2026-10-26 | `tests/fixtures/fundamental-canonical.json` + `.sha256` pinned by `T36GoldenCanonicalBytesArePinned`; verified the pin fails on byte drift and passes when restored |
 | A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | PARTIAL 2026-10-26 | T12 + T15 closed with tests; `ValidateCoverage` gap defect fixed (T11); T16 audit/policy supersession still open; no contract reinterpretation |
 | A3 | Reader/evaluator integration into readiness | NEEDS DECISION | product scope; contract already frozen |
 | A6 | Parser XML/ZIP budget design | DEFERRED | belongs to a future source adapter |
@@ -50,7 +50,7 @@ dependency; PARKED = deliberately deferred.
 |---|---|---|---|
 | B1 | Close the two EODHD premises (genuine bar vs synthetic; `.JK` price/volume/currency/continuity) | DONE 2026-10-26 — NOT CLOSED | public docs exhausted, zero calls/cost: Family A adverse (VWAP/non-exchange notice), Family B narrowed to denomination binding; see [B1 record](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md#backlog-b1--eodhd-jk-premise-closure-attempt-2026-10-26-wib) |
 | B2 | Re-run the Level-1 blocker matrix after B1 | DONE 2026-10-26 — no row flips | reconciliation only: row 9 resolution stricter, provider calendar coverage of JK not decidable, rows 1–5/12–20 explicitly not re-examined; see [B2 record](LEVEL1_AUTOMATED_SOURCE_ARCHITECTURE.md#backlog-b2--level-1-blocker-matrix-reconciliation-after-b1-2026-10-26-wib) |
-| B5 | Exchange calendar + session-completion evidence | READY | research; IDX "calendar" endpoint is an agenda feed; provider "73 exchanges" calendar cannot be cited until JK coverage is shown (B2) |
+| B5 | Exchange calendar + session-completion evidence | PARTIAL 2026-10-26 — permission-blocked | a per-session summary candidate exists (IDX "Trading Summary and Recapitulation") but returns an HTTP 403 bot challenge; no bypass attempted, and IDX terms already prohibit automation, so this is unavailable-not-absent; provider "73 exchanges" calendar still uncitable (B2) |
 | B3 | KSEI corporate-action coverage/permission inquiry | NEEDS DECISION | requires owner authorization to contact |
 | B4 | IDX control evidence (affirmative TradingStatus) | PARKED | revisit only if it becomes the sole blocker |
 | B6 | Deploy migrations `0007`–`0011` (OPS-1 follow-up) | NEEDS AUTHORIZATION | preflight + owned disposable DB first |
