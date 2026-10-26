@@ -37,6 +37,23 @@ bars** added, soak advanced **1/10 → 2/10** (market dates 2026-09-30, 2026-10-
 free units used (1 priming + 11 panel). Cross-check: the ingested `JKSE.INDX` close
 5439.2578 agrees with the independent closing report retained for the same session.
 
+### Unattended date selection — 2026-10-26
+
+`bash scripts/pilot-auto.sh` selects the latest weekday strictly before today in
+Asia/Jakarta that is not listed in the cited `pilot/holidays-2026.json`, then runs
+`scripts/pilot-eod.sh --from <date> --to <date> --ingest` exactly once.
+
+- `--dry-run` prints the plan — date, selection, `provider_requests: 0` — and calls nothing.
+- `--date YYYY-MM-DD` overrides the selection; weekends and cited holidays are refused.
+- A local journal (`data/collector-output/pilot/auto-journal.json`, ignored) records the
+  attempt before collection. A second automated run for the same date is refused until a
+  human passes `--date`, which is the guard against an unattended quota leak.
+- The holiday fixture cites both sources it was built from; it is a calendar, never
+  session proof. Collection still requires independent completed-session evidence, so an
+  unproven date refuses collection instead of fabricating a session.
+- Coverage is 2026 only: planning fails closed outside that year rather than guessing a
+  2025 or 2027 closure.
+
 ## Current same-day policy
 
 The optional [same-day hardening](SAME_DAY_EOD.md) supersedes the earlier H+1-only guard:
