@@ -1766,3 +1766,86 @@ paid activation **0**, provider contact **0**, credentials loaded **0**. Public
 documentation was read only; no test suite, build or live probe was run and none is
 claimed above. Runtime acceptance is not applicable to a documentation-only change.
 `git diff --check` reviewed; no push.
+
+---
+
+## Backlog B2 — Level-1 blocker matrix reconciliation after B1 (2026-10-26 WIB)
+
+**Decision: `LEVEL1_STILL_BLOCKED`; no row changes state.** This is a *reconciliation*
+of the 2026-10-08 matrix against one new input, not a second source investigation. Two
+things change and nothing is admitted: row 9's resolution requirement is stricter than
+recorded, and one tempting alternative source for the calendar family is shown to be
+undecidable rather than available. Re-deriving the other rows without new external
+evidence would produce restatement, not reconciliation, so they are explicitly listed as
+not re-examined.
+
+Baseline: `main`, HEAD `9ee0dc1` (the B1 record), clean worktree, 1 ahead / 0 behind
+locally recorded `origin/main`; no fetch. Appends to this file alone.
+
+### What was actually re-examined
+
+| Scope | Basis | Result |
+|---|---|---|
+| Rows 9–11 (EOD OHLC, genuine observation, currency/unit) | [B1 record](#backlog-b1--eodhd-jk-premise-closure-attempt-2026-10-26-wib) | Unchanged admission; row 9 resolution sharpened |
+| Row 6 alternative candidate (provider exchange calendar) | Bounded check of the public calendar/spec documentation | `NOT_DECIDABLE`; cannot be proposed |
+| Rows 1–5, 12–20 (identity, type, listing, status, board, continuity, action, comparability, permission, readiness) | **Not re-examined** — no new external evidence obtained | Prior verdicts stand unchanged |
+| Feature rows (volume, liquidity, benchmark, `rs20Pp`/`rs60Pp`) | Not re-examined | Prior verdicts stand unchanged |
+
+The matrix was produced from the 5A.2b–g research. B1 introduced exactly one new input
+(the provider's documented `VWAP` / non-exchange pricing statement and the `Trading date`
+wording) and it bears on the price family only. Nothing in B1 speaks to IDX control
+evidence, KSEI coverage, identity permission or session completion.
+
+### Calendar-family check: a negative result worth recording
+
+The provider advertises a separate trading-hours and holidays product covering "73
+exchanges with verified data", including "complete and manually verified" holiday
+calendars. It does **not** publish the list of those 73 on the page, the OpenAPI 2.0.0
+specification contains no `JK` or `Indonesia` token at all, and the prose names only
+`US`, `LSE`, `XETRA`, `TO`, `ASX` and `XHKG` as examples.
+
+Therefore Jakarta coverage by that product is **`NOT_DECIDABLE` from public
+documentation**, and the absence of the string "JK" from page prose is *not* evidence of
+absence from coverage. This matters because a provider calendar is an obvious candidate
+for rows 6 and 8 and for backlog B5; it cannot be used, cited or assumed until coverage
+of the specific venue is affirmatively established. Recording the non-result prevents a
+later inference from silence.
+
+### Row-by-row delta
+
+Only the rows where the recorded text is now insufficient are listed; every other row of
+the 2026-10-08 matrix is unchanged and remains authoritative as dated.
+
+| # | 2026-10-08 record | After B1/B2 | Delta |
+|---|---|---|---|
+| 9 | EOD OHLC: `CONDITIONAL`, blocker "Family A + Family B", resolution "Provider confirmation" | Same state. Resolution now also requires reconciling any answer with the published `VWAP` / non-exchange notice | **Stricter resolution**, no state change |
+| 10 | Genuine observation: derived ← 9 | Same; now additionally carries adverse documented provenance for `.JK` | **Evidence quality**, no state change |
+| 11 | Currency/unit: derived ← 9 | Same; gap restated as the missing denomination binding rather than a missing currency label | **Precision**, no state change |
+| 6 | Calendar: candidate "IDX annual + amendments" | Provider calendar cannot be added as an alternative: JK coverage not decidable | **Candidate space narrower** |
+| 8 | Session completion: `SOURCE_NOT_AVAILABLE` | Unchanged; provider calendar is not a completion artifact in any case | None |
+| 20 | Final readiness: `DATA_BLOCKED` | Unchanged | None |
+
+### Why no row can flip yet
+
+Every remaining root is external and none of them was addressed: R1/R2 (IDX permitted
+automated control evidence), R3 (dated board/mechanism), R4 (calendar and exceptional
+closures), R5 (session completion), R6/R7 (EODHD Families A/B, now with a stricter
+resolution), R8 (corporate-action coverage and permission), R9 (identity/listing/type
+permission), R10 (no `ALLOWED` source in the registry). Internal development still
+resolves none of them. Soak 0/10, FullIdx disabled and the four unsent inquiries all
+remain exactly as recorded.
+
+### Consequence: the matrix is closed for re-derivation
+
+Re-running this reconciliation again without new external input is no longer useful — it
+would repeat this section. The only actions that can move a row are the four prepared
+inquiries (IDX control evidence, IDX/KSEI corporate action, EODHD Families A/B) plus the
+already-READY calendar/session research (B5) and the authorization-gated migration work
+(B6/A9). This is the explicit stop condition, not a deferral.
+
+### Validation and activity
+
+Documentation only; append to this file alone. Provider API calls **0**, units **0**,
+paid activation **0**, provider contact **0**, credentials loaded **0**. No test suite,
+build or live probe was run and none is claimed; runtime acceptance is not applicable to
+a documentation-only change. `git diff --check` reviewed; no push.
