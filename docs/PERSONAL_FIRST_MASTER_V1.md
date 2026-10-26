@@ -69,7 +69,7 @@ charts, ledger and committed-outcome Research remain intact.
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
 | C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
 | D — Fundamental review | COMPLETE | Internal review in the [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md); P1–P3 and P4 recorded APPROVED 2026-10-20, P5 not authorized; candidate frozen 2026-10-20 as [the contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md) |
-| E — Fundamental implementation | E1–E3 DONE | Binding/shape (`FundamentalEvidence.cs`), exact numerics (`FundamentalNumbers.cs`) and canonical hash binding (`FundamentalCanonical.cs`); deep period/dimension/admission semantics remain E4; E4–E5 unauthorized |
+| E — Fundamental implementation | E1–E5 DONE | Binding/shape, exact numerics, canonical hash binding, typed scope/identity comparability and revision/PIT/premise fixtures; parser, DDL/deployment and source admission stay gated |
 
 Current task: D (complete). B commit:
 `143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
@@ -171,6 +171,32 @@ T01–T44 remain future specifications; mapping them is not running them. Reconc
 all 44 in an implementation acceptance table rather than replacing them with the
 new source-policy tests. Parser XML/ZIP budgets, financial formula rules, exact DB
 concurrency/restore proof and provider coverage need their own later scopes.
+
+### E4/E5 delivered (2026-10-26 WIB)
+
+`FundamentalScope.cs` types the nested scope objects the E1 decoder only shape-checked:
+`Period`, `Unit`, `ShareBasis`, `Accounting` and an exact `FundamentalIdentity`
+comparison key. It adds period comparability (INSTANT vs DURATION, QUARTER vs YTD,
+coverage duplicates/overlaps, ANNUAL fiscal span, YTD fiscal start), accounting
+comparability (consolidation/group, attribution, operations, statement scope,
+dimensions) and the rule that unknown terms block comparison instead of implying
+equivalence.
+
+`FundamentalRevisions.cs` adds the pure revision/PIT layer: consecutive ordinals,
+mandatory predecessor links, cancellation never first and always premise-bound,
+`VisibleAt` over knowledge/retrieval/publication clocks, governor selection without
+latest-wins fallback, visible-cancel semantics, reinstatement visible only from its own
+`knownAt`, equal-authority conflict reporting, correction-after-cutoff invisibility and
+a bounded acyclic premise closure (256 nodes, 16 edges, unique roles).
+
+Owner decision recorded 2026-10-26 WIB: **E4 and E5** authorized on the owner's
+instruction to finish the series. No parser, table, migration, registry row, source
+adapter or financial formula was added; evaluator/reader integration, persisted
+binding, 53-week and taxonomy-bridge corner cases and DDL/deployment remain outside
+these slices.
+
+Acceptance: `FundamentalScopeRevisionTests` 14/14 passed (T08–T16, T26, T41, T43 and
+T17–T22, T29, T30, T35, T37–T40); .NET build 0 warnings.
 
 ### E3 delivered (2026-10-26 WIB)
 
