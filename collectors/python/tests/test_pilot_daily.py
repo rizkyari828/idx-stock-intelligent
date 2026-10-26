@@ -49,10 +49,10 @@ class DailyTests(unittest.TestCase):
         return {"date":day,"status":status,"reference":"https://reference.example/session",
                 "completed_at":day+"T16:30:00+07:00","known_at":day+"T17:00:00+07:00"}
 
-    def plan(self, now="2026-10-02T00:00:00Z", proofs=(), state=None):
+    def plan(self, now="2026-10-02T00:00:00Z", proofs=(), state=None, personal=False):
         Path("pilot/sessions.json").write_text(json.dumps(proofs))
         with patch("idx_stock_collector.pilot_daily.local_state",return_value=self.state if state is None else state):
-            return daily_plan(datetime.fromisoformat(now))
+            return daily_plan(datetime.fromisoformat(now), personal=personal)
 
     def test_proven_oct1_selected_after_successful_sep30(self):
         plan = self.plan(proofs=[self.proof("2026-10-01")])
@@ -159,6 +159,30 @@ class DailyTests(unittest.TestCase):
         self.assertEqual(1,result["soak"]["completed_unique_sessions"])
         after={str(p):p.read_bytes() for p in Path('.').rglob('*') if p.is_file()}
         self.assertEqual(before,after)
+
+    def test_personal_mode_collects_latest_proven_session_and_warns(self):
+        proofs=[self.proof("2026-10-01"),self.proof("2026-10-02")]
+        plan=self.plan(now="2026-10-26T00:00:00Z",proofs=proofs,personal=True)
+        self.assertEqual("ELIGIBLE",plan["decision"])
+        self.assertEqual("2026-10-02",plan["next_candidate_session"])
+        self.assertEqual("PERSONAL",plan["mode"])
+        self.assertIn("PERSONAL_MODE_SKIPS_INTERVENING_SESSIONS",plan["warnings"])
+        # Same evidence, strict mode: still walks from the ledger head, not the newest proof.
+        strict=self.plan(now="2026-10-26T00:00:00Z",proofs=proofs)
+        self.assertEqual("2026-10-01",strict["next_candidate_session"])
+        self.assertEqual("STRICT",strict["mode"])
+
+    def test_personal_mode_still_requires_its_own_session_proof(self):
+        plan=self.plan(now="2026-10-26T00:00:00Z",proofs=[],personal=True)
+        self.assertEqual("WAITING_FOR_SESSION_PROOF",plan["decision"])
+        self.assertEqual("COMPLETED_SESSION_EVIDENCE_REQUIRED",plan["reason"])
+
+    def test_personal_mode_reports_partial_canonical_session_instead_of_deadlock(self):
+        partial=[dict(r,date="2026-10-02") for r in self.state["revisions"][:-1]]
+        state=dict(self.state,revisions=self.state["revisions"]+partial)
+        plan=self.plan(now="2026-10-26T00:00:00Z",proofs=[self.proof("2026-10-02")],state=state,personal=True)
+        self.assertEqual("ELIGIBLE",plan["decision"])
+        self.assertEqual(["2026-10-02"],plan["partial_canonical_sessions"])
 
     def test_degraded_canonical_ahead_or_missing_success_report_is_data_blocked(self):
         changed=deepcopy(self.state)

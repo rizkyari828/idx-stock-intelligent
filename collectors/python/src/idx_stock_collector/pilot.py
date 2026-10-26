@@ -522,6 +522,7 @@ def main():
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--daily", action="store_true", help="Select one pending proven prior Jakarta session; no rollover or refresh.")
+    parser.add_argument("--personal", action="store_true", help="Personal opt-in: with --daily, collect the latest session that has its own completion evidence instead of every intervening session. Never relaxes session proof.")
     parser.add_argument("--soak-report", action="store_true")
     parser.add_argument("--refresh", action="store_true", help="Bypass automatic canonical reuse; never automatic retry.")
     parser.add_argument("--ingest", action="store_true", help="Run validation, ingestion, features and durable operation report after collection.")
@@ -530,6 +531,8 @@ def main():
     except SystemExit as error:
         raise SystemExit(1 if error.code else 0) from None
     try:
+        if args.personal and not args.daily:
+            raise ValueError("Personal mode requires daily planning.")
         if args.daily and (args.start or args.end or args.resume or args.seed or args.offline or args.refresh or args.soak_report or args.universe != "pilot/universe.json"):
             raise ValueError("Daily mode cannot override dates, panel or collection policy.")
         if args.soak_report:
@@ -537,7 +540,7 @@ def main():
             return
         if args.daily and args.dry_run:
             from .pilot_daily import daily_plan
-            plan = daily_plan()
+            plan = daily_plan(personal=args.personal)
             print(json.dumps(plan,indent=2))
             raise SystemExit(1 if plan["decision"]=="BLOCKED" else 3 if plan["decision"]=="WAITING_FOR_SESSION_PROOF" else 0)
         if not args.daily and (not args.start or not args.end):
@@ -558,7 +561,7 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if args.daily:
                 from .pilot_daily import daily_plan
-                plan = daily_plan()
+                plan = daily_plan(personal=args.personal)
                 print(json.dumps(plan,indent=2))
                 if plan["decision"] != "ELIGIBLE":
                     raise SystemExit(0 if plan["decision"]=="NO_NEW_SESSION" else 3 if plan["decision"]=="WAITING_FOR_SESSION_PROOF" else 1)

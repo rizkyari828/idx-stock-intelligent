@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from .pilot import configuration, collection_eligibility, local_state, safe_cutoff, soak_progress
 
 
-def daily_plan(now: datetime | None = None) -> dict:
+def daily_plan(now: datetime | None = None, personal: bool = False) -> dict:
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         raise ValueError("Timezone-aware planning clock required.")
@@ -27,6 +27,7 @@ def daily_plan(now: datetime | None = None) -> dict:
         "maximum_provider_units": 11, "soak": soak_progress(root),
         "account": "not queried during planning", "provider_requests": 0,
         "decision": "BLOCKED", "reason": "DATA_BLOCKED",
+        "mode": "PERSONAL" if personal else "STRICT", "warnings": [],
     }
     current = {(r["instrument_id"], r["date"]): r for r in state.get("revisions", [])}
     if (state["status"] != "KNOWN" or state.get("database") != "idx_stock_intelligence"
@@ -52,10 +53,6 @@ def daily_plan(now: datetime | None = None) -> dict:
         return result
     latest = max(completed)
     result["latest_successful_canonical_session"] = str(latest)
-    if latest > today or any(date.fromisoformat(d) > latest for _, d in current):
-        result["reason"] = "CANONICAL_STATE_AHEAD_OF_SUCCESSFUL_LEDGER"
-        return result
-
     sessions = json.loads(Path(os.environ.get("IDX_PILOT_SESSIONS", "pilot/sessions.json")).read_text())
     cutoff = safe_cutoff()
 
@@ -71,6 +68,34 @@ def daily_plan(now: datetime | None = None) -> dict:
             if not gate["eligible"]:
                 gate["reason"] = "COMPLETED_SESSION_EVIDENCE_REQUIRED"
         return gate
+
+    if personal:
+        # Personal mode: collect the most recent session that has its own completion
+        # evidence, instead of demanding every intervening session. The strict path is
+        # unchanged and remains the default; this only relaxes sequence, never proof.
+        dates = {day for _, day in current}
+        full = {day for day in dates if all((instrument, day) in current for instrument in ids)}
+        result["partial_canonical_sessions"] = sorted(day for day in dates
+            if day > str(latest) and day not in full)
+        if any(date.fromisoformat(day) > latest for day in full):
+            result["warnings"].append("CANONICAL_AHEAD_OF_LEDGER_PERSONAL")
+        proven = sorted(date.fromisoformat(row["date"]) for row in sessions
+            if date.fromisoformat(row["date"]) < today
+            and proof(date.fromisoformat(row["date"]))["eligible"])
+        if not proven:
+            result.update(decision="WAITING_FOR_SESSION_PROOF",
+                          reason="COMPLETED_SESSION_EVIDENCE_REQUIRED")
+            return result
+        chosen = max(proven)
+        result.update(next_candidate_session=str(chosen), decision="ELIGIBLE",
+                      reason="READY", session_proof="CONFIRMED")
+        if chosen > latest:
+            result["warnings"].append("PERSONAL_MODE_SKIPS_INTERVENING_SESSIONS")
+        return result
+
+    if latest > today or any(date.fromisoformat(d) > latest for _, d in current):
+        result["reason"] = "CANONICAL_STATE_AHEAD_OF_SUCCESSFUL_LEDGER"
+        return result
 
     result["pending_sessions"] = sorted({p["date"] for p in sessions
         if latest < date.fromisoformat(p["date"]) < today and proof(date.fromisoformat(p["date"]))["eligible"]})
