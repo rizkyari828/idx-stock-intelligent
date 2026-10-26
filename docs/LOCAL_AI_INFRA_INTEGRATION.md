@@ -153,14 +153,19 @@ Real hosted runs, 2026-10-26. Three attempts, all paid, one call each:
   COMPLETE_CAPTURE_MISSING`: the opencode JSON stream did not yield one complete
   assistant message, so there was no typed block to verify.
 
-Two shared-repo commits back those attempts (`aca61bd` exact_output rule, `2502a48`
-structured contract rule; 36 orchestrator tests pass). Conclusion: acceptance is now
-*typed* for deliberate objectives, but the last mile is the sibling's capture layer —
-`_structured_capture` requires a single complete assistant message, which a long
-orchestrated prompt with reasoning/tool steps rarely produces. Relaxing that rule is
-a safety-relevant change in the shared repository and was not made here. Verified
-handoff and cache reuse therefore still hold only for results that reach PASSED (the
-deterministic fake path); the cache stays untouched for CLI-backed answers.
+Four shared-repo commits back these attempts: `aca61bd` (exact_output rule), `2502a48`
+(structured contract rule), `6a4412a` (prompt forbidding extra sentences), plus the
+earlier planner tests; 17 acceptance-context tests and 36 orchestrator tests pass.
+
+A fourth hosted run, `5ab677a1ac31`, tightened the diagnosis to its final form: the
+model replied with exactly `INTEGRATION_OK` (visible in the captured text part), yet
+acceptance still failed because `response_complete` was false — the opencode JSON
+stream carried more than one assistant message, so the shared capture layer refused
+to produce a complete response. Prompt engineering cannot fix that; only the capture
+layer can, and relaxing it is a safety-relevant change in the shared repository that
+was deliberately not made. Verified handoff and cache reuse therefore remain proven
+for PASSED results (the deterministic fake path) and unavailable for orchestrated
+CLI answers until upstream changes `_structured_capture`.
 
 Install path: [`scripts/install-ai-infra-mcp-bundle.sh`](../scripts/install-ai-infra-mcp-bundle.sh)
 renders an installable bundle (absolute paths) from the path-free template in
