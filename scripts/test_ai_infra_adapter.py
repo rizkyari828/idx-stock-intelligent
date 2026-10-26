@@ -102,6 +102,21 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("|--state-dir|" + str(ROOT) + "/logs/ai-infra-state", self.captured())
 
+    def test_dispatch_forwards_execution_requirements(self):
+        requirement = Path(self.tmp.name) / "requirements.json"
+        requirement.write_text('{"T1": {"role": "teacher-cheap"}}', encoding="utf-8")
+        result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "fake",
+                                  "--execution-requirements", str(requirement))
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("|--execution-requirements|" + str(requirement), self.captured())
+
+    def test_dispatch_rejects_a_missing_requirements_file(self):
+        result = self.run_adapter("dispatch", "--objective", "goal",
+                                  "--execution-requirements", str(Path(self.tmp.name) / "absent.json"))
+        self.assertEqual(2, result.returncode)
+        self.assertIn("requirements file not found", result.stderr)
+        self.assertEqual("", self.captured())
+
     def test_dispatch_rejects_an_unknown_backend(self):
         result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "shell")
         self.assertEqual(2, result.returncode)
