@@ -34,7 +34,7 @@ dependency; PARKED = deliberately deferred.
 
 | ID | Item | Status | Notes / acceptance |
 |---|---|---|---|
-| A1 | Persisted binding + logical DDL design (STORE01 §22, provisional `0012`) | READY | docs-only; no migration authored, no deployment |
+| A1 | Persisted binding + logical DDL design (STORE01 §22, provisional `0012`) | DONE 2026-10-26 | [design](FUNDAMENTAL_BINDING_PERSISTENCE_DESIGN_V0_1.md): logical only; 5 open decisions (D1 receipt, D2 artifact refs, D3 subject key, D4 discriminators, D5 lineage ambiguity) need an owner; no migration authored, no DB touched |
 | A2 | T01–T44 implementation acceptance table | READY | map every scenario to implemented tests or explicit gaps |
 | A4 | Permanent golden-byte fixtures pinning the canonical writer | READY | E3 currently proves it in-code only |
 | A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | READY | additive; no contract reinterpretation |
@@ -80,9 +80,10 @@ dependency; PARKED = deliberately deferred.
 
 ## Recommended order
 
-1. **A1 → A2** — persistence design and an honest acceptance table. B1/B2 closed
-   2026-10-26 without unblocking Level-1; the blocker matrix is closed for re-derivation,
-   so no further source re-run is worth doing without new external input.
+1. **A2** — T01–T44 acceptance table. A1 landed 2026-10-26 as logical design with four
+   owner decisions outstanding (D1–D4); B1/B2 closed without unblocking Level-1, so the
+   blocker matrix is closed for re-derivation and no further source re-run is worth doing
+   without new external input.
 2. **A4 → A5** — harden tests, close E4 edges.
 3. **C2** — cheap real runs; then decide **C1**.
 4. **B5**, **B3**, **B6/A9**, **B4** — only with explicit authorization (B5 is READY
