@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using IdxStockIntelligence.Application;
@@ -136,5 +137,52 @@ public sealed class FundamentalCanonicalTests
         var payload = JsonSerializer.SerializeToElement(fixture["payload"]);
         fixture["payloadSha256"] = FundamentalCanonical.PayloadHash(payload);
         Assert.True(FundamentalEvidenceCodec.Decode(JsonSerializer.SerializeToUtf8Bytes(fixture)).IsValid);
+    }
+
+    [Fact]
+    public void T36GoldenCanonicalBytesArePinned()
+    {
+        // A4: permanent golden bytes. The fixture is generated once from the canonical
+        // writer and then pinned; any change to the writer's output fails this test.
+        var payload = JsonSerializer.SerializeToElement(JsonNode.Parse("""
+        {
+          "operation": "ASSERT",
+          "completeness": "FULL",
+          "value": {
+            "reportingName": "PT Contoso Tbk",
+            "documentKey": "ABCD-2026Q1",
+            "statementFamily": "GENERAL_CORPORATE",
+            "legalEntity": null,
+            "format": {"taxonomyVersion": "2026", "kind": "XBRL", "schemaId": "idx", "schemaVersion": "1", "taxonomyFamily": "idx-ifrs"},
+            "coveredPeriods": [{"fiscalQuarter": 1, "periodKind": "QUARTER", "cumulative": false, "periodType": "DURATION", "startDate": "2026-01-01", "endDate": "2026-03-31", "fiscalYear": "2026", "fiscalStart": "2026-01-01", "fiscalEnd": "2026-12-31"}],
+            "documentRole": "ORIGINAL",
+            "revisionCoverage": "OBSERVED_ONLY",
+            "artifact": {"locator": "a", "byteLength": 1, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "artifactId": "11111111-2222-3333-4444-555555555555"}
+          }
+        }
+        """)!);
+
+        var canonical = FundamentalCanonical.CanonicalPayload(payload);
+        var hash = FundamentalCanonical.PayloadHash(payload);
+
+        var bytesPath = FixturePath("fundamental-canonical.json");
+        var hashPath = FixturePath("fundamental-canonical.sha256");
+
+        Assert.Equal(File.ReadAllText(bytesPath, new UTF8Encoding(false)), canonical);
+        Assert.Equal(File.ReadAllText(hashPath, new UTF8Encoding(false)).Trim(), hash);
+
+        // The pinned text must hash to its own declared value: the fixture is self-consistent.
+        Assert.Equal(hash, ScreenerEvidenceJson.Sha256(canonical));
+        Assert.DoesNotContain("\n", canonical);
+    }
+
+    private static string FixturePath(string name)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "tests", "fixtures", name);
+            if (File.Exists(candidate)) return candidate;
+        }
+        throw new InvalidOperationException($"fixture not found: {name}");
     }
 }
