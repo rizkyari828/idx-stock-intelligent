@@ -25,6 +25,7 @@ data/broker/**
 
 # Local data and generated collector output
 data/raw/**
+data/backups/**
 !data/raw/.gitkeep
 data/collector-output/**
 !data/collector-output/.gitkeep

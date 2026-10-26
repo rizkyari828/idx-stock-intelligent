@@ -26,6 +26,7 @@ The stock system must still work when AI is unavailable.
 > continues independently at **1/10**; FullIdx remains **DISABLED**.
 >
 > [Run API/UI and synthetic acceptance](docs/PRODUCT_SLICE_RUNBOOK.md) ·
+> [Local operations: one command, backup/restore, scheduler](docs/LOCAL_OPERATIONS.md) ·
 > [Ledger contract](docs/PORTFOLIO_LEDGER.md) · [Cost policy](docs/COST_BASIS_V01.md) ·
 > [Product data states](docs/PRODUCT_DATA_STATE.md)
 >
