@@ -35,7 +35,7 @@ dependency; PARKED = deliberately deferred.
 | ID | Item | Status | Notes / acceptance |
 |---|---|---|---|
 | A1 | Persisted binding + logical DDL design (STORE01 §22, provisional `0012`) | DONE 2026-10-26 | [design](FUNDAMENTAL_BINDING_PERSISTENCE_DESIGN_V0_1.md): logical only; 5 open decisions (D1 receipt, D2 artifact refs, D3 subject key, D4 discriminators, D5 lineage ambiguity) need an owner; no migration authored, no DB touched |
-| A2 | T01–T44 implementation acceptance table | READY | map every scenario to implemented tests or explicit gaps |
+| A2 | T01–T44 implementation acceptance table | DONE 2026-10-26 | [table](FUNDAMENTAL_ACCEPTANCE_T01_T44.md): 16 implemented / 15 partial / 13 gap, mapped by reading assertions not names; focused run 50/50 pass; gaps trace to A5, A6, A7/A8, A1/A9 |
 | A4 | Permanent golden-byte fixtures pinning the canonical writer | READY | E3 currently proves it in-code only |
 | A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | READY | additive; no contract reinterpretation |
 | A3 | Reader/evaluator integration into readiness | NEEDS DECISION | product scope; contract already frozen |
