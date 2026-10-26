@@ -37,7 +37,7 @@ dependency; PARKED = deliberately deferred.
 | A1 | Persisted binding + logical DDL design (STORE01 §22, provisional `0012`) | DONE 2026-10-26 | [design](FUNDAMENTAL_BINDING_PERSISTENCE_DESIGN_V0_1.md): logical only; 5 open decisions (D1 receipt, D2 artifact refs, D3 subject key, D4 discriminators, D5 lineage ambiguity) need an owner; no migration authored, no DB touched |
 | A2 | T01–T44 implementation acceptance table | DONE 2026-10-26 | [table](FUNDAMENTAL_ACCEPTANCE_T01_T44.md): 16 implemented / 15 partial / 13 gap, mapped by reading assertions not names; focused run 50/50 pass; gaps trace to A5, A6, A7/A8, A1/A9 |
 | A4 | Permanent golden-byte fixtures pinning the canonical writer | DONE 2026-10-26 | `tests/fixtures/fundamental-canonical.json` + `.sha256` pinned by `T36GoldenCanonicalBytesArePinned`; verified the pin fails on byte drift and passes when restored |
-| A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | PARTIAL 2026-10-26 | T12 + T15 closed with tests; `ValidateCoverage` gap defect fixed (T11); T16 audit/policy supersession still open; no contract reinterpretation |
+| A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | DONE 2026-10-26 | T12 + T15 + T16 closed with tests; `ValidateCoverage` gap defect fixed (T11); `CompareAccounting`/identity now enforce audit and statement-family constraints; no contract reinterpretation |
 | A3 | Reader/evaluator integration into readiness | NEEDS DECISION | product scope; contract already frozen |
 | A6 | Parser XML/ZIP budget design | DEFERRED | belongs to a future source adapter |
 | A7 | D07 formulas (FCF, debt, TTM) | BLOCKED | product approval per formula |
@@ -64,7 +64,7 @@ dependency; PARKED = deliberately deferred.
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| C2 | Register `opencode/deepseek-v4.1-flash-free` in `model-capabilities.yaml` | READY | zero-cost real runs; shared-repo change |
+| C2 | Register `opencode/deepseek-v4.1-flash-free` in `model-capabilities.yaml` | PREPARED 2026-10-26 — NOT APPLIED | blocked twice: the shared repo has an unrelated untracked `scripts/common/surface_outcome.py`, and the entry's routing placement is that repo owner's decision; candidate entry drafted below |
 | C1 | Typed acceptance for CLI backends (capture layer) | NEEDS DECISION | safety-relevant; `_structured_capture` requires one complete assistant message |
 | C3 | Real routing: Ollama absent (`local_inference: NOT_CONFIGURED_BY_MACHINE_POLICY`) | CONDITIONAL | install Ollama or change role mapping |
 | C5 | Re-render MCP bundle if paths move; lifecycle doc | READY | `scripts/install-ai-infra-mcp-bundle.sh` |
@@ -99,3 +99,35 @@ dependency; PARKED = deliberately deferred.
   tests were run.
 - Runtime acceptance: `dotnet test` from the root (or `rtk proxy dotnet test`), never a
   test executable; focused classes via `--filter-class`.
+
+## C2 prepared change — not applied
+
+`ai-local-infra` was inspected read-only (HEAD `6a4412a`, untracked
+`scripts/common/surface_outcome.py` present). No file there was edited, staged or
+committed. Two independent reasons, either of which is sufficient:
+
+1. **Unrelated dirty work.** An untracked file belongs to someone else; committing into
+   that repo while it is dirty risks another agent's in-progress work.
+2. **It is a routing decision, not a registration.** `config/model-capabilities.yaml` is
+   JSON content behind a `.yaml` name. Its `failover` object is the ordered routing table
+   per task class, so *where* a model is listed decides which model serves work. Adding a
+   zero-cost model is therefore an owner choice about tier placement, not a mechanical
+   config append.
+
+Candidate entry for the owner to place (verified absent today: no `v4.1-flash` token
+anywhere in that repo):
+
+```json
+"model_aliases": {"Astra": "gpt-6-astra", "FlashFree": "deepseek-v4.1-flash-free"}
+```
+
+plus exactly one failover entry, e.g. under `FAST`:
+
+```json
+{"backend": "opencode", "provider": "deepseek", "model": "deepseek-v4.1-flash-free", "native_variant": "low"}
+```
+
+Open questions the owner must answer before this is applied: is the free model acceptable
+for `FAST`, or should it become a separate zero-cost tier; does it need its own
+`effort_mappings` entry under `deepseek`; and does the DSH bundle or MCP registration need
+re-rendering afterwards (backlog C5).
