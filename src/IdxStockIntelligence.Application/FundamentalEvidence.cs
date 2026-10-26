@@ -142,6 +142,9 @@ public static class FundamentalEvidenceCodec
         var admissionElement = Element(root, "admission", "/admission", ctx);
         var payloadElement = Element(root, "payload", "/payload", ctx);
         var payloadSha256 = Hash(root, "payloadSha256", "/payloadSha256", ctx);
+        if (payloadSha256 is not null && payloadElement is not null &&
+            !FundamentalCanonical.Matches(payloadElement.Value, payloadSha256))
+            ctx.Add("/payloadSha256", FundamentalCanonical.Integrity);
 
         if (policyId is not null && policyId != PolicyId) ctx.Add("/policyId", Unsupported);
         if (schemaVersion is not null && schemaVersion != EnvelopeSchemaVersion) ctx.Add("/schemaVersion", Unsupported);

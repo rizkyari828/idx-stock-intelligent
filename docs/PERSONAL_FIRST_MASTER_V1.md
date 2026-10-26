@@ -69,7 +69,7 @@ charts, ledger and committed-outcome Research remain intact.
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
 | C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
 | D — Fundamental review | COMPLETE | Internal review in the [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md); P1–P3 and P4 recorded APPROVED 2026-10-20, P5 not authorized; candidate frozen 2026-10-20 as [the contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md) |
-| E — Fundamental implementation | E1+E2 DONE | Binding/shape layer (`FundamentalEvidence.cs`) and exact numeric/applicability layer (`FundamentalNumbers.cs`); deep period/dimension/admission semantics remain E4; E3–E5 unauthorized |
+| E — Fundamental implementation | E1–E3 DONE | Binding/shape (`FundamentalEvidence.cs`), exact numerics (`FundamentalNumbers.cs`) and canonical hash binding (`FundamentalCanonical.cs`); deep period/dimension/admission semantics remain E4; E4–E5 unauthorized |
 
 Current task: D (complete). B commit:
 `143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
@@ -171,6 +171,21 @@ T01–T44 remain future specifications; mapping them is not running them. Reconc
 all 44 in an implementation acceptance table rather than replacing them with the
 new source-policy tests. Parser XML/ZIP budgets, financial formula rules, exact DB
 concurrency/restore proof and provider coverage need their own later scopes.
+
+### E3 delivered (2026-10-26 WIB)
+
+`FundamentalCanonical.cs` binds the payload to its bytes: it reuses the existing V0.2
+canonical writer (ordinal property order, compact, no BOM/newline), hashes the
+canonical payload and rejects a mismatch with `FUNDAMENTAL_INTEGRITY_FAILURE` during
+decoding. Decimal and Instant literal spellings are preserved, so `1.0` and `1.00`
+share a numeric value but keep distinct payload hashes, and a `.0000001Z` instant is
+not rounded into `.0000000Z`.
+
+Owner decision recorded 2026-10-26 WIB: **E3** was authorized on the owner's
+instruction to continue after pushing. E4–E5 remain unauthorized.
+
+Acceptance: `FundamentalCanonicalTests` 6/6 passed (T36, T44) and the E1 binding
+suite was migrated to computed hashes (11/11); .NET build 0 warnings.
 
 ### E2 delivered (2026-10-26 WIB)
 

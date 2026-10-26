@@ -68,31 +68,12 @@ public sealed class FundamentalEvidenceBindingTests
         ["taxonomyVersion"] = "2026",
     };
 
-    private static JsonObject Filing(string claim = "FinancialFiling") => new()
+    private static void Rehash(JsonObject root) =>
+        root["payloadSha256"] = FundamentalCanonical.PayloadHash(JsonSerializer.SerializeToElement(root["payload"]));
+
+    private static JsonObject Filing(string claim = "FinancialFiling")
     {
-        ["evidenceId"] = Uuid,
-        ["policyId"] = "fundamental-evidence-v0.1.0",
-        ["schemaVersion"] = 1,
-        ["payloadSchemaVersion"] = 1,
-        ["claim"] = claim,
-        ["scopeKind"] = "REPORTING_ENTITY",
-        ["subject"] = new JsonObject { ["namespace"] = "issuer", ["code"] = "ABCD" },
-        ["sourceId"] = "official-filing",
-        ["sourceReference"] = "doc-2026-q1",
-        ["assertionKey"] = "ABCD-2026Q1",
-        ["revisionSeriesId"] = "official-filing\u001Ffundamental-evidence-v0.1.0/FinancialFiling/ABCD-2026Q1",
-        ["revisionNumber"] = 1,
-        ["supersedesRevisionNumber"] = null,
-        ["lineageEvidence"] = null,
-        ["authorityTier"] = "T1",
-        ["publishedAt"] = null,
-        ["publicationDate"] = null,
-        ["publicationEvidence"] = null,
-        ["receipt"] = Receipt(),
-        ["knownAt"] = "2026-10-02T00:00:00Z",
-        ["recordedAt"] = "2026-10-02T00:00:01Z",
-        ["admission"] = Admission(claim),
-        ["payload"] = new JsonObject
+        var payload = new JsonObject
         {
             ["operation"] = "ASSERT",
             ["completeness"] = "FULL",
@@ -108,9 +89,36 @@ public sealed class FundamentalEvidenceBindingTests
                 ["documentRole"] = "ORIGINAL",
                 ["revisionCoverage"] = "OBSERVED_ONLY",
             },
-        },
-        ["payloadSha256"] = Sha,
-    };
+        };
+        var root = new JsonObject
+        {
+            ["evidenceId"] = Uuid,
+            ["policyId"] = "fundamental-evidence-v0.1.0",
+            ["schemaVersion"] = 1,
+            ["payloadSchemaVersion"] = 1,
+            ["claim"] = claim,
+            ["scopeKind"] = "REPORTING_ENTITY",
+            ["subject"] = new JsonObject { ["namespace"] = "issuer", ["code"] = "ABCD" },
+            ["sourceId"] = "official-filing",
+            ["sourceReference"] = "doc-2026-q1",
+            ["assertionKey"] = "ABCD-2026Q1",
+            ["revisionSeriesId"] = "official-filing\u001Ffundamental-evidence-v0.1.0/FinancialFiling/ABCD-2026Q1",
+            ["revisionNumber"] = 1,
+            ["supersedesRevisionNumber"] = null,
+            ["lineageEvidence"] = null,
+            ["authorityTier"] = "T1",
+            ["publishedAt"] = null,
+            ["publicationDate"] = null,
+            ["publicationEvidence"] = null,
+            ["receipt"] = Receipt(),
+            ["knownAt"] = "2026-10-02T00:00:00Z",
+            ["recordedAt"] = "2026-10-02T00:00:01Z",
+            ["admission"] = Admission(claim),
+            ["payload"] = payload,
+        };
+        Rehash(root);
+        return root;
+    }
 
     private static JsonObject Fact(string claim = "FundamentalFact")
     {
@@ -138,6 +146,7 @@ public sealed class FundamentalEvidenceBindingTests
             ["derivation"] = null,
         };
         root["revisionSeriesId"] = "official-filing\u001Ffundamental-evidence-v0.1.0/FundamentalFact/ABCD-2026Q1";
+        Rehash(root);
         return root;
     }
 
@@ -158,6 +167,7 @@ public sealed class FundamentalEvidenceBindingTests
             ["entitySecurity"] = null,
             ["formula"] = null,
         };
+        Rehash(root);
         return root;
     }
 
@@ -217,6 +227,7 @@ public sealed class FundamentalEvidenceBindingTests
 
         var negativeZero = Fact();
         ((JsonObject)((JsonObject)negativeZero["payload"]!)["value"]!)["amount"] = "-0.00";
+        Rehash(negativeZero);
         Assert.True(Decode(negativeZero).IsValid);
 
         var rounded = Fact();
