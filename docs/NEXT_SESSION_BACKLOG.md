@@ -74,9 +74,10 @@ dependency; PARKED = deliberately deferred.
 
 | ID | Item | Status |
 |---|---|---|
-| D1 | Pilot soak 1/10 → 9 real sessions | BLOCKED (manual, operational) |
+| D1 | Pilot soak 1/10 → 9 real sessions | 2/10 as of 2026-10-26 | 2026-10-23 collected via `--personal` (11 bars, 12/20 free units); 8 sessions remain |
 | D2 | Model-label discrepancy (v4-pro vs Flash) | DETERMINED 2026-10-26 — not repo-fixable | `v4-pro` occurs in no file in either repo; the label exists only in the harness runtime context, so any future model claim must cite that runtime label, not a repo artifact |
 | D3 | Editorial annex for "proposal" wording inside the frozen contract | OPTIONAL |
+| D4 | Daily gate demands a current-day account counter, so the first run of every new day fails closed | NEEDS DECISION | provider only advances `apiRequestsDate` on the first charged request; workaround = 1-unit priming request (used 2026-10-26); fix would relax a quota-safety gate, so owner call |
 
 ## Recommended order
 

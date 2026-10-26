@@ -70,5 +70,15 @@
     "known_at": "2026-10-03T01:04:19.701437+00:00",
     "evidence_type": "Independent full-day closing report",
     "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp. Retained source: data/raw/session-proof/2026-10-02-20261003T010419Z/closing.html"
+  },
+  {
+    "date": "2026-10-23",
+    "status": "ObservedTrading",
+    "reference": "https://www.cnbcindonesia.com/market/20261023160756-17-778973/ihsg-ditutup-menguat-095-ke-level-5439",
+    "published_at": "2026-10-23T16:07:56+07:00",
+    "completed_at": "2026-10-23T16:07:56+07:00",
+    "known_at": "2026-10-26T08:02:43+00:00",
+    "evidence_type": "Independent full-day closing report",
+    "note": "completed_at is the publication-time upper bound proving completion, not an asserted exchange closing timestamp; the instant is derived from the publisher's article-id timestamp (20261023160756) because the page states no separate publication clock. Retained source: data/raw/session-proof/2026-10-23-20261026T080237Z/closing.html sha256 fc28adfe920f3807a36411f2c8201bae3d6866e49e904881e00ee9be093f4a34 (152344 bytes). Reported close 5.439,26 (+0,95%), consistent with other reviewed reports for the same session."
   }
 ]

@@ -10,6 +10,33 @@ The successful September 30 pilot advanced soak to **1/10**, with **76** canonic
 revisions. Older counts below remain historical observations. No provider request
 or canonical mutation was needed to implement the daily workflow.
 
+### Personal mode — 2026-10-26
+
+`bash scripts/pilot-daily.sh --personal` is an opt-in variant for single-user personal
+operation. It selects the **most recent** session that has its own completion evidence
+instead of demanding every intervening session, and it reports partial canonical sessions
+(as `partial_canonical_sessions`) instead of treating them as a ledger mismatch. It never
+relaxes session proof, and the strict sequential path remains the default: `mode` and
+`warnings` in the plan output say which one ran.
+
+**Known operational caveat (backlog D4).** Daily strict mode computes the allowance with
+`remaining(..., strict=True)`, which requires the provider's `apiRequestsDate` to equal
+today. The provider only advances that date on the first *charged* request of the day, so
+the first run of a new day fails closed:
+
+```
+account check -> ValueError: Free current-day counters required.
+=> account_error ACCOUNT_CHECK_FAILED, every symbol OFFLINE_OR_QUOTA_DEFERRED, 0 units
+```
+
+Workaround used on 2026-10-26: send one ordinary 1-unit EOD request first, then run the
+panel. That is a workaround, not a fix, and the fix is a policy decision.
+
+First personal run: `2026-10-23` collected for the full 11-instrument panel, **11 canonical
+bars** added, soak advanced **1/10 → 2/10** (market dates 2026-09-30, 2026-10-23), 12 of 20
+free units used (1 priming + 11 panel). Cross-check: the ingested `JKSE.INDX` close
+5439.2578 agrees with the independent closing report retained for the same session.
+
 ## Current same-day policy
 
 The optional [same-day hardening](SAME_DAY_EOD.md) supersedes the earlier H+1-only guard:
