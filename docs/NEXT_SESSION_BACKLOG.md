@@ -37,7 +37,7 @@ dependency; PARKED = deliberately deferred.
 | A1 | Persisted binding + logical DDL design (STORE01 §22, provisional `0012`) | DONE 2026-10-26 | [design](FUNDAMENTAL_BINDING_PERSISTENCE_DESIGN_V0_1.md): logical only; 5 open decisions (D1 receipt, D2 artifact refs, D3 subject key, D4 discriminators, D5 lineage ambiguity) need an owner; no migration authored, no DB touched |
 | A2 | T01–T44 implementation acceptance table | DONE 2026-10-26 | [table](FUNDAMENTAL_ACCEPTANCE_T01_T44.md): 16 implemented / 15 partial / 13 gap, mapped by reading assertions not names; focused run 50/50 pass; gaps trace to A5, A6, A7/A8, A1/A9 |
 | A4 | Permanent golden-byte fixtures pinning the canonical writer | READY | E3 currently proves it in-code only |
-| A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | READY | additive; no contract reinterpretation |
+| A5 | E4 remainder: 53-week years, fiscal transitions, taxonomy bridge | PARTIAL 2026-10-26 | T12 + T15 closed with tests; `ValidateCoverage` gap defect fixed (T11); T16 audit/policy supersession still open; no contract reinterpretation |
 | A3 | Reader/evaluator integration into readiness | NEEDS DECISION | product scope; contract already frozen |
 | A6 | Parser XML/ZIP budget design | DEFERRED | belongs to a future source adapter |
 | A7 | D07 formulas (FCF, debt, TTM) | BLOCKED | product approval per formula |
@@ -54,7 +54,7 @@ dependency; PARKED = deliberately deferred.
 | B3 | KSEI corporate-action coverage/permission inquiry | NEEDS DECISION | requires owner authorization to contact |
 | B4 | IDX control evidence (affirmative TradingStatus) | PARKED | revisit only if it becomes the sole blocker |
 | B6 | Deploy migrations `0007`–`0011` (OPS-1 follow-up) | NEEDS AUTHORIZATION | preflight + owned disposable DB first |
-| B7 | F15 archive-count discrepancy (2,078 vs >5,000) | READY | editorial, non-blocking |
+| B7 | F15 archive-count discrepancy (2,078 vs >5,000) | DONE 2026-10-26 — no edit needed | verified no committed doc publishes a reconciled/authoritative count; contract §17 already retains the uncertainty, and the frozen text was left untouched |
 | B8 | EODHD `.JK` price adapter (5A.3c) | BLOCKED | needs B1 + admission + both premises closed |
 | B9 | Stockbit secondary-provider re-evaluation | PARKED | automation permission, auth lifecycle, provenance |
 | B10 | External parser reuse (idx-bei/idxlens/exploreR) | CONDITIONAL | licensing + no bypass techniques |
@@ -75,7 +75,7 @@ dependency; PARKED = deliberately deferred.
 | ID | Item | Status |
 |---|---|---|
 | D1 | Pilot soak 1/10 → 9 real sessions | BLOCKED (manual, operational) |
-| D2 | Model-label discrepancy (v4-pro vs Flash) | READY |
+| D2 | Model-label discrepancy (v4-pro vs Flash) | DETERMINED 2026-10-26 — not repo-fixable | `v4-pro` occurs in no file in either repo; the label exists only in the harness runtime context, so any future model claim must cite that runtime label, not a repo artifact |
 | D3 | Editorial annex for "proposal" wording inside the frozen contract | OPTIONAL |
 
 ## Recommended order
