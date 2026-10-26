@@ -45,7 +45,7 @@ it is the honest boundary of what is currently proven.
 | T13 | Consolidation | IMPLEMENTED | `.T13ConsolidatedAndStandaloneScopesStaySeparate` |
 | T14 | Profit attribution | IMPLEMENTED | `.T14AttributionAndDimensionsMustAgree` |
 | T15 | Industry concept (bank interest income) | IMPLEMENTED | `.T15NativeIndustryConceptIsNotBridgedToIndustrialRevenue`: a bank `InterestIncome` assertion is never comparable with industrial `Revenue`, and its native metric/definition are preserved |
-| T16 | Audit/policy/taxonomy reissue | GAP | `AUDITED` appears only as a scope string; no audit-supersession, policy-change or taxonomy-change test. Backlog A5 |
+| T16 | Audit/policy/taxonomy reissue | IMPLEMENTED | `.T16AuditAndStatementFamilyConstrainComparison`: an `AUDITED`/`UNAUDITED`/`UNKNOWN` basis and a differing statement family are never comparable, and the identity projection carries both constraints so facts differing only in audit basis cannot collapse. Taxonomy-version change stays a different document identity (no bridge inferred) |
 | T17 | Publication cutoff | PARTIAL | `.T17AndT18VisibilityRespectsEveryClock` varies **knownAt** only. A known-before-cutoff assertion whose *publishedAt* is after the cutoff is not asserted |
 | T18 | Late ingestion | IMPLEMENTED | Same test: `knownAt` after cutoff is invisible and does not backdate |
 | T19 | Restatement 100 → 80 | PARTIAL | `.T19AndT37SeriesOrdinalsAndCancellationAreEnforced` proves ordinal/cancellation validity. Value selection of 100 at an earlier cutoff and 80 at a later one is not asserted (resolver returns identity, not values) |
@@ -84,16 +84,15 @@ it is the honest boundary of what is currently proven.
 
 | State | Count | IDs |
 |---|---:|---|
-| IMPLEMENTED | 18 | T01, T03, T05, T08, T09, T12, T13, T14, T15, T18, T22, T23, T24, T28, T32, T36, T42, T43 |
+| IMPLEMENTED | 19 | T01, T03, T05, T08, T09, T12, T13, T14, T15, T16, T18, T22, T23, T24, T28, T32, T36, T42, T43 |
 | PARTIAL | 15 | T04, T06, T07, T11, T17, T19, T26, T30, T33, T34, T35, T37, T39, T41, T44 |
-| GAP | 11 | T02, T10, T16, T20, T21, T25, T27, T29, T31, T38, T40 |
+| GAP | 10 | T02, T10, T20, T21, T25, T27, T29, T31, T38, T40 |
 | **Total** | **44** | |
 
-The 11 gaps cluster on three blockers rather than on unimplemented code:
+The 10 gaps cluster on two blockers rather than on unimplemented code:
 
 - **Product approval**: T02, T10, T25 need approved formulas and classification policy
   (D07/D08, backlogs A7/A8). No internal work moves these.
-- **Fiscal and taxonomy semantics**: T16 remains (T12/T15 closed 2026-10-26 under backlog A5).
 - **Identity, roles and persistence**: T20, T21, T27, T29, T31, T38, T40 need artifact/URL
   identity, role-bound operands or actual storage (backlogs A1/A9 and A6). T21 and T29 are
   the two where a similarly named test exists but does **not** implement the scenario.
@@ -103,7 +102,7 @@ cross-identity supersedes) rather than a whole capability.
 
 ## Not claimed
 
-- Not a claim that 18 scenarios are "done" in any product sense; they are proven at fixture
+- Not a claim that 19 scenarios are "done" in any product sense; they are proven at fixture
   level only.
 - Not a re-run of the historical counts in older documents: the 50-test figure is this
   session's filtered run, nothing more.

@@ -6,7 +6,8 @@ namespace IdxStockIntelligence.Tests;
 
 // E4/E5 acceptance: typed scope identity, period comparability, revision/PIT selection
 // and premise closure. Scenario mapping: T08–T16, T26, T41, T43 (E4) and T17–T22, T29,
-// T30, T35, T37–T40 (E5); T11 gap coverage, T12 fiscal transitions and T15 native concepts.
+// T30, T35, T37–T40 (E5); T11 gap coverage, T12 fiscal transitions, T15 native concepts
+// and T16 audit/statement-family constraints.
 
 public sealed class FundamentalScopeRevisionTests
 {
@@ -118,6 +119,36 @@ public sealed class FundamentalScopeRevisionTests
         Assert.Null(FundamentalScope.ValidateFiscalSpan(fiscalQ4));
         Assert.Equal(4, fiscalQ4.FiscalQuarter);
         Assert.Equal(new DateOnly(2027, 3, 31), fiscalQ4.EndDate);
+    }
+
+    [Fact]
+    public void T16AuditAndStatementFamilyConstrainComparison()
+    {
+        var audited = new FundamentalAccounting("GENERAL_CORPORATE", "CONSOLIDATED", new EntityKey("issuer", "ABCD"),
+            "TOTAL", "ALL", "AUDITED", "PRIMARY_STATEMENTS", []);
+        var unaudited = audited with { AuditStatus = "UNAUDITED" };
+        var unknownAudit = audited with { AuditStatus = "UNKNOWN" };
+        var bank = audited with { StatementFamily = "BANK" };
+
+        // §6.3/§20 DIM01: a different or unknown basis is not comparable, and an audit-label
+        // change does not silently supersede the earlier assertion.
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.CompareAccounting(audited, unaudited));
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.CompareAccounting(audited, unknownAudit));
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.CompareAccounting(audited, bank));
+        Assert.Null(FundamentalScope.CompareAccounting(audited, audited));
+
+        // The identity projection must carry the same constraints; otherwise two facts that
+        // differ only in audit basis would collapse into one comparable assertion.
+        var period = FundamentalScope.ParsePeriod(Period("DURATION", "2026-01-01", "2026-12-31", "ANNUAL", false))!;
+        var unit = FundamentalScope.ParseUnit(JsonSerializer.SerializeToElement(
+            new Dictionary<string, object?> { ["kind"] = "MONETARY", ["currencyCode"] = "IDR" }))!;
+        var first = FundamentalIdentity.From(new EntityKey("issuer", "ABCD"), "Revenue", "revenue-declared",
+            period, unit, audited, "REPORTED")!;
+        var reissued = FundamentalIdentity.From(new EntityKey("issuer", "ABCD"), "Revenue", "revenue-declared",
+            period, unit, unaudited, "REPORTED")!;
+        Assert.False(first.ComparableWith(reissued));
+        Assert.Equal("AUDITED", first.AuditStatus);
+        Assert.Equal("GENERAL_CORPORATE", first.StatementFamily);
     }
 
     [Fact]

@@ -135,6 +135,13 @@ public static class FundamentalScope
         if (left.Attribution != right.Attribution) return Incomparable;
         if (left.Operations != right.Operations) return Incomparable;
         if (left.StatementScope != right.StatementScope) return Incomparable;
+        // §20 DIM01: audit status and statement family are preserved comparison constraints.
+        // An unknown basis blocks comparison; an audit-label change is a different basis, not
+        // a silent supersession of the earlier assertion.
+        if (RequireKnown(left.AuditStatus) is not null || RequireKnown(right.AuditStatus) is not null) return Incomparable;
+        if (left.AuditStatus != right.AuditStatus) return Incomparable;
+        if (RequireKnown(left.StatementFamily) is not null || RequireKnown(right.StatementFamily) is not null) return Incomparable;
+        if (left.StatementFamily != right.StatementFamily) return Incomparable;
         if (left.Dimensions.Count != right.Dimensions.Count ||
             left.Dimensions.Zip(right.Dimensions).Any(pair => pair.First.Key != pair.Second.Key || pair.First.Value != pair.Second.Value))
             return Incomparable;
@@ -176,7 +183,7 @@ public static class FundamentalScope
 public sealed record FundamentalIdentity(EntityKey Subject, string Metric, string DefinitionId,
     FundamentalPeriodType? PeriodType, DateOnly? StartDate, DateOnly? EndDate, FundamentalPeriodKind? PeriodKind,
     string UnitKind, string? CurrencyCode, string Consolidation, string? GroupCode, string Attribution,
-    string Operations, string StatementScope, string FactKind)
+    string Operations, string StatementScope, string AuditStatus, string StatementFamily, string FactKind)
 {
     public static FundamentalIdentity? From(EntityKey subject, string metric, string definitionId,
         FundamentalPeriod? period, FundamentalUnit? unit, FundamentalAccounting? accounting, string factKind)
@@ -184,7 +191,8 @@ public sealed record FundamentalIdentity(EntityKey Subject, string Metric, strin
         if (period is null || unit is null || accounting is null) return null;
         return new FundamentalIdentity(subject, metric, definitionId, period.Type, period.StartDate, period.EndDate,
             period.Kind, unit.Kind, unit.CurrencyCode, accounting.Consolidation, accounting.Group?.Code,
-            accounting.Attribution, accounting.Operations, accounting.StatementScope, factKind);
+            accounting.Attribution, accounting.Operations, accounting.StatementScope, accounting.AuditStatus,
+            accounting.StatementFamily, factKind);
     }
 
     /// <summary>Equal identities describe one comparable assertion; anything unknown is not equal.</summary>
@@ -194,5 +202,6 @@ public sealed record FundamentalIdentity(EntityKey Subject, string Metric, strin
         PeriodKind == other.PeriodKind && UnitKind == other.UnitKind && CurrencyCode == other.CurrencyCode &&
         Consolidation == other.Consolidation && GroupCode == other.GroupCode &&
         Attribution == other.Attribution && Operations == other.Operations &&
-        StatementScope == other.StatementScope && FactKind == other.FactKind;
+        StatementScope == other.StatementScope && AuditStatus == other.AuditStatus &&
+        StatementFamily == other.StatementFamily && FactKind == other.FactKind;
 }
