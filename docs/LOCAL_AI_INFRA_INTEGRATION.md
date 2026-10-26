@@ -140,18 +140,27 @@ this machine reports `local_inference: NOT_CONFIGURED_BY_MACHINE_POLICY` with
 `NOT_CONFIGURED_BY_MACHINE_POLICY` unless a hosted destination is pinned per run
 (`--execution-requirements`), Ollama is installed, or the role mapping changes.
 
-Real hosted run, 2026-10-26 (run `beae3184d8f4`, backend `opencode`, pinned
-`deepseek/deepseek-flash` at `high`): the model was reached and answered — the node
-summary contains the returned text — but the node closed as
-`UNVERIFIED (ACCEPTANCE_UNVERIFIED)` with `actual_model`/`actual_effort` unset, so no
-cache entry was written. Cause is upstream, not here: the V0.1 planner emits only the
-criterion `"the stated task's requested outcome is reached"` and never a typed
-contract (`exact_output`, `structured_result`, `review_result`), so a CLI backend has
-no independent evidence to satisfy. Verified handoff and cache reuse therefore work
-today only for results that reach a PASSED acceptance (the deterministic fake path);
-CLI-backed real answers stay UNVERIFIED until the sibling implements typed acceptance
-for them. That matches the sibling's own note that live verified handoff is
-unimplemented; this repository does not reimplement it.
+Real hosted runs, 2026-10-26. Three attempts, all paid, one call each:
+
+- `beae3184d8f4` — model answered, node `UNVERIFIED (ACCEPTANCE_UNVERIFIED)`: the
+  planner emitted no typed contract, so no evidence could satisfy acceptance and no
+  cache entry was written.
+- `7f87fad255c0` — after adding an `exact_output` planner rule in the sibling, the
+  node became `FAILURE (ACCEPTANCE_FAILED, exact_output: false)`: the model replied
+  `INTEGRATION_OK` plus an explanatory sentence, so the strict equality check failed.
+- `c29f9726f2c6` — after adding a `structured_result` (`reverse_text_v1`) rule, the
+  node stayed `UNVERIFIED` with `result_verification.reason =
+  COMPLETE_CAPTURE_MISSING`: the opencode JSON stream did not yield one complete
+  assistant message, so there was no typed block to verify.
+
+Two shared-repo commits back those attempts (`aca61bd` exact_output rule, `2502a48`
+structured contract rule; 36 orchestrator tests pass). Conclusion: acceptance is now
+*typed* for deliberate objectives, but the last mile is the sibling's capture layer —
+`_structured_capture` requires a single complete assistant message, which a long
+orchestrated prompt with reasoning/tool steps rarely produces. Relaxing that rule is
+a safety-relevant change in the shared repository and was not made here. Verified
+handoff and cache reuse therefore still hold only for results that reach PASSED (the
+deterministic fake path); the cache stays untouched for CLI-backed answers.
 
 Install path: [`scripts/install-ai-infra-mcp-bundle.sh`](../scripts/install-ai-infra-mcp-bundle.sh)
 renders an installable bundle (absolute paths) from the path-free template in
