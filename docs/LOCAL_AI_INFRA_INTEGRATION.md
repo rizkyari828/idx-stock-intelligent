@@ -137,9 +137,21 @@ bypasses it; dry runs never preflight.
 Remaining training gap: the routed student model is `ollama/qwen3.6:27b-coding`, and
 this machine reports `local_inference: NOT_CONFIGURED_BY_MACHINE_POLICY` with
 `provider_availability.ollama: false`. A real (non-fake) run therefore still stops at
-`NOT_CONFIGURED_BY_MACHINE_POLICY` until Ollama is installed or the role mapping is
-changed in the sibling. Handoff/cache themselves are no longer unverified; they are
-exercised end to end by the fake backend.
+`NOT_CONFIGURED_BY_MACHINE_POLICY` unless a hosted destination is pinned per run
+(`--execution-requirements`), Ollama is installed, or the role mapping changes.
+
+Real hosted run, 2026-10-26 (run `beae3184d8f4`, backend `opencode`, pinned
+`deepseek/deepseek-flash` at `high`): the model was reached and answered — the node
+summary contains the returned text — but the node closed as
+`UNVERIFIED (ACCEPTANCE_UNVERIFIED)` with `actual_model`/`actual_effort` unset, so no
+cache entry was written. Cause is upstream, not here: the V0.1 planner emits only the
+criterion `"the stated task's requested outcome is reached"` and never a typed
+contract (`exact_output`, `structured_result`, `review_result`), so a CLI backend has
+no independent evidence to satisfy. Verified handoff and cache reuse therefore work
+today only for results that reach a PASSED acceptance (the deterministic fake path);
+CLI-backed real answers stay UNVERIFIED until the sibling implements typed acceptance
+for them. That matches the sibling's own note that live verified handoff is
+unimplemented; this repository does not reimplement it.
 
 Install path: [`scripts/install-ai-infra-mcp-bundle.sh`](../scripts/install-ai-infra-mcp-bundle.sh)
 renders an installable bundle (absolute paths) from the path-free template in
