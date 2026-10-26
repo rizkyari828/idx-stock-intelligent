@@ -69,7 +69,7 @@ charts, ledger and committed-outcome Research remain intact.
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
 | C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
 | D — Fundamental review | COMPLETE | Internal review in the [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md); P1–P3 and P4 recorded APPROVED 2026-10-20, P5 not authorized; candidate frozen 2026-10-20 as [the contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md) |
-| E — Fundamental implementation | CONDITIONAL | Freeze executed 2026-10-20; P5 granted for E1 only; E2–E5 unauthorized |
+| E — Fundamental implementation | E1 DONE | Binding/shape layer delivered in `FundamentalEvidence.cs`; deep period/dimension/admission semantics remain E4; E2–E5 unauthorized |
 
 Current task: D (complete). B commit:
 `143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
@@ -171,6 +171,27 @@ T01–T44 remain future specifications; mapping them is not running them. Reconc
 all 44 in an implementation acceptance table rather than replacing them with the
 new source-policy tests. Parser XML/ZIP budgets, financial formula rules, exact DB
 concurrency/restore proof and provider coverage need their own later scopes.
+
+### E1 delivered (2026-10-26 WIB)
+
+`FundamentalEvidence.cs` adds the strict decoder for `fundamental-evidence-v0.1.0`:
+the E01 envelope, the payload operation/completeness rules, and the three typed
+bindings FILING01/FACT01/CONV01 with closed objects, required-null semantics,
+duplicate-property rejection, version binding, exact series identity, admission
+shape/claim/tier checks, document/series revision rules, statement-only metric
+guards, applicability/derivation exclusivity, record and array bounds, and strict
+Instant/Date/Decimal lexemes. FAMILY diagnostics are emitted as
+`CODE@/json/pointer` and admission is atomic — any error yields no evidence.
+
+Deliberately deferred to E4 (per the slice table): deep period/dimension semantics,
+statement-family and share-basis comparison constraints, mapped-concept and
+definition agreement, canonical payload bytes/hash (E3), revision/PIT resolvers (E5)
+and every formula. No parser, table, migration, source adapter, registry row or
+financial formula is present. `EvidenceDecimal` is reused unchanged.
+
+Acceptance: focused class `FundamentalEvidenceBindingTests` 11/11 passed covering
+T01/T23/T24/T32/T36/T43; full root discovery 1,214 total, 1,010 passed, 204 skipped,
+0 failed, build 0 warnings. P5 remains E1-only; E2–E5 need a new decision.
 
 Do not reuse `SourceUsagePolicy` as a Fundamental codec/admission. Its initial
 finite half-open permission intervals are different from the Fundamental candidate's
