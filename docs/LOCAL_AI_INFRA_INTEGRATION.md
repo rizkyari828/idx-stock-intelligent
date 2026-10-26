@@ -128,6 +128,12 @@ calls`, `used 0` budget. That proves routing, dispatch, result handoff and cache
 without a paid call. A changed MCP server script needs the server process restarted;
 the client reconnects automatically and respawns it.
 
+Confirmed-run preflight: before a confirmed non-fake dispatch the facade reads the
+configured localhost `baseURL` (opencode config or `OPENCODE_CONFIG`) and refuses to
+start when that port is closed, so a dead proxy fails in a second with the exact
+endpoint instead of retrying silently for minutes. `AI_INFRA_SKIP_PREFLIGHT=1`
+bypasses it; dry runs never preflight.
+
 Remaining training gap: the routed student model is `ollama/qwen3.6:27b-coding`, and
 this machine reports `local_inference: NOT_CONFIGURED_BY_MACHINE_POLICY` with
 `provider_availability.ollama: false`. A real (non-fake) run therefore still stops at

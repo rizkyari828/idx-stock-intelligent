@@ -31,6 +31,7 @@ class AiInfraMcpAcceptance(unittest.TestCase):
 
     def speak(self, messages, lai=True):
         env = {k: v for k, v in os.environ.items() if k != "LAI_REPO"}
+        env["AI_INFRA_SKIP_PREFLIGHT"] = "1"
         env["CAPTURE"] = str(self.capture)
         if lai:
             env["LAI_REPO"] = str(self.repo)

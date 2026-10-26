@@ -29,8 +29,10 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
             script.chmod(0o755)
         self.capture = Path(self.tmp.name) / "capture"
 
-    def run_adapter(self, *args, lai=None, unset_lai=False, extra_env=None):
+    def run_adapter(self, *args, lai=None, unset_lai=False, extra_env=None, skip_preflight=True):
         env = {k: v for k, v in os.environ.items() if k not in ("LAI_REPO", "AI_INFRA_ALLOW_MODEL_LAUNCH")}
+        if skip_preflight:
+            env["AI_INFRA_SKIP_PREFLIGHT"] = "1"
         env["CAPTURE"] = str(self.capture)
         env.update(extra_env or {})
         if lai is not None:
@@ -110,6 +112,29 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("|--execution-requirements|" + str(requirement), self.captured())
 
+    def test_confirmed_dispatch_fails_fast_when_the_provider_proxy_is_dead(self):
+        home = Path(self.tmp.name) / "home"
+        (home / ".config/opencode").mkdir(parents=True)
+        (home / ".config/opencode/opencode.jsonc").write_text(
+            '{"provider":{"deepseek":{"options":{"baseURL":"http://127.0.0.1:59999/v1"}}}}', encoding="utf-8")
+        result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "opencode",
+                                  extra_env={"HOME": str(home), "AI_INFRA_ALLOW_MODEL_LAUNCH": "1"},
+                                  skip_preflight=False)
+        self.assertEqual(2, result.returncode)
+        self.assertIn("is not listening", result.stderr)
+        self.assertIn("refusing to start a run", result.stderr)
+        self.assertEqual("", self.captured(), "preflight must reject before any sibling process")
+
+    def test_dry_run_ignores_a_dead_provider_proxy(self):
+        home = Path(self.tmp.name) / "home2"
+        (home / ".config/opencode").mkdir(parents=True)
+        (home / ".config/opencode/opencode.jsonc").write_text(
+            '{"provider":{"deepseek":{"options":{"baseURL":"http://127.0.0.1:59998/v1"}}}}', encoding="utf-8")
+        result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "opencode",
+                                  extra_env={"HOME": str(home)}, skip_preflight=False)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("|--dry-run", self.captured())
+
     def test_dispatch_rejects_a_missing_requirements_file(self):
         result = self.run_adapter("dispatch", "--objective", "goal",
                                   "--execution-requirements", str(Path(self.tmp.name) / "absent.json"))
@@ -125,7 +150,7 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
 
     def test_dispatch_confirms_only_with_the_human_flag(self):
         result = self.run_adapter("dispatch", "--objective", "goal",
-                                  extra_env={"AI_INFRA_ALLOW_MODEL_LAUNCH": "1"})
+                                  extra_env={"AI_INFRA_ALLOW_MODEL_LAUNCH": "1", "AI_INFRA_SKIP_PREFLIGHT": "1"})
         self.assertEqual(0, result.returncode, result.stderr)
         captured = self.captured()
         self.assertIn("|--confirm", captured)

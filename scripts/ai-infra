@@ -73,6 +73,29 @@ require() {
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 
+# A dead local provider proxy makes opencode retry silently for minutes. Detect the
+# configured localhost baseURL before a confirmed run and fail fast instead.
+preflight_provider_endpoint() {
+    [ "${AI_INFRA_SKIP_PREFLIGHT:-0}" = "1" ] && return 0
+    config=${OPENCODE_CONFIG:-$HOME/.config/opencode/opencode.jsonc}
+    [ -f "$config" ] || return 0
+    python3 - "$config" <<'PY'
+import re, socket, sys
+text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+match = re.search(r'"baseURL"\s*:\s*"http://(127\.0\.0\.1|localhost):(\d+)', text)
+if not match:
+    sys.exit(0)
+port = int(match.group(2))
+sock = socket.socket()
+sock.settimeout(1.5)
+if sock.connect_ex(("127.0.0.1", port)) != 0:
+    print(f"ai-infra: provider endpoint http://127.0.0.1:{port} is not listening; "
+          f"start the local proxy or fix {sys.argv[1]} before a confirmed dispatch", file=sys.stderr)
+    sys.exit(3)
+sys.exit(0)
+PY
+}
+
 dispatch() {
     objective=
     max_calls=1
@@ -115,6 +138,7 @@ dispatch() {
         printf 'ai-infra: dispatch backend=fake is CONFIRMED; no model is launched\n' >&2
         set -- "$@" --confirm
     elif [ "${AI_INFRA_ALLOW_MODEL_LAUNCH:-0}" = "1" ]; then
+        preflight_provider_endpoint || fail "provider endpoint unreachable; refusing to start a run that would retry silently"
         printf 'ai-infra: dispatch is CONFIRMED; models may launch (cap %s)\n' "$max_calls" >&2
         set -- "$@" --confirm
     else
