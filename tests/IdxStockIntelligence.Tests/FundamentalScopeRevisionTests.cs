@@ -6,7 +6,8 @@ namespace IdxStockIntelligence.Tests;
 
 // E4/E5 acceptance: typed scope identity, period comparability, revision/PIT selection
 // and premise closure. Scenario mapping: T08–T16, T26, T41, T43 (E4) and T17–T22, T29,
-// T30, T35, T37–T40 (E5).
+// T30, T35, T37–T40 (E5); T11 gap coverage, T12 fiscal transitions and T15 native concepts.
+
 public sealed class FundamentalScopeRevisionTests
 {
     private static readonly DateTimeOffset Cutoff = new(2026, 10, 5, 0, 0, 0, TimeSpan.Zero);
@@ -30,6 +31,25 @@ public sealed class FundamentalScopeRevisionTests
             ["cumulative"] = cumulative,
         };
         return JsonSerializer.SerializeToElement(node);
+    }
+
+    /// <summary>Explicit fiscal boundaries, for periods a fixed 2026 calendar cannot express.</summary>
+    private static FundamentalPeriod Fiscal(string start, string end, string kind, string fiscalStart,
+        string fiscalEnd, int? quarter, bool cumulative)
+    {
+        var node = new Dictionary<string, object?>
+        {
+            ["periodType"] = "DURATION",
+            ["startDate"] = start,
+            ["endDate"] = end,
+            ["fiscalYear"] = "2026",
+            ["fiscalStart"] = fiscalStart,
+            ["fiscalEnd"] = fiscalEnd,
+            ["fiscalQuarter"] = quarter,
+            ["periodKind"] = kind,
+            ["cumulative"] = cumulative,
+        };
+        return FundamentalScope.ParsePeriod(JsonSerializer.SerializeToElement(node))!;
     }
 
     private static FundamentalRevisionEntry Entry(Guid id, long revision, long? supersedes,
@@ -61,9 +81,63 @@ public sealed class FundamentalScopeRevisionTests
         var first = FundamentalScope.ParsePeriod(Period("DURATION", "2026-01-01", "2026-03-31", "QUARTER", false))!;
         var duplicate = FundamentalScope.ParsePeriod(Period("DURATION", "2026-01-01", "2026-03-31", "QUARTER", false))!;
         var overlapping = FundamentalScope.ParsePeriod(Period("DURATION", "2026-03-01", "2026-06-30", "QUARTER", false))!;
+        var contiguous = FundamentalScope.ParsePeriod(Period("DURATION", "2026-04-01", "2026-06-30", "QUARTER", false))!;
+        var gapped = FundamentalScope.ParsePeriod(Period("DURATION", "2026-07-01", "2026-09-30", "QUARTER", false))!;
         Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.ValidateCoverage([first, duplicate]));
         Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.ValidateCoverage([first, overlapping]));
         Assert.Null(FundamentalScope.ValidateCoverage([first]));
+        // §20 P04: next.start must equal previous.end + 1 day; a hole is not coverage.
+        Assert.Null(FundamentalScope.ValidateCoverage([first, contiguous]));
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.ValidateCoverage([first, gapped]));
+    }
+
+    [Fact]
+    public void T12FiscalTransitionsKeepExplicitDatesAndAreNeverAnnualised()
+    {
+        // A 53-week year (371 days) is admitted as an explicit ANNUAL span, not coerced to 365.
+        var fiftyThreeWeek = Fiscal("2026-01-01", "2027-01-06", "ANNUAL", "2026-01-01", "2027-01-06", null, false);
+        Assert.Null(FundamentalScope.ValidateFiscalSpan(fiftyThreeWeek));
+
+        var fiftyTwoWeek = Fiscal("2026-01-01", "2026-12-31", "ANNUAL", "2026-01-01", "2026-12-31", null, false);
+        Assert.Null(FundamentalScope.ValidateFiscalSpan(fiftyTwoWeek));
+
+        // §20 P02: different lengths never compare; no annualisation or growth factor is invented.
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.Compare(fiftyThreeWeek, fiftyTwoWeek));
+
+        // A longer transitional year keeps its own dates and is still not comparable.
+        var transition = Fiscal("2026-01-01", "2027-06-30", "ANNUAL", "2026-01-01", "2027-06-30", null, false);
+        Assert.Null(FundamentalScope.ValidateFiscalSpan(transition));
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.Compare(transition, fiftyTwoWeek));
+
+        // An ANNUAL whose declared span disagrees with its own fiscal boundaries is rejected.
+        var inconsistent = Fiscal("2026-01-01", "2026-12-31", "ANNUAL", "2026-04-01", "2027-03-31", null, false);
+        Assert.Equal(FundamentalScope.Incomparable, FundamentalScope.ValidateFiscalSpan(inconsistent));
+
+        // FiscalQuarter=4 is a source label, not calendar Q4: a non-December year keeps March.
+        var fiscalQ4 = Fiscal("2027-01-01", "2027-03-31", "QUARTER", "2026-04-01", "2027-03-31", 4, false);
+        Assert.Null(FundamentalScope.ValidateFiscalSpan(fiscalQ4));
+        Assert.Equal(4, fiscalQ4.FiscalQuarter);
+        Assert.Equal(new DateOnly(2027, 3, 31), fiscalQ4.EndDate);
+    }
+
+    [Fact]
+    public void T15NativeIndustryConceptIsNotBridgedToIndustrialRevenue()
+    {
+        var period = FundamentalScope.ParsePeriod(Period("DURATION", "2026-01-01", "2026-12-31", "ANNUAL", false))!;
+        var unit = FundamentalScope.ParseUnit(JsonSerializer.SerializeToElement(
+            new Dictionary<string, object?> { ["kind"] = "MONETARY", ["currencyCode"] = "IDR" }))!;
+        var accounting = new FundamentalAccounting("BANK", "CONSOLIDATED", new EntityKey("issuer", "ABCD"),
+            "TOTAL", "ALL", "AUDITED", "PRIMARY_STATEMENTS", []);
+        var bankInterest = FundamentalIdentity.From(new EntityKey("issuer", "ABCD"), "InterestIncome",
+            "bank-interest-declared", period, unit, accounting, "REPORTED")!;
+        var industrialRevenue = FundamentalIdentity.From(new EntityKey("issuer", "ABCD"), "Revenue",
+            "revenue-declared", period, unit, accounting, "REPORTED")!;
+
+        // §6.1/§20 DIM01: a bank source concept stays native; sector/name cannot authorise
+        // an industrial Revenue mapping, so the two assertions are never comparable.
+        Assert.False(bankInterest.ComparableWith(industrialRevenue));
+        Assert.Equal("InterestIncome", bankInterest.Metric);
+        Assert.Equal("bank-interest-declared", bankInterest.DefinitionId);
     }
 
     [Fact]

@@ -69,6 +69,8 @@ public static class FundamentalScope
         {
             if (quarters[index].StartDate == quarters[index - 1].StartDate) return Incomparable;
             if (quarters[index].StartDate <= quarters[index - 1].EndDate) return Incomparable;
+            // §20 P04: coverage must be contiguous inclusive dates, next.start = previous.end + 1.
+            if (quarters[index].StartDate != quarters[index - 1].EndDate.AddDays(1)) return Incomparable;
         }
         return null;
     }
