@@ -69,7 +69,7 @@ charts, ledger and committed-outcome Research remain intact.
 | B — typed policy/catalog/evaluator | COMPLETE | 32 focused cases passed after exact grant/source/scope binding; initial full discovery 988 passed / 204 DB cases skipped |
 | C — Research vertical slice | COMPLETE | Build 0 warnings/errors; 9 focused + 3 DB-free HTTP cases passed; final full regression 999 passed / 204 skipped / 0 failed |
 | D — Fundamental review | COMPLETE | Internal review in the [freeze decision package](FUNDAMENTAL_FREEZE_DECISION_PACKAGE_V0_1.md); P1–P3 and P4 recorded APPROVED 2026-10-20, P5 not authorized; candidate frozen 2026-10-20 as [the contract](FUNDAMENTAL_EVIDENCE_BINDING_V0_1_CONTRACT.md) |
-| E — Fundamental implementation | E1 DONE | Binding/shape layer delivered in `FundamentalEvidence.cs`; deep period/dimension/admission semantics remain E4; E2–E5 unauthorized |
+| E — Fundamental implementation | E1+E2 DONE | Binding/shape layer (`FundamentalEvidence.cs`) and exact numeric/applicability layer (`FundamentalNumbers.cs`); deep period/dimension/admission semantics remain E4; E3–E5 unauthorized |
 
 Current task: D (complete). B commit:
 `143276343c9b6df3bd645418d50039a5a83eb9d4` (`feat: add fail-closed source usage policy`).
@@ -171,6 +171,21 @@ T01–T44 remain future specifications; mapping them is not running them. Reconc
 all 44 in an implementation acceptance table rather than replacing them with the
 new source-policy tests. Parser XML/ZIP budgets, financial formula rules, exact DB
 concurrency/restore proof and provider coverage need their own later scopes.
+
+### E2 delivered (2026-10-26 WIB)
+
+`FundamentalNumbers.cs` adds the exact numeric and applicability layer: power-of-ten
+normalization `sourceLiteral × 10^scalePower × sign` with overflow, inexact-division
+and >28-scale rejection, plus metric↔unit↔period applicability and the
+DERIVED-only/REPORTED-only/excluded metric guards. `EvidenceDecimal` is reused
+unchanged; no wider numeric domain, FX guess or rounding was introduced.
+
+Owner decision recorded 2026-10-26 WIB: the E1-only authorization was extended to
+**E2** on the owner's instruction to continue in the stock repository. E3–E5 remain
+unauthorized.
+
+Acceptance: `FundamentalNumbersTests` 19/19 passed (T03–T07, T28, T42, T43 numeric
+guards); the .NET build stays at 0 warnings.
 
 ### E1 delivered (2026-10-26 WIB)
 
