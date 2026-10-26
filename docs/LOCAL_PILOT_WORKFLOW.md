@@ -37,6 +37,15 @@ bars** added, soak advanced **1/10 → 2/10** (market dates 2026-09-30, 2026-10-
 free units used (1 priming + 11 panel). Cross-check: the ingested `JKSE.INDX` close
 5439.2578 agrees with the independent closing report retained for the same session.
 
+**Evidence reuse — 2026-10-26.** Re-running an already-ingested date reuses retained
+artifacts when the current canonical row still equals the row its operation recorded
+(`content_sha256` and `retrieved_at`) and the raw artifact hash-verifies with unchanged
+provenance. It no longer requires the historical `session_evidence` snapshot or a current
+session proof. Verified by re-running `2026-10-23`: 11 cached symbols, **0 provider
+requests, 0 units, 0 new revisions**, status SUCCEEDED, and soak stayed **2/10**. Reuse
+cannot advance soak or complete a session; that still needs a run that reserved the full
+panel's units.
+
 ### Unattended date selection — 2026-10-26
 
 `bash scripts/pilot-auto.sh` selects the latest weekday strictly before today in

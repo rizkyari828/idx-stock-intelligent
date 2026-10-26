@@ -101,23 +101,40 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(0,batch["reserved_units"])
         self.assertTrue(all(e["cached"] for e in batch["entries"]))
 
-    def test_degraded_stale_or_incomplete_evidence_requires_fetch(self):
+    def test_session_proof_and_descriptive_warnings_do_not_block_reuse(self):
+        entry,state,operation,path=self.evidence()
+        day=date(2026,9,29)
+        Path("pilot/sessions.json").write_text("[]")
+        for change in (
+            lambda o:o["worker"].update(session_evidence=[]),
+            lambda o:o["worker"].update(warnings=["PILOT_SEMANTICS_DEGRADED"]),
+        ):
+            altered=deepcopy(operation);change(altered);path.write_text(json.dumps(altered))
+            cached=reusable_entries(self.root,day,day,state)
+            self.assertEqual([entry["symbol"]],list(cached))
+        path.write_text(json.dumps(operation))
+
+    def test_degraded_unrecorded_or_mismatched_evidence_requires_fetch(self):
         entry,state,operation,path=self.evidence()
         day=date(2026,9,29)
         for change in (
             lambda o:o.update(status="DEGRADED"),
-            lambda o:o["worker"].update(warnings=["PILOT_SEMANTICS_DEGRADED"]),
-            lambda o:o["worker"].update(session_evidence=[]),
+            lambda o:o["worker"].update(run_status="DEGRADED"),
             lambda o:o["worker"].update(canonical_state=[]),
+            lambda o:o["worker"].update(market_date="2026-09-30"),
+            lambda o:o["worker"].update(database="another-database"),
+            lambda o:o["worker"].pop("database"),
         ):
             altered=deepcopy(operation);change(altered);path.write_text(json.dumps(altered))
             self.assertFalse(reusable_entries(self.root,day,day,state))
         path.write_text(json.dumps(operation))
+        # A later attempt that left the canonical row unchanged cannot invalidate
+        # evidence that still equals that row; only a changed row forces a refetch.
         later=deepcopy(operation)
         later["status"]="DEGRADED"
         later_path=self.root/"later.operation.json"
         later_path.write_text(json.dumps(later))
-        self.assertFalse(reusable_entries(self.root,day,day,state))
+        self.assertEqual([entry["symbol"]],list(reusable_entries(self.root,day,day,state)))
         later_path.unlink()
         batch=json.loads(Path(operation["batch_path"]).read_text())
         batch["entries"][0]["manifest"]["fetched_at_utc"]="2026-09-29T09:00:00+00:00"
@@ -127,6 +144,25 @@ class WorkflowTests(unittest.TestCase):
         Path(operation["batch_path"]).write_text(json.dumps(batch))
         (Path(entry["raw_root"])/entry["manifest"]["artifact"]["relative_uri"]).write_bytes(b"corrupt")
         self.assertFalse(reusable_entries(self.root,day,day,state))
+
+    def test_missing_canonical_instrument_is_the_only_one_refetched(self):
+        entry,state,operation,path=self.evidence()
+        entries=[];revisions=[]
+        for instrument in self.config["instruments"]:
+            copied=deepcopy(entry)
+            copied.update(symbol=instrument["symbol"],instrument_id=instrument["id"])
+            copied["manifest"]["requested_uri"]="https://eodhd.com/api/eod/"+instrument["symbol"]
+            entries.append(copied)
+            revision=deepcopy(state["revisions"][0])
+            revision["instrument_id"]=instrument["id"]
+            revisions.append(revision)
+        state["revisions"]=revisions[1:]
+        operation["worker"]["canonical_state"]=revisions
+        path.write_text(json.dumps(operation))
+        Path(operation["batch_path"]).write_text(json.dumps({"from":"2026-09-29","to":"2026-09-29","entries":entries}))
+        cached=reusable_entries(self.root,date(2026,9,29),date(2026,9,29),state)
+        self.assertEqual(10,len(cached))
+        self.assertNotIn(entries[0]["symbol"],cached)
 
     def test_dry_run_is_zero_network_and_dates_fail_closed(self):
         args=SimpleNamespace(universe="pilot/universe.json",start="2026-09-29",end="2026-09-29",refresh=False)

@@ -165,10 +165,15 @@ def local_state() -> dict:
 
 
 def reusable_entries(root: Path, start: date, end: date, state: dict, refresh: bool = False) -> dict:
-    """Only clean, completed canonical sessions with intact evidence can skip fetch."""
+    """Reuse keys on canonical state equality with intact evidence, never on session proof.
+
+    A retained operation records what the worker accepted; reuse additionally requires the
+    current canonical row to equal that record and the raw artifact to hash-verify with the
+    same provenance. Skipping a fetch changes nothing about completion: soak and ledger
+    status still require a real SUCCEEDED run that reserved the full panel's units.
+    """
     if refresh or start != end or state.get("status") != "KNOWN":
         return {}
-    sessions = json.loads(Path(os.environ.get("IDX_PILOT_SESSIONS","pilot/sessions.json")).read_text())
     current = {(r["instrument_id"],r["date"]):r for r in state["revisions"]}
     previous = {}
     for path in sorted(root.glob("*.operation.json"), key=lambda p:p.stat().st_mtime):
@@ -177,13 +182,10 @@ def reusable_entries(root: Path, start: date, end: date, state: dict, refresh: b
             batch = json.loads(Path(operation["batch_path"]).read_text())
             if batch.get("from") != start.isoformat() or batch.get("to") != end.isoformat():
                 continue
-            # A later degraded/failed attempt must not revive older clean evidence.
-            for entry in batch["entries"]:
-                previous.pop(entry["symbol"],None)
             worker = operation["worker"]
             if (operation["status"] != "SUCCEEDED" or worker["run_status"] != "SUCCEEDED"
-                    or worker.get("database") != state.get("database") or worker.get("warnings")
-                    or worker["market_date"] != start.isoformat() or worker["session_evidence"] != sessions):
+                    or worker.get("database") != state.get("database")
+                    or worker["market_date"] != start.isoformat()):
                 continue
             recorded = {(r["instrument_id"],r["date"]):r for r in worker["canonical_state"]}
             for entry in batch["entries"]:
@@ -197,12 +199,10 @@ def reusable_entries(root: Path, start: date, end: date, state: dict, refresh: b
                 verified = read_seed_entry(entry,start,end)
                 fetched = datetime.fromisoformat(entry["manifest"]["fetched_at_utc"].replace("Z","+00:00"))
                 canonical = datetime.fromisoformat(current[key]["retrieved_at"].replace("Z","+00:00"))
-                proof = next(p for p in sessions if p["date"] == start.isoformat())
-                known = datetime.fromisoformat(proof["known_at"].replace("Z","+00:00"))
-                if fetched < canonical or fetched < known or len(verified["rows"]) != 1:
+                if fetched < canonical or len(verified["rows"]) != 1:
                     continue
                 previous[entry["symbol"]] = dict(entry, **verified, request_window_covered=True)
-        except (ValueError, OSError, KeyError, TypeError, StopIteration):
+        except (ValueError, OSError, KeyError, TypeError):
             continue  # Uncertain evidence requires fetch, never implies a canonical session.
     return previous
 
