@@ -129,13 +129,23 @@ renders an installable bundle (absolute paths) from the path-free template in
 `@deepseek-ai/dsh-mcp-client` configuration: `serverName: ai-infra`, `transport:
 stdio`, explicit `env.LAI_REPO` (DSH scrubs ambient environment for stdio servers)
 and `failOnStartupError: false`, so a broken optional dev tool can never stop the
-harness from booting. Installing the rendered bundle into the `desktop` profile is a
-GUI/`plugin_manager` action, because that profile is application-managed.
+harness from booting. Installing the rendered bundle into the `desktop` profile is
+one command (verified 2026-10-26 on DSH 0.2.1-rc.3):
+
+```bash
+dsh plugin --profile desktop add "$HOME/.dsh/local-bundles/ai-infra-mcp"
+```
+
+That writes the profile dependency and appends the bundle; the tools appear as
+`mcp__ai-infra__*` once the app picks the profile up (a running GUI may need a
+reload). `--dump-config` still refuses the app-managed `desktop` profile, so list the
+tools from a session instead.
 
 Verified: [`scripts/test_ai_infra_mcp.py`](../scripts/test_ai_infra_mcp.py) covers the
 handshake, notification silence, tool inventory, argument mapping, fail-closed
 `LAI_REPO`, protocol-error handling for unknown tools, and malformed-line recovery.
-A live exchange against the real sibling returns `check` and `route` output.
+Live calls against the sibling (2026-10-26, sibling `6a5ef44`) returned `check`,
+`route` and a dry-run `dispatch` result from inside a DSH session.
 
 Not integrated and not claimed: cross-model routing enforcement (the harness model is
 chosen per session, not per task), verified result handoff or cache reuse, and DSH
