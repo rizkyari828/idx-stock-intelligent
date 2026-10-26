@@ -121,10 +121,12 @@ for free. State defaults to `logs/ai-infra-state` inside this repository (alread
 ignored): the orchestration store, result cache and evidence DB stay out of git and
 inside the workspace sandbox, while the sibling keeps owning their schemas.
 
-Verified end to end on 2026-10-26 with `--backend fake`: run 1 planned one `BALANCED`
-node, executed it as `SIMULATED`, and wrote the cache; run 2 reported
-`CACHE reuse from <run>/T1`, `executed 0 real AI calls`, `used 0` budget. That proves
-routing, dispatch, result handoff and cache reuse without a paid call.
+Verified end to end on 2026-10-26 with `--backend fake`, through both the facade and
+the live MCP tool: run 1 planned one `BALANCED` node, executed it as `SIMULATED`, and
+wrote the cache; run 2 reported `CACHE reuse from <run>/T1`, `executed 0 real AI
+calls`, `used 0` budget. That proves routing, dispatch, result handoff and cache reuse
+without a paid call. A changed MCP server script needs the server process restarted;
+the client reconnects automatically and respawns it.
 
 Remaining training gap: the routed student model is `ollama/qwen3.6:27b-coding`, and
 this machine reports `local_inference: NOT_CONFIGURED_BY_MACHINE_POLICY` with
