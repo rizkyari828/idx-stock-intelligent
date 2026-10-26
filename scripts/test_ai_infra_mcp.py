@@ -125,7 +125,18 @@ class AiInfraMcpAcceptance(unittest.TestCase):
                 os.environ["AI_INFRA_ALLOW_MODEL_LAUNCH"] = env_flag
         self.assertFalse(replies[0]["result"]["isError"], replies[0])
         captured = self.captured()
-        self.assertIn("|--max-ai-calls|2|--confirm", captured)
+        self.assertIn("|--max-ai-calls|2|", captured)
+        self.assertIn("|--backend|auto|", captured)
+        self.assertIn("|--confirm", captured)
+
+    def test_dispatch_tool_forwards_the_backend(self):
+        replies = self.speak([{"jsonrpc": "2.0", "id": 14, "method": "tools/call",
+                               "params": {"name": "ai_infra_dispatch",
+                                          "arguments": {"objective": "goal", "backend": "fake"}}}])
+        self.assertFalse(replies[0]["result"]["isError"], replies[0])
+        captured = self.captured()
+        self.assertIn("|--backend|fake|", captured)
+        self.assertIn("|--confirm", captured)
 
     def test_missing_lai_repo_returns_tool_error_not_crash(self):
         replies = self.speak([{"jsonrpc": "2.0", "id": 7, "method": "tools/call",

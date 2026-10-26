@@ -30,7 +30,9 @@ Commands (deterministic, offline; no model call, no network):
   dispatch --objective TEXT run the orchestrator for this repo; DRY-RUN unless
                             AI_INFRA_ALLOW_MODEL_LAUNCH=1 is set by the human, in
                             which case it passes --confirm and may launch models
-                            (capped by --max-ai-calls, default 1)
+                            (capped by --max-ai-calls, default 1). --backend fake
+                            confirms without that flag because it launches no
+                            model. State defaults to logs/ai-infra-state.
 
 Never exposed: agent-run, model pulls, bootstrap, profile apply. Model launches are
 possible only through dispatch, only with the human-set environment flag, and always
@@ -73,10 +75,17 @@ dispatch() {
     objective=
     max_calls=1
     read_only=0
+    backend=auto
+    state_dir=$repo_root/logs/ai-infra-state
     while [ $# -gt 0 ]; do
         case "$1" in
             --objective) [ $# -ge 2 ] || fail "dispatch: --objective needs a value"; objective=$2; shift 2 ;;
             --max-ai-calls) [ $# -ge 2 ] || fail "dispatch: --max-ai-calls needs a number"; max_calls=$2; shift 2 ;;
+            --backend)
+                [ $# -ge 2 ] || fail "dispatch: --backend needs a value"
+                case "$2" in auto|fake|opencode|codex) backend=$2 ;; *) fail "dispatch: unknown backend: $2" ;; esac
+                shift 2 ;;
+            --state-dir) [ $# -ge 2 ] || fail "dispatch: --state-dir needs a value"; state_dir=$2; shift 2 ;;
             --read-only) read_only=1; shift ;;
             *) fail "dispatch: unsupported argument: $1" ;;
         esac
@@ -87,11 +96,15 @@ dispatch() {
     esac
     [ "$max_calls" -ge 1 ] || fail "dispatch: --max-ai-calls must be at least 1"
 
-    set -- run --objective "$objective" --workspace "$repo_root" --max-ai-calls "$max_calls"
+    set -- run --objective "$objective" --workspace "$repo_root" --max-ai-calls "$max_calls" \
+        --backend "$backend" --state-dir "$state_dir"
     if [ "$read_only" -eq 1 ]; then
         set -- "$@" --read-only
     fi
-    if [ "${AI_INFRA_ALLOW_MODEL_LAUNCH:-0}" = "1" ]; then
+    if [ "$backend" = "fake" ]; then
+        printf 'ai-infra: dispatch backend=fake is CONFIRMED; no model is launched\n' >&2
+        set -- "$@" --confirm
+    elif [ "${AI_INFRA_ALLOW_MODEL_LAUNCH:-0}" = "1" ]; then
         printf 'ai-infra: dispatch is CONFIRMED; models may launch (cap %s)\n' "$max_calls" >&2
         set -- "$@" --confirm
     else

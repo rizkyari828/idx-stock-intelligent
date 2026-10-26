@@ -74,6 +74,8 @@ TOOLS = [
                 "max_ai_calls": {"type": "integer", "minimum": 1, "maximum": 8, "default": 1},
                 "read_only": {"type": "boolean", "default": False,
                               "description": "Reject mutating nodes before execution. Defaults to false for dispatch."},
+                "backend": {"type": "string", "enum": ["auto", "fake", "opencode", "codex"], "default": "auto",
+                            "description": "'fake' proves the plumbing and never launches a model."},
             },
             "required": ["objective"],
             "additionalProperties": False,
@@ -117,7 +119,8 @@ def _build_argv(name: str, args: dict) -> list[str]:
         return argv
     if name == "ai_infra_dispatch":
         argv = [FACADE, "dispatch", "--objective", str(args["objective"]),
-                "--max-ai-calls", str(int(args.get("max_ai_calls", 1)))]
+                "--max-ai-calls", str(int(args.get("max_ai_calls", 1))),
+                "--backend", str(args.get("backend", "auto"))]
         if args.get("read_only", False):
             argv.append("--read-only")
         return argv

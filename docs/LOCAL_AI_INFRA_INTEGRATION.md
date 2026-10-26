@@ -115,13 +115,23 @@ orchestrator for **this repository only** (`--workspace` is the repository root,
 `--confirm`. An agent cannot spend tokens on its own, and `--read-only` is opt-in
 because a mutating objective is genuinely invalid under a read-only plan.
 
-Observed prerequisite (2026-10-20): dispatch plans correctly — workspace resolves to
-this repository and T1 routes `BALANCED` — but execution stops at
-`NOT_CONFIGURED_BY_MACHINE_POLICY` with `backend=opencode`. Routing enforcement is
-therefore a **machine-configuration gap in the sibling**, not a missing feature here.
-The sibling's handoff and cache surfaces (`--state-dir`, `--no-cache`/`--refresh`,
-typed acceptance) become usable only after that backend exists; building a parallel
-cache in this repository would duplicate an upstream mechanism and is not planned.
+`--backend` selects `auto|fake|opencode|codex`. `fake` is confirmed without the human
+flag because it launches no model, so the entire orchestration path can be exercised
+for free. State defaults to `logs/ai-infra-state` inside this repository (already
+ignored): the orchestration store, result cache and evidence DB stay out of git and
+inside the workspace sandbox, while the sibling keeps owning their schemas.
+
+Verified end to end on 2026-10-26 with `--backend fake`: run 1 planned one `BALANCED`
+node, executed it as `SIMULATED`, and wrote the cache; run 2 reported
+`CACHE reuse from <run>/T1`, `executed 0 real AI calls`, `used 0` budget. That proves
+routing, dispatch, result handoff and cache reuse without a paid call.
+
+Remaining training gap: the routed student model is `ollama/qwen3.6:27b-coding`, and
+this machine reports `local_inference: NOT_CONFIGURED_BY_MACHINE_POLICY` with
+`provider_availability.ollama: false`. A real (non-fake) run therefore still stops at
+`NOT_CONFIGURED_BY_MACHINE_POLICY` until Ollama is installed or the role mapping is
+changed in the sibling. Handoff/cache themselves are no longer unverified; they are
+exercised end to end by the fake backend.
 
 Install path: [`scripts/install-ai-infra-mcp-bundle.sh`](../scripts/install-ai-infra-mcp-bundle.sh)
 renders an installable bundle (absolute paths) from the path-free template in

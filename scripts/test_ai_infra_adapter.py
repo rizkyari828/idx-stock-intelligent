@@ -84,8 +84,29 @@ class AiInfraFacadeAcceptance(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         captured = self.captured()
         self.assertIn("|run|--objective|goal|--workspace|", captured)
-        self.assertIn("|--max-ai-calls|1|--read-only|--dry-run", captured)
+        self.assertIn("|--max-ai-calls|1|--backend|auto|--state-dir|", captured)
+        self.assertIn("|--read-only|--dry-run", captured)
         self.assertNotIn("--confirm", captured)
+
+    def test_dispatch_fake_backend_confirms_without_a_model(self):
+        result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "fake")
+        self.assertEqual(0, result.returncode, result.stderr)
+        captured = self.captured()
+        self.assertIn("|--backend|fake|", captured)
+        self.assertIn("|--confirm", captured)
+        self.assertNotIn("--dry-run", captured)
+        self.assertIn("no model is launched", result.stderr)
+
+    def test_dispatch_state_dir_defaults_inside_the_repository(self):
+        result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "fake")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("|--state-dir|" + str(ROOT) + "/logs/ai-infra-state", self.captured())
+
+    def test_dispatch_rejects_an_unknown_backend(self):
+        result = self.run_adapter("dispatch", "--objective", "goal", "--backend", "shell")
+        self.assertEqual(2, result.returncode)
+        self.assertIn("unknown backend", result.stderr)
+        self.assertEqual("", self.captured())
 
     def test_dispatch_confirms_only_with_the_human_flag(self):
         result = self.run_adapter("dispatch", "--objective", "goal",
