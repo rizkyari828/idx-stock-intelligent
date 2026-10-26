@@ -27,6 +27,7 @@ builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddSingleton<PortfolioDatabase>();
 builder.Services.AddSingleton<ScreenerService>();
 builder.Services.AddSingleton<StockDatabase>();
+builder.Services.AddSingleton<DataHealthDatabase>();
 builder.Services.AddSingleton<DecisionSnapshotService>();
 builder.Services.AddSingleton<DecisionVerificationService>();
 builder.Services.AddSingleton<OutcomeTrackingService>();
@@ -291,6 +292,15 @@ app.MapPost("/api/portfolios/{id:guid}/reconciliation/preview", async (Guid id, 
     Results.Ok(await db.ReconcileAsync(id, input, ct)));
 app.MapPost("/api/portfolio-imports", async (ImportRequest input, PortfolioDatabase db, CancellationToken ct) =>
     Results.Ok(await db.ImportAsync(input, ct)));
+// Read-only canonical aggregate; it never mutates or infers session/tradability state.
+app.MapGet("/api/data-health", async (HttpRequest request, DataHealthDatabase database, CancellationToken ct) =>
+{
+    if (request.Query.Count != 0)
+        return Results.BadRequest(new { code = "DATA_HEALTH_QUERY_INVALID", error = "Data health accepts no query parameters." });
+    try { return Results.Ok(await database.ReadAsync(ct)); }
+    catch (Exception error) when (error is NpgsqlException or InvalidOperationException or IOException or UnauthorizedAccessException or JsonException)
+    { return Results.Json(new { code = "DATA_HEALTH_UNAVAILABLE", error = "Data health is unavailable." }, statusCode: 503); }
+});
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapFallbackToFile("/stocks/{**path}", "index.html");
