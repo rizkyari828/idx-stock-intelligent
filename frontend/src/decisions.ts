@@ -23,6 +23,7 @@ export const abbreviatedHash = (hash:string) => `${hash.slice(0,12)}…`;
 export function workspaceRoute(path:string,fallback='portfolio') {
  if(path==='/decisions'||path.startsWith('/decisions/'))return {page:'decisions',stockId:'',runId:path.slice(11)};
  if(path==='/stocks'||path.startsWith('/stocks/'))return {page:'stocks',stockId:path.slice(8),runId:''};
+ if(path==='/data-health')return {page:'health',stockId:'',runId:''};
  return {page:fallback,stockId:'',runId:''};
 }
 // One owner for bounded snapshot requests; generations also reject transports ignoring abort.
