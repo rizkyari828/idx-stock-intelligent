@@ -41,6 +41,25 @@ def window(start: str, end: str, today: date) -> tuple[date, date]:
     return first, last
 
 
+def backfill_window(start: date, end: date, today: date) -> tuple[date, date]:
+    """Validate an explicit personal historical range; it never claims a session.
+
+    The range shares the collector's existing 330-day Free-history bound, must span at
+    least two calendar days, must end strictly before today, and must lie inside the
+    cited holiday fixture so every provider row can be holiday-checked. A range that
+    cannot be holiday-checked is refused rather than admitted on assumption.
+    """
+    first, last = window(start.isoformat(), end.isoformat(), today)
+    if (last - first).days < 1:
+        raise ValueError("Personal backfill requires a range of at least two calendar days.")
+    if last >= today:
+        raise ValueError("Personal backfill must end before today; it cannot include today or a future date.")
+    year, _ = load_holidays(holidays_path())
+    if first.year != year or last.year != year:
+        raise ValueError(f"Personal backfill dates must lie within cited holiday coverage ({year}).")
+    return first, last
+
+
 def safe_cutoff() -> local_time:
     value = json.loads(Path("pilot/collection-policy.json").read_text())["SAFE_EOD_CUTOFF"]
     if not isinstance(value,str) or len(value)!=5 or value[2]!=":":
@@ -359,6 +378,83 @@ def write_personal_capture(document: dict, root: Path | None = None) -> dict:
                 "path": str(path), "revision": revision}
 
 
+def personal_backfill_documents(run: dict) -> dict:
+    """One personal-store document per provider session date, holidays dropped explicitly.
+
+    A backfill is a personal historical capture, never a claimed completed session. Only a
+    fully successful batch is projected; a degraded batch would make a partial session look
+    collected. Rows on a cited exchange holiday are dropped and counted because the provider
+    is known to emit carry-forward rows on IDX closures; a panel member with no provider row
+    is omitted, never zero-filled.
+    """
+    if run.get("status") != "SUCCEEDED":
+        return {"documents": [], "rows_dropped_holiday": 0, "holiday_dates_dropped": []}
+    year, holidays = load_holidays(holidays_path())
+    source_id = None
+    by_date: dict[str, list[tuple[dict, dict]]] = {}
+    for entry in run["entries"]:
+        manifest = entry["manifest"]
+        if source_id is None:
+            source_id = manifest["source_id"]
+        elif manifest["source_id"] != source_id:
+            raise ValueError("Mixed provenance in one personal backfill.")
+        for row in entry["rows"]:
+            by_date.setdefault(row["date"], []).append((entry, row))
+    captured_at = datetime.now(timezone.utc).isoformat()
+    documents, dropped, dropped_dates = [], 0, []
+    for session in sorted(by_date):
+        day = date.fromisoformat(session)
+        if day.year != year:
+            raise ValueError(f"Provider row {session} is outside cited holiday coverage ({year}).")
+        if day in holidays:
+            dropped += len(by_date[session])
+            dropped_dates.append(session)
+            continue
+        rows = []
+        for entry, row in by_date[session]:
+            if any(not isinstance(row[field], str) for field in PERSONAL_PRICE_FIELDS) or type(row["volume"]) is not int:
+                raise ValueError("Personal rows require exact decimal strings and an integer volume.")
+            values = {"symbol": entry["symbol"], "instrument_id": entry["instrument_id"]}
+            values.update({field: row[field] for field in PERSONAL_PRICE_FIELDS})
+            values["volume"] = row["volume"]
+            values["content_sha256"] = personal_row_digest(session, values)
+            values["artifact_sha256"] = entry["manifest"]["artifact"]["content_sha256"]
+            values["fetched_at"] = entry["manifest"]["fetched_at_utc"]
+            values["quality_status"] = "UNPROVEN_PERSONAL"
+            rows.append(values)
+        documents.append({"schema_version": PERSONAL_SCHEMA_VERSION, "session_date": session,
+                          "captured_at": captured_at, "session_proof": "UNPROVEN_PERSONAL",
+                          "source_id": source_id, "rows": rows})
+    return {"documents": documents, "rows_dropped_holiday": dropped,
+            "holiday_dates_dropped": dropped_dates}
+
+
+def write_personal_backfill_capture(document: dict, root: Path | None = None) -> dict:
+    """Append-only backfill capture; an already-retained identical row set is UNCHANGED.
+
+    A backfill's ``captured_at`` is the genuine capture event, so a byte comparison alone
+    would turn an identical re-run into a revision. Comparing the retained row digests keeps
+    the phase-1 rule unchanged: identical content writes nothing, different rows append a
+    revision and never overwrite the first capture.
+    """
+    session = date.fromisoformat(document["session_date"])
+    directory = Path(root or PERSONAL_BARS_ROOT) / f"{session.year:04d}"
+    expected = sorted((row["symbol"], row["content_sha256"]) for row in document["rows"])
+    for revision, path in personal_capture_paths(directory, session):
+        try:
+            retained = json.loads(path.read_text())
+            retained_rows = sorted((row.get("symbol"), row.get("content_sha256"))
+                                   for row in retained.get("rows", []))
+            if (retained.get("schema_version") == document["schema_version"]
+                    and retained.get("session_date") == document["session_date"]
+                    and retained.get("source_id") == document["source_id"]
+                    and retained_rows == expected):
+                return {"status": "UNCHANGED", "path": str(path), "revision": revision}
+        except (OSError, ValueError, TypeError, KeyError, AttributeError):
+            continue  # An unreadable retained capture cannot prove identity; append a revision.
+    return write_personal_capture(document, root)
+
+
 def collect(args) -> Path:
     config = configuration(args.universe)
     instruments = config["instruments"]
@@ -369,19 +465,29 @@ def collect(args) -> Path:
     today = collection_started.astimezone(ZoneInfo("Asia/Jakarta")).date()
     start, end = window(args.start, args.end, today)
     personal=getattr(args,"personal",False)
-    if personal and (start!=end or args.offline):
-        raise ValueError("Personal capture requires one online session.")
-    eligibility=(collection_plan(start,end,collection_started,allow_unproven=personal)
-                 if not args.offline else [])
-    if any(not p["eligible"] for p in eligibility):
-        raise ValueError("Collection not eligible: "+next(p["reason"] for p in eligibility if not p["eligible"]))
+    backfill=getattr(args,"backfill",False)
+    if backfill:
+        if not personal:
+            raise ValueError("Personal backfill requires --personal.")
+        start, end = backfill_window(start, end, today)
+        # Historical capture, not a claimed session: the per-date eligibility loop never runs.
+        eligibility = []
+    else:
+        if personal and (start!=end or args.offline):
+            raise ValueError("Personal capture requires one online session.")
+        eligibility=(collection_plan(start,end,collection_started,allow_unproven=personal)
+                     if not args.offline else [])
+        if any(not p["eligible"] for p in eligibility):
+            raise ValueError("Collection not eligible: "+next(p["reason"] for p in eligibility if not p["eligible"]))
     unproven_personal=any(p["session_proof"]=="UNPROVEN_PERSONAL" for p in eligibility)
+    skip_canonical=backfill or unproven_personal
     output = Path("data/collector-output/pilot")
     raw_root = Path("data/raw/pilot")
     output.mkdir(parents=True, exist_ok=True)
     run = {"run_id": str(uuid.uuid4()), "started_at": collection_started.isoformat(),"collection_eligibility":eligibility,
            "from": start.isoformat(), "to": end.isoformat(), "entries": [], "requests": [], "reserved_units": 0,
-           "mode": "OFFLINE_REPLAY" if args.offline else "DAILY" if start==end and not args.resume and not args.seed else "BOOTSTRAP"}
+           "mode": ("PERSONAL_BACKFILL" if backfill else "OFFLINE_REPLAY" if args.offline
+                    else "DAILY" if start==end and not args.resume and not args.seed else "BOOTSTRAP")}
     target = output / (run["run_id"] + ".json")
     token = os.environ.get("EODHD_API_TOKEN", "")
     if not token and not args.offline:
@@ -430,16 +536,18 @@ def collect(args) -> Path:
             request["elapsed_seconds"] = round(time.monotonic() - started, 3)
             save()
 
-    state = local_state() if not args.offline else {"status":"UNKNOWN"}
-    # An unproven personal session never reaches the worker, so it never needs canonical state.
-    if (getattr(args,"ingest",False) and not args.offline and not unproven_personal
+    state = {"status":"UNKNOWN","revisions":[]} if (args.offline or backfill) else local_state()
+    # An unproven personal session or a historical backfill never reaches the worker, so it
+    # never needs canonical state and cannot create an operation report or soak effect.
+    if (getattr(args,"ingest",False) and not args.offline and not skip_canonical
             and state["status"] != "KNOWN"):
         run.update(status="FAILED",error_code="CANONICAL_PREFLIGHT_FAILED",completed_at=datetime.now(timezone.utc).isoformat())
         run["entries"]=[{"instrument_id":i["id"],"symbol":i["symbol"],"status":"SOURCE_ERROR",
                          "reason":"CANONICAL_PREFLIGHT_FAILED","rows":[]} for i in instruments]
         save()
         return target
-    previous = reusable_entries(output,start,end,state,getattr(args,"refresh",False)) if not args.offline else {}
+    previous = (reusable_entries(output,start,end,state,getattr(args,"refresh",False))
+                if not args.offline and not backfill else {})
     if args.resume:
         prior = json.loads(Path(args.resume).read_text())
         if (prior["from"], prior["to"]) != (run["from"], run["to"]):
@@ -507,7 +615,36 @@ def collect(args) -> Path:
     run["completed_at"] = datetime.now(timezone.utc).isoformat()
     run["status"] = "FAILED" if run.get("account_error") else "SUCCEEDED" if all(e["status"]=="AVAILABLE" and covers(e["manifest"],start,end) for e in run["entries"]) else "DEGRADED"
     save()
-    if personal:
+    if backfill:
+        if run["status"] != "SUCCEEDED":
+            run["personal_backfill"] = {"status": "SKIPPED_INCOMPLETE", "reason": "BATCH_NOT_SUCCEEDED",
+                                        "sessions_written": 0, "sessions_unchanged": 0,
+                                        "rows_written": 0, "rows_dropped_holiday": 0,
+                                        "holiday_dates_dropped": [], "units_reserved": run["reserved_units"],
+                                        "files": []}
+        else:
+            built = personal_backfill_documents(run)
+            files = []
+            for document in built["documents"]:
+                result = write_personal_backfill_capture(document)
+                files.append(dict(result, session_date=document["session_date"], rows=len(document["rows"])))
+            written = [f for f in files if f["status"] in ("WRITTEN", "REVISION")]
+            unchanged = [f for f in files if f["status"] == "UNCHANGED"]
+            run["personal_backfill"] = {
+                "status": "COMPLETE",
+                "sessions_found": len(built["documents"]),
+                "sessions_written": len(written),
+                "sessions_unchanged": len(unchanged),
+                "rows_written": sum(f["rows"] for f in written),
+                "rows_dropped_holiday": built["rows_dropped_holiday"],
+                "holiday_dates_dropped": built["holiday_dates_dropped"],
+                "units_reserved": run["reserved_units"],
+                "files": files,
+                "idempotency": ("Re-running the same range writes nothing new (UNCHANGED per session) "
+                                "but still reserves the same units."),
+            }
+        save()
+    elif personal:
         document = personal_capture_document(run)
         run["personal_store"] = ({"status":"SKIPPED_INCOMPLETE","reason":"BATCH_NOT_SUCCEEDED"}
                                  if document is None else write_personal_capture(document))
@@ -664,6 +801,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--daily", action="store_true", help="Select one pending proven prior Jakarta session; no rollover or refresh.")
     parser.add_argument("--personal", action="store_true", help="Personal opt-in: capture the session into data/personal/bars even when it has no independent completion proof; canonical ingestion is skipped for an unproven session. Use with --daily or one explicit session (the unattended wrapper's form).")
+    parser.add_argument("--backfill", action="store_true", help="Personal historical capture: with --personal and --from/--to, request one provider range per panel member and write one personal-store document per session date. Canonical ingestion is always skipped; the per-date session-eligibility loop does not run.")
     parser.add_argument("--soak-report", action="store_true")
     parser.add_argument("--refresh", action="store_true", help="Bypass automatic canonical reuse; never automatic retry.")
     parser.add_argument("--ingest", action="store_true", help="Run validation, ingestion, features and durable operation report after collection.")
@@ -672,7 +810,15 @@ def main():
     except SystemExit as error:
         raise SystemExit(1 if error.code else 0) from None
     try:
-        if args.personal and not args.daily:
+        if args.backfill:
+            if not args.personal:
+                raise ValueError("Personal backfill requires --personal.")
+            if (args.daily or args.dry_run or args.soak_report or args.offline
+                    or args.resume or args.seed or args.refresh):
+                raise ValueError("Backfill cannot combine with daily, dry-run, report, offline, resume, seed or refresh.")
+            if not (args.start and args.end):
+                raise ValueError("Personal backfill requires explicit --from and --to.")
+        if args.personal and not args.daily and not args.backfill:
             # The unattended wrapper hands over one explicit session, not --daily.
             if args.dry_run or args.soak_report:
                 raise ValueError("Personal capture is a collection mode, not a dry-run or report mode.")
@@ -725,6 +871,21 @@ def main():
                       "because the session is unproven; the worker was not called and no FAILED "
                       "operation report was written.")
                 print(json.dumps({"personal_store":store,"canonical_ingestion":"SKIPPED_UNPROVEN_SESSION",
+                                  "status":batch["status"]}))
+                raise SystemExit(0 if batch["status"]=="SUCCEEDED" else 2 if batch["status"]=="DEGRADED" else 1)
+            if args.backfill:
+                store=batch.get("personal_backfill") or {}
+                print(f"PERSONAL-BACKFILL: {store.get('status','UNKNOWN')} "
+                      f"sessions written {store.get('sessions_written',0)}, "
+                      f"sessions unchanged {store.get('sessions_unchanged',0)}, "
+                      f"rows written {store.get('rows_written',0)}, "
+                      f"rows dropped as cited holidays {store.get('rows_dropped_holiday',0)}, "
+                      f"units reserved {store.get('units_reserved',0)}")
+                print("CANONICAL-INGESTION: SKIPPED_BACKFILL - canonical ingestion was skipped because this "
+                      "is a personal historical backfill; the worker was not called and no operation report "
+                      "was written.")
+                print("IDEMPOTENCY: re-running the same range writes nothing new but still reserves the units.")
+                print(json.dumps({"personal_backfill":store,"canonical_ingestion":"SKIPPED_BACKFILL",
                                   "status":batch["status"]}))
                 raise SystemExit(0 if batch["status"]=="SUCCEEDED" else 2 if batch["status"]=="DEGRADED" else 1)
             if args.ingest:
