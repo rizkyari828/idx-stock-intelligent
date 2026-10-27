@@ -14,22 +14,7 @@ public sealed class StockDatabase(NpgsqlDataSource dataSource)
         await using (var readOnly = new NpgsqlCommand("SET TRANSACTION READ ONLY", connection, transaction) { CommandTimeout = 15 })
             await readOnly.ExecuteNonQueryAsync(ct);
         var registryAsOf = ProductQuery.Today;
-        StockIdentity registry;
-        await using (var command = new NpgsqlCommand("""
-            SELECT i.issuer_name,i.instrument_type,coalesce(h.symbol,l.symbol,i.issuer_name),
-                CASE WHEN h.symbol IS NOT NULL THEN 'REGISTRY_HISTORY' WHEN l.symbol IS NOT NULL THEN 'RETAINED_LISTING' ELSE 'UNAVAILABLE' END
-            FROM instrument i LEFT JOIN LATERAL (SELECT symbol FROM instrument_history WHERE instrument_id=i.instrument_id
-                AND valid_from <= $2 AND (valid_to IS NULL OR valid_to >= $2) ORDER BY valid_from DESC LIMIT 1) h ON true
-            LEFT JOIN LATERAL (SELECT nullif(trim(evidence->>'symbol'),'') AS symbol FROM instrument_listing_evidence
-                WHERE instrument_id=i.instrument_id AND known_at <= $3 ORDER BY known_at DESC LIMIT 1) l ON true
-            WHERE i.instrument_id=$1
-            """, connection, transaction) { CommandTimeout = 15 })
-        {
-            command.Parameters.AddWithValue(id); command.Parameters.AddWithValue(registryAsOf); command.Parameters.AddWithValue(DateTimeOffset.UtcNow);
-            await using var reader = await command.ExecuteReaderAsync(ct);
-            if (!await reader.ReadAsync(ct)) throw new KeyNotFoundException("Instrument not found.");
-            registry = new(id, reader.GetString(2), reader.GetString(0), reader.GetString(1), reader.GetString(3) == "REGISTRY_HISTORY", "UNKNOWN", reader.GetString(3));
-        }
+        var registry = await RegistryAsync(connection, transaction, id, registryAsOf, ct);
         await using var bars = new NpgsqlCommand("""
             WITH selected AS (
                 SELECT DISTINCT ON (r.session_date) r.*,a.source_id,a.content_sha256 AS raw_hash,a.fetched_at
@@ -53,5 +38,25 @@ public sealed class StockDatabase(NpgsqlDataSource dataSource)
         rows.Reverse();
         await transaction.CommitAsync(ct);
         return new(registry, registryAsOf, through, cutoff, limit, "MARKET_DATE_ASCENDING", rows);
+    }
+
+    // Current registry display identity only; retained listing evidence is not a historical classification.
+    internal static async Task<StockIdentity> RegistryAsync(NpgsqlConnection connection, NpgsqlTransaction transaction,
+        Guid id, DateOnly registryAsOf, CancellationToken ct)
+    {
+        await using var command = new NpgsqlCommand("""
+            SELECT i.issuer_name,i.instrument_type,coalesce(h.symbol,l.symbol,i.issuer_name),
+                CASE WHEN h.symbol IS NOT NULL THEN 'REGISTRY_HISTORY' WHEN l.symbol IS NOT NULL THEN 'RETAINED_LISTING' ELSE 'UNAVAILABLE' END
+            FROM instrument i LEFT JOIN LATERAL (SELECT symbol FROM instrument_history WHERE instrument_id=i.instrument_id
+                AND valid_from <= $2 AND (valid_to IS NULL OR valid_to >= $2) ORDER BY valid_from DESC LIMIT 1) h ON true
+            LEFT JOIN LATERAL (SELECT nullif(trim(evidence->>'symbol'),'') AS symbol FROM instrument_listing_evidence
+                WHERE instrument_id=i.instrument_id AND known_at <= $3 ORDER BY known_at DESC LIMIT 1) l ON true
+            WHERE i.instrument_id=$1
+            """, connection, transaction) { CommandTimeout = 15 };
+        command.Parameters.AddWithValue(id); command.Parameters.AddWithValue(registryAsOf); command.Parameters.AddWithValue(DateTimeOffset.UtcNow);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct)) throw new KeyNotFoundException("Instrument not found.");
+        return new(id, reader.GetString(2), reader.GetString(0), reader.GetString(1), reader.GetString(3) == "REGISTRY_HISTORY",
+            "UNKNOWN", reader.GetString(3));
     }
 }

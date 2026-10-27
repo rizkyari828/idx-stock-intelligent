@@ -34,6 +34,7 @@ builder.Services.AddSingleton<OutcomeTrackingService>();
 builder.Services.AddSingleton<OutcomeVerificationService>();
 builder.Services.AddSingleton(sp => new OutcomeV02VerificationService(sp.GetRequiredService<NpgsqlDataSource>(), Path.GetFullPath("data/raw")));
 builder.Services.AddSingleton<ResearchService>();
+builder.Services.AddSingleton<TechnicalFeatureService>();
 // The personal store is resolved only from the application content root, never from a request.
 builder.Services.AddSingleton(_ => new PersonalBarFileStore(
     Path.Combine(builder.Environment.ContentRootPath, PersonalBarFileStore.RelativeRoot)));
@@ -318,6 +319,13 @@ app.MapGet("/api/personal/bars", async (HttpRequest request, PersonalBarFileStor
     }
     catch (PersonalBarsException error)
     { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
+});
+// Read-only features over retained canonical bars: the existing arithmetic, no cache or admission.
+app.MapGet("/api/instruments/{id:guid}/technical-features", async (Guid id, DateOnly? through, DateTimeOffset? cutoff,
+    TechnicalFeatureService service, CancellationToken ct) =>
+{
+    try { return Results.Ok(await service.ReadAsync(id, ProductQuery.Date(through), ProductQuery.Cutoff(cutoff), ct)); }
+    catch (ScreenerException error) { return Results.Json(new { code = error.Code, error = error.Code }, statusCode: error.StatusCode); }
 });
 app.UseDefaultFiles();
 app.UseStaticFiles();
