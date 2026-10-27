@@ -78,7 +78,7 @@ dependency; PARKED = deliberately deferred.
 | D2 | Model-label discrepancy (v4-pro vs Flash) | DETERMINED 2026-10-26 — not repo-fixable | `v4-pro` occurs in no file in either repo; the label exists only in the harness runtime context, so any future model claim must cite that runtime label, not a repo artifact |
 | D3 | Editorial annex for "proposal" wording inside the frozen contract | OPTIONAL |
 | D4 | Daily gate demands a current-day account counter, so the first run of every new day fails closed | NEEDS DECISION | provider only advances `apiRequestsDate` on the first charged request; workaround = 1-unit priming request (used 2026-10-26); fix would relax a quota-safety gate, so owner call |
-| D5 | Personal unproven-session ingestion | NEEDS DECISION | [finding](PERSONAL_UNPROVEN_INGESTION.md): three layers enforce proof; opening 1–2 gave 0 bars for 16 units; recommend a separate personal store over relaxing canonical admission |
+| D5 | Personal unproven-session ingestion | DONE 2026-10-27 — option B (personal store) | unproven sessions are captured to `data/personal/bars/` with `UNPROVEN_PERSONAL` and never canonically ingested; canonical refusal is unchanged; see [what was built](PERSONAL_UNPROVEN_INGESTION.md#what-was-built--option-b-2026-10-27) |
 
 ## Recommended order
 

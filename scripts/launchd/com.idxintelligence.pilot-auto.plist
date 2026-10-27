@@ -2,8 +2,11 @@
 <!--
   PREPARED ONLY - NOT INSTALLED. This file is a template: __REPO__ and __HOME__
   are replaced when the owner renders it into ~/Library/LaunchAgents.
-  Running the automation requires completed-session proof for the target date;
-  an unproven date is refused, never fabricated. See docs/LOCAL_OPERATIONS.md.
+  The launchd entry runs the personal capture wrapper: a session without
+  independent completion proof is captured into data/personal/bars with an
+  explicit UNPROVEN_PERSONAL label. Canonical ingestion still refuses an
+  unproven session, so personal data never becomes canonical and never affects
+  soak. See docs/LOCAL_OPERATIONS.md.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

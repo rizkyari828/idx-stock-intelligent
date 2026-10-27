@@ -3,15 +3,19 @@
 # day from cited calendars, then hand that exact date to the existing collector.
 # Planning reads local files only; --dry-run makes no provider request. This
 # deliberately does not use pilot-daily.sh, whose per-session proof and
-# same-day counter are operator paths.
+# same-day counter are operator paths. --personal opts into the personal
+# capture path: the session is captured into data/personal/ and canonical
+# ingestion is still skipped whenever the session is unproven.
 set -eu
 cd "$(dirname "$0")/.."
 
 dry_run=false
+personal=false
 explicit=""
 while test $# -gt 0; do
     case "$1" in
         --dry-run) dry_run=true; shift ;;
+        --personal) personal=true; shift ;;
         --date)
             test $# -ge 2 || { printf '%s\n' 'STOP: --date needs YYYY-MM-DD.' >&2; exit 64; }
             explicit="$2"; shift 2 ;;
@@ -52,8 +56,13 @@ if test "$refused" = true; then
 fi
 
 "$pilot_python" -m idx_stock_collector.pilot_auto record --date "$target" --status STARTED >/dev/null
+# The personal flag is forwarded, never implied: a canonical-only run stays the default.
+collection=(--from "$target" --to "$target" --ingest)
+if test "$personal" = true; then
+    collection+=(--personal)
+fi
 status=0
-bash scripts/pilot-eod.sh --from "$target" --to "$target" --ingest || status=$?
+bash scripts/pilot-eod.sh "${collection[@]}" || status=$?
 "$pilot_python" -m idx_stock_collector.pilot_auto record \
     --date "$target" --status FINISHED --exit-code "$status" >/dev/null
 printf 'PILOT-AUTO: %s finished with exit status %s\n' "$target" "$status" >&2

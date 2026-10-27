@@ -54,8 +54,12 @@ python3.13 scripts/check_pilot_restore.py
 `scripts/launchd/com.idxintelligence.pilot-auto.plist` is a template for
 07:00 local time, Monday–Friday. It runs `scripts/pilot-auto-notify.sh`, which
 logs under `logs/`, appends `logs/pilot-auto.failure.log` and posts a macOS
-notification when the run fails. `__REPO__`/`__HOME__` are substituted at
-install time so no absolute developer path is committed.
+notification when the run fails. The entry point passes the personal capture
+flag to `scripts/pilot-auto.sh`: a session without independent completion proof
+is captured into the ignored `data/personal/bars/` store, and canonical
+ingestion is skipped for it. A proven session is still ingested canonically.
+`__REPO__`/`__HOME__` are substituted at install time so no absolute developer
+path is committed.
 
 Nothing was installed and `launchctl` was not called. The owner's exact commands,
 from the repository root:
@@ -70,7 +74,8 @@ launchctl bootstrap gui/"$(id -u)" "$HOME/Library/LaunchAgents/com.idxintelligen
 launchctl print gui/"$(id -u)"/com.idxintelligence.pilot-auto
 ```
 
-To test the job body without loading it: `bash scripts/pilot-auto.sh --dry-run`.
+To test the job body without loading it: `bash scripts/pilot-auto.sh --personal --dry-run`.
+The dry run prints the date plan with `provider_requests: 0` and creates no personal file.
 
 Unload and remove:
 
@@ -80,6 +85,8 @@ rm "$HOME/Library/LaunchAgents/com.idxintelligence.pilot-auto.plist"
 ```
 
 Two honest limits: 07:00 is the Mac's local clock, so the machine must remain on
-Asia/Jakarta (or `Hour` must be adjusted); and the collector still requires
-independent completed-session proof, so an unattended run for an unproven or
-already-attempted date refuses instead of spending units.
+Asia/Jakarta (or `Hour` must be adjusted); and an already-attempted date is still
+refused instead of spending units. A session without independent proof is no longer
+refused by the personal wrapper — it is captured into ignored `data/personal/` only,
+never canonically ingested, and cannot advance soak. Until the plist is installed,
+nothing here runs unattended.

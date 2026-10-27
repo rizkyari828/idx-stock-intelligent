@@ -224,6 +224,69 @@ class PersonalStoreTests(unittest.TestCase):
         self.assertIn("SESSION_PROOF_REQUIRED", str(raised.exception))
         self.assertFalse(Path("data/personal").exists())
 
+    def test_personal_mode_refuses_a_range_and_a_dry_run_before_any_request(self):
+        Path("pilot/sessions.json").write_text(json.dumps([proof(SESSION)]))
+        for argv in (["pilot", "--from", SESSION, "--to", "2026-10-27", "--personal", "--ingest"],
+                     ["pilot", "--from", SESSION, "--to", SESSION, "--personal", "--dry-run"]):
+            with patch("urllib.request.build_opener",
+                       side_effect=AssertionError("no provider request")), \
+                 patch("subprocess.run", side_effect=AssertionError("no worker")), \
+                 patch("sys.argv", argv), \
+                 patch.dict(os.environ, {"EODHD_API_TOKEN": "fixture-only-sentinel"}):
+                with self.assertRaises(SystemExit) as exit_status:
+                    main()
+            self.assertEqual("STOP: invalid local planning configuration.",
+                             str(exit_status.exception))
+        self.assertFalse(Path("data/personal").exists())
+        self.assertFalse(Path("data/collector-output").exists())
+
+    def test_explicit_single_session_capture_survives_a_failed_canonical_run(self):
+        # The unattended wrapper passes one explicit session, not --daily.
+        Path("pilot/sessions.json").write_text(json.dumps([proof(SESSION)]))
+        capture = Path(f"data/personal/bars/2026/{SESSION}.json")
+        seen = {}
+
+        class Response(io.BytesIO):
+            status = 200
+
+        def open_request(request, timeout):
+            if "/api/user?" in request.full_url:
+                return Response(json.dumps({"subscriptionType": "free", "dailyRateLimit": 20,
+                                            "apiRequests": 0, "apiRequestsDate": "2026-10-27",
+                                            "extraLimit": 464}).encode())
+            return Response(PAYLOAD)
+
+        def worker(command, **kwargs):
+            seen["capture_before_worker"] = capture.is_file()
+            seen["capture_bytes"] = capture.read_bytes() if capture.is_file() else None
+            return SimpleNamespace(returncode=1, stdout="", stderr="fixture worker failure")
+
+        with patch("idx_stock_collector.pilot.local_state",
+                   return_value={"status": "KNOWN", "revisions": [], "database": "fixture"}), \
+             patch("idx_stock_collector.pilot.datetime") as clock, \
+             patch("urllib.request.build_opener") as opener, \
+             patch("subprocess.run", side_effect=worker) as worker_call, \
+             patch("sys.argv", ["pilot", "--from", SESSION, "--to", SESSION,
+                                "--personal", "--ingest"]), \
+             patch.dict(os.environ, {"EODHD_API_TOKEN": "fixture-only-sentinel"}), \
+             patch("sys.stdout", new_callable=io.StringIO) as output:
+            clock.now.return_value = datetime(2026, 10, 27, tzinfo=timezone.utc)
+            clock.fromisoformat.side_effect = datetime.fromisoformat
+            opener.return_value.open.side_effect = open_request
+            with self.assertRaises(SystemExit) as exit_status:
+                main()
+        self.assertEqual(1, exit_status.exception.code)  # the canonical run failed
+        self.assertEqual(1, worker_call.call_count)
+        self.assertTrue(seen["capture_before_worker"])
+        self.assertTrue(capture.is_file())
+        self.assertEqual(seen["capture_bytes"], capture.read_bytes())
+        document = json.loads(capture.read_text())
+        self.assertEqual("PROVEN", document["session_proof"])
+        self.assertIn('"personal_store": {"status": "WRITTEN"', output.getvalue())
+        operations = list(Path("data/collector-output/pilot").glob("*.operation.json"))
+        self.assertEqual(1, len(operations))
+        self.assertEqual("FAILED", json.loads(operations[0].read_text())["status"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,7 +10,7 @@ The successful September 30 pilot advanced soak to **1/10**, with **76** canonic
 revisions. Older counts below remain historical observations. No provider request
 or canonical mutation was needed to implement the daily workflow.
 
-### Personal mode — 2026-10-26
+### Personal mode — 2026-10-26 (superseded 2026-10-27)
 
 `bash scripts/pilot-daily.sh --personal` is an opt-in variant for single-user personal
 operation. It selects the **most recent** session that has its own completion evidence
@@ -18,6 +18,26 @@ instead of demanding every intervening session, and it reports partial canonical
 (as `partial_canonical_sessions`) instead of treating them as a ledger mismatch. It never
 relaxes session proof, and the strict sequential path remains the default: `mode` and
 `warnings` in the plan output say which one ran.
+
+**Changed 2026-10-27 — personal capture (option B).** `--personal` no longer waits for
+completion evidence. It selects the latest prior Jakarta trading day from the cited
+calendar and captures the complete panel into
+`data/personal/bars/<YYYY>/<YYYY-MM-DD>.json` with `quality_status: UNPROVEN_PERSONAL`
+when the session has no independent proof. Later captures of the same
+session are append-only revisions (`<date>.r2.json`, `.r3.json`); identical bytes leave
+the first file unchanged. Only a complete panel is captured: a degraded or failed batch
+writes `SKIPPED_INCOMPLETE` and no file, and a missing provider row is omitted rather
+than zero-filled. Canonical ingestion is skipped for an unproven session: the worker is
+not called, no `*.operation.json` is written, and the run prints
+`PERSONAL-CAPTURE: ... UNPROVEN_PERSONAL` plus
+`CANONICAL-INGESTION: SKIPPED_UNPROVEN_SESSION`. Such data is **not canonical**, cannot
+affect soak, never becomes `VERIFIED`, and is read only through the read-only personal
+surfaces (`GET /api/personal/bars`, the Data Health card and the Stock Detail block). The
+strict sequential path remains the default.
+
+A capture is not free: it fetches the panel, so it spends the same EOD units a canonical
+run would (one per symbol). The existing 16-unit local ceiling and account quota still
+apply; `--personal` does not change them.
 
 **Known operational caveat (backlog D4).** Daily strict mode computes the allowance with
 `remaining(..., strict=True)`, which requires the provider's `apiRequestsDate` to equal
@@ -46,6 +66,18 @@ requests, 0 units, 0 new revisions**, status SUCCEEDED, and soak stayed **2/10**
 cannot advance soak or complete a session; that still needs a run that reserved the full
 panel's units.
 
+**Owner checklist for `data/personal/`:**
+
+- The store is git-ignored (`data/personal/**`) and lives only on this machine, outside
+  PostgreSQL. The Postgres backup (`scripts/pilot-backup.sh`) does **not** contain it;
+  copy the directory separately if the personal history matters.
+- If a session later gets real independent proof, add it to `pilot/sessions.json` and run
+  the canonical path (for example `bash scripts/pilot-daily.sh`, or one reviewed
+  `bash scripts/pilot-auto.sh --date <date> --personal` run). Canonical ingestion may then
+  proceed. Personal captures are **not** migrated, promoted or converted into canonical
+  bars silently; the existing files stay local evidence, and a later capture with
+  different bytes becomes a new revision rather than overwriting them.
+
 ### Unattended date selection — 2026-10-26
 
 `bash scripts/pilot-auto.sh` selects the latest weekday strictly before today in
@@ -54,14 +86,36 @@ Asia/Jakarta that is not listed in the cited `pilot/holidays-2026.json`, then ru
 
 - `--dry-run` prints the plan — date, selection, `provider_requests: 0` — and calls nothing.
 - `--date YYYY-MM-DD` overrides the selection; weekends and cited holidays are refused.
+- `--personal` opts into the personal capture path and is forwarded unchanged to
+  `pilot-eod.sh`; a run without it stays canonical-only.
 - A local journal (`data/collector-output/pilot/auto-journal.json`, ignored) records the
   attempt before collection. A second automated run for the same date is refused until a
   human passes `--date`, which is the guard against an unattended quota leak.
 - The holiday fixture cites both sources it was built from; it is a calendar, never
-  session proof. Collection still requires independent completed-session evidence, so an
-  unproven date refuses collection instead of fabricating a session.
+  session proof. Canonical ingestion still requires independent completed-session
+  evidence; without it, a `--personal` run captures locally instead of fabricating
+  canonical bars, and a run without `--personal` still refuses collection.
 - Coverage is 2026 only: planning fails closed outside that year rather than guessing a
   2025 or 2027 closure.
+
+**Personal wiring — 2026-10-27.** `scripts/pilot-auto-notify.sh`, the prepared launchd
+entry, passes `--personal`; the plist itself is still **not installed**. When the owner
+installs it, one weekday 07:00 run will:
+
+1. select the latest prior Jakarta trading day from the cited calendar (weekends and
+   holidays skipped; the calendar is never session proof);
+2. refuse a date already attempted by this service unless a human passes `--date`;
+3. record the attempt in the local journal, then call the collector once;
+4. capture the complete panel into `data/personal/bars/` — `UNPROVEN_PERSONAL` when the
+   session has no independent proof, `PROVEN` when it does (a degraded batch captures
+   nothing and is reported `SKIPPED_INCOMPLETE`);
+5. skip canonical ingestion for an unproven session, or ingest canonically for a proven
+   one. The capture is written before ingestion starts, so a canonical failure afterwards
+   neither deletes it nor prevents it from having been written.
+
+Until the plist is installed, none of this is unattended: `bash
+scripts/pilot-auto.sh --personal` and `bash scripts/pilot-auto-notify.sh` are manual
+commands.
 
 ## Current same-day policy
 

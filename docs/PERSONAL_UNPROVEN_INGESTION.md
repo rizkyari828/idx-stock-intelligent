@@ -1,18 +1,20 @@
 # Personal unproven-session ingestion — finding and options (2026-10-27)
 
-**Status: OPEN — decision required. No code change was kept.** This records why the
-unattended daily run cannot yet collect a session that has no independent completion
-proof, what was tried, and what it cost. It exists so the next attempt does not repeat
-the same dead end.
+**Status: IMPLEMENTED — option B (separate personal store), 2026-10-27. Canonical
+admission is unchanged.** This records why the unattended daily run still cannot make a
+session without independent completion proof canonical, what was tried, what it cost, and
+what was built instead. The three-layer finding below still stands.
 
 ## The question
 
 Can `scripts/pilot-auto.sh` collect a trading day whose session has no entry in
 `pilot/sessions.json`, so the owner needs no manual proof step?
 
-**Answer as of today: no, not without changing three independent layers.** The invariant
-"a session must be independently proven before its bars become canonical" is enforced
-three times over, and every layer refuses separately.
+**Answer for canonical ingestion: no, not without changing three independent layers.**
+Option B does not try to make such bars canonical; it stores them beside the canonical
+path, so that answer stays true. The invariant "a session must be independently proven
+before its bars become canonical" is enforced three times over, and every layer refuses
+separately.
 
 | # | Layer | Location | Refusal |
 |---|---|---|---|
@@ -61,7 +63,7 @@ allowance is exhausted; a further attempt must wait for the UTC-day reset.
 | **C. Automate proof** | acquire a permitted, automatable per-session completion reference, removing the need for the opt-in | correct long-term; needs a source whose terms allow automation, and may not be free |
 | **D. Manual proof** | one `pilot/sessions.json` entry per trading day, as done for 2026-10-23 | safe, ~2 minutes per session, not unattended |
 
-## Recommendation
+## Recommendation — adopted
 
 Prefer **B** over **A**. Weakening the canonical admission path to admit unproven bars
 contradicts the reason that path exists, and it would be the third deliberate relaxation
@@ -69,11 +71,46 @@ of the same invariant. A separate personal store keeps "what the system can prov
 "what the owner chose to collect" distinguishable — which is also what makes the
 `DEGRADED` label meaningful.
 
-Short term, **D** keeps the pipeline producing data: one cited closing reference per
-trading day, exactly as retained for 2026-10-23 in `pilot/sessions.json`.
+Short term, **D** still governs canonical progress: one cited closing reference per
+trading day, exactly as retained for 2026-10-23 in `pilot/sessions.json`, because the
+personal store deliberately never becomes canonical.
+
+## What was built — option B (2026-10-27)
+
+No canonical admission code was touched: `CompletedSessionPolicy`, `ScreenerEvidence`,
+`PilotValidation`, the worker, quota logic, ceilings and soak rules are unchanged, so
+layers 1–3 above still refuse unproven rows for canonical use.
+
+- **Capture (phase 1, `8590c00`).** `collection_eligibility(..., allow_unproven=True)`
+  opens only a weekday with no proof at all; future dates, same-day before the cutoff,
+  weekends, cited holidays, conflicting proofs and non-independent proofs still refuse.
+  A complete `SUCCEEDED` panel is written append-only to
+  `data/personal/bars/<YYYY>/<YYYY-MM-DD>.json` (later revisions `.r2`, `.r3`, ...), with
+  a schema version, exact decimal strings per row, row and raw-artifact digests, and
+  `quality_status` `UNPROVEN_PERSONAL` (or `PROVEN` when the session had proof). A
+  degraded or failed batch writes `SKIPPED_INCOMPLETE` rather than a partial file, and a
+  missing provider row is omitted, never zero-filled.
+- **No canonical path (phase 1).** For an unproven session, `--ingest` never calls the
+  worker and writes no operation report; the run prints
+  `CANONICAL-INGESTION: SKIPPED_UNPROVEN_SESSION`. That branch also skips the canonical
+  database preflight, so a database outage cannot block the capture. For a proven session
+  the capture is written first and ordinary canonical ingestion still runs afterwards.
+- **Read surface (phase 2, `a7377b1`).** `GET /api/personal/bars` serves the newest seven
+  sessions by default, highest revision only, read-only.
+- **UI (phase 3, `9cdaf98`).** A violet dashed `PERSONAL` badge distinct from amber
+  `DEGRADED`, a Data Health card, and a Stock Detail block shown only when the personal
+  session is strictly newer than the newest canonical date.
+- **Unattended wiring (phase 4, this change).** `scripts/pilot-auto.sh` accepts
+  `--personal` and forwards it to `pilot-eod.sh`; `scripts/pilot-auto-notify.sh` passes it,
+  so the prepared launchd entry is the personal capture path. The plist is still **not
+  installed**. Because the capture is written before canonical ingestion starts, a
+  canonical failure afterwards cannot delete or block a capture that already succeeded;
+  this is covered by a focused test with a failing worker call.
 
 ## Not claimed
 
-- No performance, correctness or security claim about any option; none was implemented.
+- No performance, correctness or security claim about option B beyond the focused tests.
 - The 16 units produced no canonical bars and no soak progress (soak remains 2/10).
+- Personal captures are not canonical, are not in PostgreSQL, cannot affect soak and never
+  become `VERIFIED`.
 - Nothing in this document changes a contract, a gate, or operational data.

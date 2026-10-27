@@ -663,7 +663,7 @@ def main():
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--daily", action="store_true", help="Select one pending proven prior Jakarta session; no rollover or refresh.")
-    parser.add_argument("--personal", action="store_true", help="Personal opt-in: with --daily, capture the latest prior Jakarta trading day into data/personal/bars even when it has no independent completion proof. Canonical ingestion is skipped for an unproven session.")
+    parser.add_argument("--personal", action="store_true", help="Personal opt-in: capture the session into data/personal/bars even when it has no independent completion proof; canonical ingestion is skipped for an unproven session. Use with --daily or one explicit session (the unattended wrapper's form).")
     parser.add_argument("--soak-report", action="store_true")
     parser.add_argument("--refresh", action="store_true", help="Bypass automatic canonical reuse; never automatic retry.")
     parser.add_argument("--ingest", action="store_true", help="Run validation, ingestion, features and durable operation report after collection.")
@@ -673,7 +673,11 @@ def main():
         raise SystemExit(1 if error.code else 0) from None
     try:
         if args.personal and not args.daily:
-            raise ValueError("Personal mode requires daily planning.")
+            # The unattended wrapper hands over one explicit session, not --daily.
+            if args.dry_run or args.soak_report:
+                raise ValueError("Personal capture is a collection mode, not a dry-run or report mode.")
+            if not (args.start and args.end and args.start == args.end):
+                raise ValueError("Personal capture requires daily planning or one explicit session.")
         if args.daily and (args.start or args.end or args.resume or args.seed or args.offline or args.refresh or args.soak_report or args.universe != "pilot/universe.json"):
             raise ValueError("Daily mode cannot override dates, panel or collection policy.")
         if args.soak_report:
