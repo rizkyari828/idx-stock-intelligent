@@ -80,8 +80,6 @@ rm "$HOME/Library/LaunchAgents/com.idxintelligence.pilot-auto.plist"
 ```
 
 Two honest limits: 07:00 is the Mac's local clock, so the machine must remain on
-Asia/Jakarta (or `Hour` must be adjusted); and this path is proof-free by design —
-it selects the newest weekday that is not a cited holiday and refuses only a date
-already attempted (`--date` overrides). Because there is no independent session
-proof, a closure missing from `pilot/holidays-2026.json` would be collected as if it
-were a trading session; keeping that fixture correct is the price of unattended runs.
+Asia/Jakarta (or `Hour` must be adjusted); and the collector still requires
+independent completed-session proof, so an unattended run for an unproven or
+already-attempted date refuses instead of spending units.

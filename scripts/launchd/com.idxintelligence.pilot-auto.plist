@@ -2,10 +2,8 @@
 <!--
   PREPARED ONLY - NOT INSTALLED. This file is a template: __REPO__ and __HOME__
   are replaced when the owner renders it into ~/Library/LaunchAgents.
-  Planning is deterministic and proof-free: it selects the newest weekday that is
-  not a cited holiday, and refuses only a date already attempted (an explicit date
-  override is available). Session proof is NOT required on this path.
-  See docs/LOCAL_OPERATIONS.md.
+  Running the automation requires completed-session proof for the target date;
+  an unproven date is refused, never fabricated. See docs/LOCAL_OPERATIONS.md.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
