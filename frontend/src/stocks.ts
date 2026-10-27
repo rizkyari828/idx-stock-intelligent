@@ -13,10 +13,20 @@ export type StockHistory = { registry: Instrument & { currency: string; symbolSo
 export type TechnicalFeatureValue = { availability: string; value: number | null; reason: string | null; minimumSessions: number };
 export type TechnicalFeaturesReport = { instrumentId: string; symbol: string; name: string; through: string; cutoff: string;
  marketDate: string | null; sessions: number; index: boolean; features: Record<string, TechnicalFeatureValue> };
+// Personal, non-canonical fallback: unproven captures from the local file store, never a canonical bar.
+export type PersonalTechnicalFeaturesReport = { source: string; sessionProof: string; symbol: string; through: string;
+ cutoff: string; marketDate: string | null; runStart: string | null; sessions: number; warmupNote: string;
+ features: Record<string, TechnicalFeatureValue> };
 export type StockResult = { history: StockHistory; screener: ScreenerResponse | null; screenerError: string;
- features: TechnicalFeaturesReport | null; featuresError: string; portfolio: PortfolioView | null; portfolioError: string };
+ features: TechnicalFeaturesReport | null; featuresError: string; personalFeatures: PersonalTechnicalFeaturesReport | null;
+ personalFeaturesError: string; portfolio: PortfolioView | null; portfolioError: string };
 export type StockState = { result: StockResult | null; busy: boolean; error: string };
 export const emptyStockState: StockState = { result:null,busy:false,error:'' };
+export const availableFeatureCount = (features: Record<string, TechnicalFeatureValue> | undefined) =>
+ Object.values(features ?? {}).filter(state => state.availability === 'AVAILABLE').length;
+/** Canonical features are insufficient when they are missing or hold no usable (AVAILABLE) value. */
+export const canonicalFeaturesInsufficient = (report: TechnicalFeaturesReport | null) =>
+ report === null || availableFeatureCount(report.features) === 0;
 export const validInstrumentId = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 export const stockRoute = (id: string) => `/stocks/${encodeURIComponent(id)}`;
 export const selectedStock = (result: StockResult): ScreenerRow | null => result.screener?.rows.find(r=>r.instrumentId===result.history.registry.id) ?? null;
@@ -47,7 +57,16 @@ export class StockSession {
     inHorizon?this.request<TechnicalFeaturesReport>(`/instruments/${id}/technical-features?${pinned}`,undefined,controller.signal).catch(e=>{featuresError=errorMessage(e);return null;}):null
    ]);
    if(controller.signal.aborted||generation!==this.generation)return;
-   this.publish({result:{history,screener,screenerError,features,featuresError,portfolio,portfolioError},busy:false,error:''});
+   // The personal read is a fallback only, at the same pinned knowledge frame: canonical values win and
+   // the two are never merged. Outside the frozen canonical horizon features is null, so it still runs.
+   let personalFeatures:PersonalTechnicalFeaturesReport|null=null,personalFeaturesError='';
+   if(canonicalFeaturesInsufficient(features)){
+    const symbol=encodeURIComponent(history.registry.symbol);
+    await this.request<PersonalTechnicalFeaturesReport>(`/personal/technical-features/${symbol}?${pinned}`,undefined,controller.signal)
+     .then(value=>{personalFeatures=value;}).catch(e=>{personalFeaturesError=errorMessage(e);});
+    if(controller.signal.aborted||generation!==this.generation)return;
+   }
+   this.publish({result:{history,screener,screenerError,features,featuresError,personalFeatures,personalFeaturesError,portfolio,portfolioError},busy:false,error:''});
   }catch(e){if(!controller.signal.aborted&&generation===this.generation)this.publish({...emptyStockState,error:e instanceof ApiError&&e.status===404?'Instrument not found.':errorMessage(e)});}
  }
 }

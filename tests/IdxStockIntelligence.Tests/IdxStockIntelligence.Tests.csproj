@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="../fixtures/calendar-policy.json" Link="calendar-policy.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The cited 2026 exchange closures drive personal continuity; tests read the shipped fixture. -->
+    <None Include="../../pilot/holidays-2026.json" Link="holidays-2026.json" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
   <ItemGroup>

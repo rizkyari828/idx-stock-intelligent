@@ -38,6 +38,9 @@ builder.Services.AddSingleton<TechnicalFeatureService>();
 // The personal store is resolved only from the application content root, never from a request.
 builder.Services.AddSingleton(_ => new PersonalBarFileStore(
     Path.Combine(builder.Environment.ContentRootPath, PersonalBarFileStore.RelativeRoot)));
+builder.Services.AddSingleton(sp => new PersonalTechnicalFeatureService(
+    sp.GetRequiredService<PersonalBarFileStore>(),
+    Path.Combine(builder.Environment.ContentRootPath, "pilot", "holidays-2026.json")));
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -317,6 +320,25 @@ app.MapGet("/api/personal/bars", async (HttpRequest request, PersonalBarFileStor
             request.Query.ToDictionary(parameter => parameter.Key, parameter => (string?)parameter.Value[0], StringComparer.Ordinal));
         return Results.Ok(await store.ReadAsync(query, ct));
     }
+    catch (PersonalBarsException error)
+    { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
+});
+// Read-only personal features: the existing arithmetic over personal sessions; never canonical or admitted.
+app.MapGet("/api/personal/technical-features/{symbol}", async (string symbol, HttpRequest request,
+    PersonalTechnicalFeatureService service, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Any(parameter => parameter.Value.Count != 1))
+            throw new PersonalTechnicalFeaturesException(400, "PERSONAL_TECHNICAL_QUERY_INVALID",
+                "Personal technical features accepts each query parameter once.");
+        var query = PersonalTechnicalFeatures.Query(symbol,
+            request.Query.ToDictionary(parameter => parameter.Key, parameter => (string?)parameter.Value[0], StringComparer.Ordinal),
+            ProductQuery.Today, DateTimeOffset.UtcNow);
+        return Results.Ok(await service.ReadAsync(query, ct));
+    }
+    catch (PersonalTechnicalFeaturesException error)
+    { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
     catch (PersonalBarsException error)
     { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
 });
