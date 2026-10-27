@@ -21,7 +21,58 @@
       "role": "Independent monthly trading-day counts and the December 24/25/31 closures; corroborates the set as a whole."
     }
   ],
-  "corroboration_method": "One explicit per-date list plus independent monthly trading-day counts; removing the 22 listed closures from the 261 weekdays of 2026 yields exactly the 239 trading days both sources report. Individual dates are not independently double-sourced beyond that aggregate check.",
+  "verification_summary": {
+    "verified_at": "2026-10-27T03:22:24Z",
+    "dates_checked": 22,
+    "confirmed": 22,
+    "conflict": 0,
+    "single_source": 0,
+    "method": "Per-date comparison with the attachment of the official KSEI notice PENG-0002/DIR/KSEI/0126, cross-checked against the 2026 SKB 3 Menteri list reproduced by ANTARA and RRI and against IDX-calendar reporting by Fortune IDN and Kompas.",
+    "note": "No date was added or removed. The four SKB entries that fall on weekends (2026-03-21, 2026-03-22, 2026-04-05, 2026-05-31) are not trading days and are intentionally absent; KSEI's notice is limited to closures on weekdays."
+  },
+  "verification_sources": [
+    {
+      "publisher": "PT Kustodian Sentral Efek Indonesia (KSEI)",
+      "url": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "published_date": "2026-01-08",
+      "retrieved_at": "2026-10-27T03:22:24Z",
+      "known_at": "2026-10-27T03:22:24Z",
+      "role": "Official notice PENG-0002/DIR/KSEI/0126 amending PENG-0005/DIR/KSEI/1025 and following BEI Peng-00171/BEI.POP/09-2025; its attachment lists all 22 weekday closures in the same order as this fixture, including the exchange-specific 2026-12-31 'Libur Bursa'. SHA-256 ca444520365cb1d8a74eed4c0e9c72c5718333e9a2745b1002bf6256c454a96e matches the copy recorded in docs/DATA_SPIKE_RESULT.md."
+    },
+    {
+      "publisher": "ANTARA News",
+      "url": "https://www.antaranews.com/berita/5127268/ada-17-hari-libur-nasional-dan-8-cuti-bersama-pada-2026",
+      "published_at": "2025-09-23T06:55:23+07:00",
+      "retrieved_at": "2026-10-27T03:22:24Z",
+      "known_at": "2026-10-27T03:22:24Z",
+      "role": "Independent per-date reproduction of SKB 3 Menteri 2026: 17 national holidays and 8 joint-leave days. Matches all 21 fixture dates that are government closures; the four weekend SKB entries are not trading days."
+    },
+    {
+      "publisher": "RRI (LPP RRI)",
+      "url": "https://rri.co.id/jakarta/berita-lain/2086667/16-januari-2026-libur-nasional-peringati-isra-mikraj",
+      "published_at": "2026-01-05T12:12:00+07:00",
+      "retrieved_at": "2026-10-27T03:22:24Z",
+      "known_at": "2026-10-27T03:22:24Z",
+      "role": "Second independent per-date reproduction of the same SKB 3 Menteri list, used to corroborate ANTARA's date list."
+    },
+    {
+      "publisher": "Fortune IDN",
+      "url": "https://www.fortuneidn.com/market/kalender-jadwal-libur-bursa-2026-d7w03-00-lflgw-hkfx2s",
+      "published_at": "2026-04-17T10:10:58+07:00",
+      "retrieved_at": "2026-10-27T03:22:24Z",
+      "known_at": "2026-10-27T03:22:24Z",
+      "role": "Reports the IDX 2026 bourse-holiday calendar month by month (239 effective trading days), naming 2026-12-31 'Libur Bursa' as an exchange closure in addition to the government dates."
+    },
+    {
+      "publisher": "Kompas.com",
+      "url": "https://money.kompas.com/read/2025/12/22/072731226/jadwal-libur-bursa-efek-indonesia-natal-dan-tahun-baru-2026-berikut-jadwal-lengkapnya",
+      "published_at": "2025-12-22T07:27:00+07:00",
+      "retrieved_at": "2026-10-27T03:22:24Z",
+      "known_at": "2026-10-27T03:22:24Z",
+      "role": "Reports the IDX December 2026 closures explicitly: 2026-12-24 joint leave, 2026-12-25 Christmas, and 2026-12-31 year-end bourse closure."
+    }
+  ],
+  "corroboration_method": "All 22 dates were independently re-verified on 2026-10-27. The attachment of official KSEI notice PENG-0002/DIR/KSEI/0126 (amending PENG-0005/DIR/KSEI/1025 and following BEI Peng-00171/BEI.POP/09-2025) lists exactly these 22 weekday closures, in this order, including the exchange-specific 2026-12-31. The 21 government dates also match the 2026 SKB 3 Menteri schedule (17 national holidays plus 8 joint-leave days) as reproduced by ANTARA and RRI; the four SKB entries on weekends are not trading days and are intentionally absent. Fortune IDN and Kompas independently name 2026-12-31 as an IDX closure. Removing the 22 listed closures from the 261 weekdays of 2026 yields the 239 trading days both original sources report. No independent source contradicted a listed date and none named a missing weekday closure.",
   "holidays": [
     {
       "date": "2026-01-01",
@@ -29,6 +80,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Januari 2026 has 20 trading days; the cited closure list is consistent with that count."
     },
@@ -38,6 +92,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Januari 2026 has 20 trading days; the cited closure list is consistent with that count."
     },
@@ -47,6 +104,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Februari 2026 has 18 trading days; the cited closure list is consistent with that count."
     },
@@ -56,6 +116,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Februari 2026 has 18 trading days; the cited closure list is consistent with that count."
     },
@@ -65,6 +128,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Maret 2026 has 17 trading days; the cited closure list is consistent with that count."
     },
@@ -74,6 +140,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Maret 2026 has 17 trading days; the cited closure list is consistent with that count."
     },
@@ -83,6 +152,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Maret 2026 has 17 trading days; the cited closure list is consistent with that count."
     },
@@ -92,6 +164,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Maret 2026 has 17 trading days; the cited closure list is consistent with that count."
     },
@@ -101,6 +176,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Maret 2026 has 17 trading days; the cited closure list is consistent with that count."
     },
@@ -110,6 +188,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports April 2026 has 21 trading days; the cited closure list is consistent with that count."
     },
@@ -119,6 +200,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Mei 2026 has 16 trading days; the cited closure list is consistent with that count."
     },
@@ -128,6 +212,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Mei 2026 has 16 trading days; the cited closure list is consistent with that count."
     },
@@ -137,6 +224,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Mei 2026 has 16 trading days; the cited closure list is consistent with that count."
     },
@@ -146,6 +236,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Mei 2026 has 16 trading days; the cited closure list is consistent with that count."
     },
@@ -155,6 +248,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Mei 2026 has 16 trading days; the cited closure list is consistent with that count."
     },
@@ -164,6 +260,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Juni 2026 has 20 trading days; the cited closure list is consistent with that count."
     },
@@ -173,6 +272,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Juni 2026 has 20 trading days; the cited closure list is consistent with that count."
     },
@@ -182,6 +284,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Agustus 2026 has 19 trading days; the cited closure list is consistent with that count."
     },
@@ -191,6 +296,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Agustus 2026 has 19 trading days; the cited closure list is consistent with that count."
     },
@@ -200,6 +308,9 @@
       "kind": "joint_leave",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Desember 2026 has 20 trading days; the cited closure list is consistent with that count."
     },
@@ -209,6 +320,9 @@
       "kind": "national_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Desember 2026 has 20 trading days; the cited closure list is consistent with that count."
     },
@@ -218,6 +332,9 @@
       "kind": "exchange_holiday",
       "status": "AnnouncedClosed",
       "reference": "https://mediaasuransinews.co.id/market/catat-ini-jadwal-lengkap-libur-bursa-di-2026/",
+      "verification": "CONFIRMED",
+      "second_reference": "https://web.ksei.co.id/files/1767843003_Penyesuaian_Pengumuman_Hari_Libur_dan_Cuti_Bersama_PT_KSEI_Ta....pdf",
+      "verified_at": "2026-10-27T03:22:24Z",
       "known_at": "2026-10-26T09:31:10Z",
       "corroboration": "Kontan reports Desember 2026 has 20 trading days; the cited closure list is consistent with that count."
     }
