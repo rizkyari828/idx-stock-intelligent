@@ -281,6 +281,32 @@ public sealed class PersonalTechnicalFeaturesTests
         return sessions.ToArray();
     }
 
+    [Fact]
+    public async Task BenchmarkRowsUnlockRelativeStrength()
+    {
+        using var store = new Store().CaptureWithBenchmark(22);
+        var report = await Read(store, new DateOnly(2026, 9, 3));
+
+        // 22 sessions satisfy the 21-point RS20 window; RS60 still needs 61.
+        Assert.Equal("AVAILABLE", report.Features["rs20Pp"].Availability);
+        Assert.NotNull(report.Features["rs20Pp"].Value);
+        Assert.Equal("WARMUP", report.Features["rs60Pp"].Availability);
+        Assert.Null(report.Features["rs60Pp"].Value);
+    }
+
+    [Fact]
+    public async Task AMissingBenchmarkRowIsReportedNotFabricated()
+    {
+        using var store = new Store().CaptureWithBenchmark(22);
+        store.RemoveBenchmarkRow(new DateOnly(2026, 9, 2)); // inside the 21-point RS20 window
+
+        var report = await Read(store, new DateOnly(2026, 9, 3));
+
+        Assert.Equal("UNAVAILABLE", report.Features["rs20Pp"].Availability);
+        Assert.Equal("BENCHMARK_MISSING", report.Features["rs20Pp"].Reason);
+        Assert.Null(report.Features["rs20Pp"].Value);
+    }
+
     private sealed class Store : IDisposable
     {
         public Store()
@@ -296,6 +322,76 @@ public sealed class PersonalTechnicalFeaturesTests
 
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "idx-personal-technical-" + Guid.NewGuid().ToString("N"));
         public string Holidays => Path.Combine(Path.GetDirectoryName(Root)!, Path.GetFileName(Root) + "-holidays.json");
+
+        public Store CaptureWithBenchmark(int sessions, decimal first = 100m, decimal step = 0.5m,
+            decimal benchmarkFirst = 5000m, decimal benchmarkStep = 2m)
+        {
+            var dates = Sessions(sessions);
+            for (var index = 0; index < dates.Length; index++)
+                WriteWithBenchmark(dates[index], first + step * index, benchmarkFirst + benchmarkStep * index);
+            return this;
+        }
+
+        public Store WriteWithBenchmark(DateOnly session, decimal close, decimal benchmarkClose)
+        {
+            var directory = Path.Combine(Root, session.Year.ToString(CultureInfo.InvariantCulture));
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, session.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".json"),
+                DocumentWithBenchmark(session, close, benchmarkClose));
+            return this;
+        }
+
+        public Store RemoveBenchmarkRow(DateOnly session)
+        {
+            var directory = Path.Combine(Root, session.Year.ToString(CultureInfo.InvariantCulture));
+            File.WriteAllText(Path.Combine(directory, session.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".json"),
+                DocumentWithoutBenchmark(session, 100m + 0.5m * Sessions(1)[0].DayNumber));
+            return this;
+        }
+
+        private static string DocumentWithBenchmark(DateOnly session, decimal close, decimal benchmarkClose) => $$"""
+            {
+              "schema_version": 1,
+              "session_date": "{{session.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}}",
+              "captured_at": "{{CapturedAt}}",
+              "session_proof": "UNPROVEN_PERSONAL",
+              "source_id": "eodhd",
+              "rows": [
+                {{Row(session, close, Symbol, 1234567)}},
+                {{Row(session, benchmarkClose, PersonalTechnicalFeatures.BenchmarkSymbol, 999999)}}
+              ]
+            }
+            """;
+
+        private static string DocumentWithoutBenchmark(DateOnly session, decimal close) => $$"""
+            {
+              "schema_version": 1,
+              "session_date": "{{session.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}}",
+              "captured_at": "{{CapturedAt}}",
+              "session_proof": "UNPROVEN_PERSONAL",
+              "source_id": "eodhd",
+              "rows": [
+                {{Row(session, close, Symbol, 1234567)}}
+              ]
+            }
+            """;
+
+        private static string Row(DateOnly session, decimal close, string symbol, long volume) => $$"""
+            {
+              "symbol": "{{symbol}}",
+              "instrument_id": "6f0f6f2e-6a4b-4a4e-9d38-2f6f6c1a9b01",
+              "open": "{{Price(close - 0.5m)}}",
+              "high": "{{Price(close + 1m)}}",
+              "low": "{{Price(close - 1m)}}",
+              "close": "{{Price(close)}}",
+              "adjusted_close": "{{Price(close)}}",
+              "volume": {{volume}},
+              "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "fetched_at": "2026-10-26T10:30:00+00:00",
+              "quality_status": "UNPROVEN_PERSONAL"
+            }
+            """;
 
         public Store Capture(int sessions, decimal first = 100m, decimal step = 0.5m)
         {

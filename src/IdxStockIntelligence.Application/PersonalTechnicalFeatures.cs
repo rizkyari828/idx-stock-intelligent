@@ -31,6 +31,9 @@ public static class PersonalTechnicalFeatures
     /// <summary>One bounded read window; the trailing run never spans more calendar days than this.</summary>
     public const int WindowDays = PersonalBarsQuery.MaximumRangeDays;
 
+    /// <summary>The fixed panel's benchmark member; the personal store carries one row per panel member.</summary>
+    public const string BenchmarkSymbol = "JKSE.INDX";
+
     private static readonly IReadOnlyDictionary<DateOnly, DailyBar> NoBenchmark =
         new Dictionary<DateOnly, DailyBar>();
 
@@ -91,10 +94,13 @@ public static class PersonalTechnicalFeatures
             if (bars.Count >= WindowDays) break;
         }
         bars.Reverse();
-        var fields = TechnicalFeatures.Project(bars, NoBenchmark,
-            // No admitted universe classifies the personal symbol, so it is never treated as the index and
-            // no benchmark series is aligned: rs20Pp/rs60Pp stay unavailable instead of a fabricated return.
-            index: false, bars.Count == 0 ? NoContinuousRun : null, VolumeReason, VolumeReason, ct);
+        // The personal store holds every panel member per session, so the benchmark series is read from the
+        // same captures. A missing benchmark row on any aligned date yields BENCHMARK_MISSING downstream,
+        // never a fabricated relative return.
+        var benchmark = Benchmark(query, sessions, bars.Select(bar => bar.SessionDate).ToHashSet(), ct);
+        var isIndex = Normalize(query.Symbol) == BenchmarkSymbol;
+        var fields = TechnicalFeatures.Project(bars, benchmark,
+            index: isIndex, bars.Count == 0 ? NoContinuousRun : null, VolumeReason, VolumeReason, ct);
         var features = TechnicalFeatures.Names.ToDictionary(name => name, name =>
         {
             var state = fields[name];
@@ -103,6 +109,29 @@ public static class PersonalTechnicalFeatures
         }, StringComparer.Ordinal);
         return new(Source, SessionProof, query.Symbol, query.Through, query.Cutoff, marketDate, runStart, bars.Count,
             Note(bars.Count, marketDate, features), features);
+    }
+
+    /// <summary>
+    /// Reads the benchmark series from the same personal sessions, honouring the request cutoff. Only the
+    /// dates already in this symbol's run are needed; anything missing stays absent so the feature reports
+    /// BENCHMARK_MISSING instead of guessing.
+    /// </summary>
+    private static IReadOnlyDictionary<DateOnly, DailyBar> Benchmark(PersonalTechnicalQuery query,
+        IReadOnlyList<PersonalBarSession> sessions, HashSet<DateOnly> runDates, CancellationToken ct)
+    {
+        if (Normalize(query.Symbol) == BenchmarkSymbol || runDates.Count == 0) return NoBenchmark;
+        var benchmark = new Dictionary<DateOnly, DailyBar>();
+        foreach (var session in sessions)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!runDates.Contains(session.SessionDate)) continue;
+            var capturedAt = CapturedAt(session);
+            if (capturedAt > query.Cutoff) continue;
+            var row = session.Rows.FirstOrDefault(candidate => Normalize(candidate.Symbol) == BenchmarkSymbol);
+            if (row is null) continue;
+            benchmark[session.SessionDate] = Bar(new PersonalCapture(session.SessionDate, row, capturedAt), BenchmarkSymbol);
+        }
+        return benchmark;
     }
 
     private static Dictionary<DateOnly, PersonalCapture> Visible(PersonalTechnicalQuery query,
