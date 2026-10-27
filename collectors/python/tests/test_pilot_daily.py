@@ -24,6 +24,8 @@ class DailyTests(unittest.TestCase):
         Path("pilot/universe.json").write_text(json.dumps(config))
         Path("pilot/collection-policy.json").write_text('{"SAFE_EOD_CUTOFF":"19:00"}')
         Path("pilot/soak.json").write_text('{"after_market_date":"2026-09-28","required_completed_runs":10}')
+        Path("pilot/holidays-2026.json").write_text(
+            (Path(__file__).resolve().parents[3] / "pilot/holidays-2026.json").read_text())
         self.root = Path("data/collector-output/pilot")
         self.root.mkdir(parents=True)
         revisions = [{"instrument_id":i["id"],"date":"2026-09-30","content_sha256":"fixture",
@@ -160,22 +162,35 @@ class DailyTests(unittest.TestCase):
         after={str(p):p.read_bytes() for p in Path('.').rglob('*') if p.is_file()}
         self.assertEqual(before,after)
 
-    def test_personal_mode_collects_latest_proven_session_and_warns(self):
+    def test_personal_mode_collects_latest_prior_trading_day_even_without_proof(self):
         proofs=[self.proof("2026-10-01"),self.proof("2026-10-02")]
         plan=self.plan(now="2026-10-26T00:00:00Z",proofs=proofs,personal=True)
         self.assertEqual("ELIGIBLE",plan["decision"])
-        self.assertEqual("2026-10-02",plan["next_candidate_session"])
+        self.assertEqual("2026-10-23",plan["next_candidate_session"])
+        self.assertEqual("UNPROVEN_PERSONAL",plan["session_proof"])
+        self.assertEqual("READY_UNPROVEN_PERSONAL",plan["reason"])
         self.assertEqual("PERSONAL",plan["mode"])
+        self.assertIn("PERSONAL_MODE_UNPROVEN_SESSION",plan["warnings"])
         self.assertIn("PERSONAL_MODE_SKIPS_INTERVENING_SESSIONS",plan["warnings"])
-        # Same evidence, strict mode: still walks from the ledger head, not the newest proof.
+        # Same evidence, strict mode: still walks from the ledger head with real proof only.
         strict=self.plan(now="2026-10-26T00:00:00Z",proofs=proofs)
         self.assertEqual("2026-10-01",strict["next_candidate_session"])
         self.assertEqual("STRICT",strict["mode"])
 
-    def test_personal_mode_still_requires_its_own_session_proof(self):
-        plan=self.plan(now="2026-10-26T00:00:00Z",proofs=[],personal=True)
-        self.assertEqual("WAITING_FOR_SESSION_PROOF",plan["decision"])
-        self.assertEqual("COMPLETED_SESSION_EVIDENCE_REQUIRED",plan["reason"])
+    def test_personal_mode_still_refuses_conflicting_or_failed_proof(self):
+        valid=self.proof("2026-10-23")
+        for proofs,reason in (([dict(valid,reference="https://eodhd.com/row")],"INDEPENDENT_ALREADY_KNOWN_PROOF_REQUIRED"),
+                              ([valid,valid],"CONFLICTING_SESSION_PROOF"),
+                              ([dict(valid,completed_at=None)],"COMPLETED_SESSION_EVIDENCE_REQUIRED")):
+            with self.subTest(reason=reason):
+                plan=self.plan(now="2026-10-26T00:00:00Z",proofs=proofs,personal=True)
+                self.assertEqual("WAITING_FOR_SESSION_PROOF",plan["decision"])
+                self.assertEqual(reason,plan["reason"])
+
+    def test_personal_mode_skips_a_cited_holiday_instead_of_capturing_it(self):
+        plan=self.plan(now="2026-12-25T00:00:00Z",proofs=[],personal=True)
+        self.assertEqual("2026-12-23",plan["next_candidate_session"])
+        self.assertEqual("UNPROVEN_PERSONAL",plan["session_proof"])
 
     def test_personal_mode_reports_partial_canonical_session_instead_of_deadlock(self):
         partial=[dict(r,date="2026-10-02") for r in self.state["revisions"][:-1]]

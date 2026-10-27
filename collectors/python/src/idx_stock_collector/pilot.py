@@ -20,6 +20,12 @@ from zoneinfo import ZoneInfo
 from .contract import archive_payload
 from .eodhd_experimental import parse_daily, PARSER_VERSION
 from .entitlement_probe import counters
+from .pilot_auto import holidays_path, load_holidays
+
+
+PERSONAL_BARS_ROOT = Path("data/personal/bars")
+PERSONAL_SCHEMA_VERSION = 1
+PERSONAL_PRICE_FIELDS = ("open", "high", "low", "close", "adjusted_close")
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -42,8 +48,27 @@ def safe_cutoff() -> local_time:
     return local_time.fromisoformat(value)
 
 
-def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutoff: local_time) -> dict:
-    """Explicit clock input; provider rows cannot establish completion."""
+def cited_holiday(day: date) -> dict | None:
+    """The cited exchange-holiday entry for a date, or None when the calendar is open.
+
+    Fail closed outside the fixture's covered year: a calendar that does not cover the
+    date cannot support a personal capture either.
+    """
+    year, holidays = load_holidays(holidays_path())
+    if day.year != year:
+        raise ValueError(f"Cited holiday coverage does not include {day}.")
+    return holidays.get(day)
+
+
+def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutoff: local_time,
+                           allow_unproven: bool = False) -> dict:
+    """Explicit clock input; provider rows cannot establish completion.
+
+    ``allow_unproven`` is the personal-capture opt-in. It only opens a past-or-cutoff
+    weekday that has no session proof at all, and only for the personal (non-canonical)
+    store. Future dates, a same-day session before the cutoff, weekends, a cited holiday,
+    conflicting proofs and any proof that fails validation still refuse.
+    """
     if now.tzinfo is None:
         raise ValueError("Timezone-aware collection clock required.")
     jakarta=now.astimezone(ZoneInfo("Asia/Jakarta"))
@@ -70,7 +95,15 @@ def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutof
         result["session_proof"]="KNOWN_CLOSED"
         reason="CLOSED_BY_CALENDAR"
     elif len(proofs)!=1:
-        reason="SESSION_PROOF_REQUIRED" if not proofs else "CONFLICTING_SESSION_PROOF"
+        if not proofs and allow_unproven:
+            holiday=cited_holiday(day)
+            if holiday is not None:
+                raise ValueError(f"{day} is a cited exchange holiday: {holiday.get('name','unnamed')}.")
+            result["session_proof"]="UNPROVEN_PERSONAL"
+            result["eligible"]=True
+            reason="ELIGIBLE_UNPROVEN_PERSONAL"
+        else:
+            reason="SESSION_PROOF_REQUIRED" if not proofs else "CONFLICTING_SESSION_PROOF"
     else:
         if not independent:
             reason="INDEPENDENT_ALREADY_KNOWN_PROOF_REQUIRED"
@@ -95,10 +128,11 @@ def collection_eligibility(day: date, now: datetime, sessions: list[dict], cutof
     return result
 
 
-def collection_plan(start: date, end: date, now: datetime) -> list[dict]:
+def collection_plan(start: date, end: date, now: datetime, allow_unproven: bool = False) -> list[dict]:
     sessions=json.loads(Path(os.environ.get("IDX_PILOT_SESSIONS","pilot/sessions.json")).read_text())
     cutoff=safe_cutoff()
-    return [collection_eligibility(start+timedelta(days=i),now,sessions,cutoff) for i in range((end-start).days+1)]
+    return [collection_eligibility(start+timedelta(days=i),now,sessions,cutoff,allow_unproven)
+            for i in range((end-start).days+1)]
 
 
 def remaining(usage: dict, ceiling: int, quota_day: date | None = None, strict: bool = False) -> int:
@@ -230,6 +264,101 @@ def dry_run(args) -> dict:
             "provider_requests":0}
 
 
+def personal_row_digest(session_date: str, row: dict) -> str:
+    """Digest of the exact personal row content, never the canonical .NET ContentHash."""
+    content = json.dumps([session_date, row["symbol"], row["instrument_id"], row["open"], row["high"],
+                          row["low"], row["close"], row["adjusted_close"], row["volume"]],
+                         separators=(",", ":"))
+    return hashlib.sha256(content.encode()).hexdigest()
+
+
+def personal_capture_document(run: dict) -> dict | None:
+    """Personal-store capture of one session, or None when the batch is not complete.
+
+    Only a complete panel is captured: a degraded batch would make a partial session look
+    collected. A panel member with no provider row for the session is omitted, never
+    zero-filled. ``artifact_sha256`` names the retained raw bytes; ``content_sha256`` names
+    the exact decimal row content. Neither is a canonical admission claim.
+    """
+    if run.get("from") != run.get("to"):
+        raise ValueError("Personal capture requires a single session.")
+    session = run["from"]
+    proof = next((p for p in run.get("collection_eligibility", []) if p["date"] == session), None)
+    if proof is None or proof.get("session_proof") not in ("UNPROVEN_PERSONAL", "KNOWN_OPEN"):
+        raise ValueError("Personal capture requires an eligible session.")
+    if run.get("status") != "SUCCEEDED":
+        return None
+    quality = "UNPROVEN_PERSONAL" if proof["session_proof"] == "UNPROVEN_PERSONAL" else "PROVEN"
+    source_id, rows = None, []
+    for entry in run["entries"]:
+        manifest = entry["manifest"]
+        if source_id is None:
+            source_id = manifest["source_id"]
+        elif manifest["source_id"] != source_id:
+            raise ValueError("Mixed provenance in one personal capture.")
+        row = next((r for r in entry["rows"] if r["date"] == session), None)
+        if row is None:
+            continue  # Provider absence stays UNKNOWN; never invent a bar for the session.
+        if any(not isinstance(row[field], str) for field in PERSONAL_PRICE_FIELDS) or type(row["volume"]) is not int:
+            raise ValueError("Personal rows require exact decimal strings and an integer volume.")
+        values = {"symbol": entry["symbol"], "instrument_id": entry["instrument_id"]}
+        values.update({field: row[field] for field in PERSONAL_PRICE_FIELDS})
+        values["volume"] = row["volume"]
+        values["content_sha256"] = personal_row_digest(session, values)
+        values["artifact_sha256"] = manifest["artifact"]["content_sha256"]
+        values["fetched_at"] = manifest["fetched_at_utc"]
+        values["quality_status"] = quality
+        rows.append(values)
+    return {"schema_version": PERSONAL_SCHEMA_VERSION, "session_date": session,
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+            "session_proof": quality, "source_id": source_id, "rows": rows}
+
+
+def personal_capture_paths(directory: Path, session: date) -> list[tuple[int, Path]]:
+    """Existing personal captures for one session as (revision, path), oldest first."""
+    base = directory / f"{session}.json"
+    found = [(1, base)] if base.is_file() else []
+    prefix = f"{session}.r"
+    for path in directory.glob(prefix + "*.json"):
+        number = path.name[len(prefix):-len(".json")]
+        if number.isdigit() and int(number) >= 2:
+            found.append((int(number), path))
+    return sorted(found, key=lambda item: item[0])
+
+
+def write_personal_capture(document: dict, root: Path | None = None) -> dict:
+    """Append-only personal capture: identical bytes are a no-op, differences add a revision.
+
+    The first capture is ``<YYYY>/<YYYY-MM-DD>.json``. A differing capture never replaces
+    it; it is written as ``<YYYY-MM-DD>.r2.json``, ``.r3.json``, ... in order. A capture
+    whose exact bytes are already retained is reported UNCHANGED instead of duplicated.
+    """
+    session = date.fromisoformat(document["session_date"])
+    directory = Path(root or PERSONAL_BARS_ROOT) / f"{session.year:04d}"
+    directory.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(document, indent=2).encode()
+    existing = personal_capture_paths(directory, session)
+    for revision, path in existing:
+        if path.read_bytes() == payload:
+            return {"status": "UNCHANGED", "path": str(path), "revision": revision}
+    revision = existing[-1][0] + 1 if existing else 1
+    while True:
+        path = directory / (f"{session}.json" if revision == 1 else f"{session}.r{revision}.json")
+        try:
+            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            if path.read_bytes() == payload:
+                return {"status": "UNCHANGED", "path": str(path), "revision": revision}
+            revision += 1
+            continue
+        with os.fdopen(descriptor, "wb") as capture:
+            capture.write(payload)
+            capture.flush()
+            os.fsync(capture.fileno())
+        return {"status": "WRITTEN" if revision == 1 else "REVISION",
+                "path": str(path), "revision": revision}
+
+
 def collect(args) -> Path:
     config = configuration(args.universe)
     instruments = config["instruments"]
@@ -239,9 +368,14 @@ def collect(args) -> Path:
     collection_started=datetime.now(timezone.utc)
     today = collection_started.astimezone(ZoneInfo("Asia/Jakarta")).date()
     start, end = window(args.start, args.end, today)
-    eligibility=collection_plan(start,end,collection_started) if not args.offline else []
+    personal=getattr(args,"personal",False)
+    if personal and (start!=end or args.offline):
+        raise ValueError("Personal capture requires one online session.")
+    eligibility=(collection_plan(start,end,collection_started,allow_unproven=personal)
+                 if not args.offline else [])
     if any(not p["eligible"] for p in eligibility):
         raise ValueError("Collection not eligible: "+next(p["reason"] for p in eligibility if not p["eligible"]))
+    unproven_personal=any(p["session_proof"]=="UNPROVEN_PERSONAL" for p in eligibility)
     output = Path("data/collector-output/pilot")
     raw_root = Path("data/raw/pilot")
     output.mkdir(parents=True, exist_ok=True)
@@ -297,7 +431,9 @@ def collect(args) -> Path:
             save()
 
     state = local_state() if not args.offline else {"status":"UNKNOWN"}
-    if getattr(args,"ingest",False) and not args.offline and state["status"] != "KNOWN":
+    # An unproven personal session never reaches the worker, so it never needs canonical state.
+    if (getattr(args,"ingest",False) and not args.offline and not unproven_personal
+            and state["status"] != "KNOWN"):
         run.update(status="FAILED",error_code="CANONICAL_PREFLIGHT_FAILED",completed_at=datetime.now(timezone.utc).isoformat())
         run["entries"]=[{"instrument_id":i["id"],"symbol":i["symbol"],"status":"SOURCE_ERROR",
                          "reason":"CANONICAL_PREFLIGHT_FAILED","rows":[]} for i in instruments]
@@ -371,6 +507,11 @@ def collect(args) -> Path:
     run["completed_at"] = datetime.now(timezone.utc).isoformat()
     run["status"] = "FAILED" if run.get("account_error") else "SUCCEEDED" if all(e["status"]=="AVAILABLE" and covers(e["manifest"],start,end) for e in run["entries"]) else "DEGRADED"
     save()
+    if personal:
+        document = personal_capture_document(run)
+        run["personal_store"] = ({"status":"SKIPPED_INCOMPLETE","reason":"BATCH_NOT_SUCCEEDED"}
+                                 if document is None else write_personal_capture(document))
+        save()
     return target
 
 
@@ -522,7 +663,7 @@ def main():
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--daily", action="store_true", help="Select one pending proven prior Jakarta session; no rollover or refresh.")
-    parser.add_argument("--personal", action="store_true", help="Personal opt-in: with --daily, collect the latest session that has its own completion evidence instead of every intervening session. Never relaxes session proof.")
+    parser.add_argument("--personal", action="store_true", help="Personal opt-in: with --daily, capture the latest prior Jakarta trading day into data/personal/bars even when it has no independent completion proof. Canonical ingestion is skipped for an unproven session.")
     parser.add_argument("--soak-report", action="store_true")
     parser.add_argument("--refresh", action="store_true", help="Bypass automatic canonical reuse; never automatic retry.")
     parser.add_argument("--ingest", action="store_true", help="Run validation, ingestion, features and durable operation report after collection.")
@@ -567,15 +708,33 @@ def main():
                     raise SystemExit(0 if plan["decision"]=="NO_NEW_SESSION" else 3 if plan["decision"]=="WAITING_FOR_SESSION_PROOF" else 1)
                 args.start = args.end = plan["next_candidate_session"]
             path=collect(args)
+            batch=json.loads(path.read_text())
+            unproven=[p["date"] for p in batch.get("collection_eligibility",[])
+                      if p.get("session_proof")=="UNPROVEN_PERSONAL"]
+            if unproven:
+                store=batch.get("personal_store") or {}
+                capture_status=store.get("status","UNKNOWN")
+                outcome="SUCCEEDED" if capture_status in ("WRITTEN","REVISION","UNCHANGED") else "NOT_WRITTEN"
+                print(f"PERSONAL-CAPTURE: {outcome} {capture_status} {store.get('path','(none)')} "
+                      f"session {batch['from']} proof UNPROVEN_PERSONAL")
+                print("CANONICAL-INGESTION: SKIPPED_UNPROVEN_SESSION - canonical ingestion was skipped "
+                      "because the session is unproven; the worker was not called and no FAILED "
+                      "operation report was written.")
+                print(json.dumps({"personal_store":store,"canonical_ingestion":"SKIPPED_UNPROVEN_SESSION",
+                                  "status":batch["status"]}))
+                raise SystemExit(0 if batch["status"]=="SUCCEEDED" else 2 if batch["status"]=="DEGRADED" else 1)
             if args.ingest:
                 path=ingest_and_summarize(path)
                 report=json.loads(path.read_text())
                 print(json.dumps({"report":str(path),"status":report["status"],"quota_units":report["reserved_units"],
-                    "canonical_bars_added":report.get("worker",{}).get("canonical_additions"),"soak":report["soak"]}))
+                    "canonical_bars_added":report.get("worker",{}).get("canonical_additions"),
+                    "personal_store":batch.get("personal_store"),"soak":report["soak"]}))
                 status=json.loads(path.read_text())["status"]
                 raise SystemExit(0 if status=="SUCCEEDED" else 2 if status=="DEGRADED" else 1)
             print(path)
-            status=json.loads(path.read_text())["status"]
+            if batch.get("personal_store"):
+                print(json.dumps({"personal_store":batch["personal_store"]}))
+            status=batch["status"]
             raise SystemExit(0 if status=="SUCCEEDED" else 2 if status=="DEGRADED" else 1)
         except (ValueError, OSError, KeyError, json.JSONDecodeError):
             raise SystemExit("STOP: invalid configuration, evidence, entitlement or request. No automatic retry.") from None

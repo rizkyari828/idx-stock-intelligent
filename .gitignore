@@ -29,6 +29,8 @@ data/backups/**
 !data/raw/.gitkeep
 data/collector-output/**
 !data/collector-output/.gitkeep
+# Personal (non-canonical) bar store: local captures only, never committed
+data/personal/**
 *.db
 *.sqlite*
 *.log

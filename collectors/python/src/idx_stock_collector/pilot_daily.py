@@ -6,6 +6,7 @@ import os
 from zoneinfo import ZoneInfo
 
 from .pilot import configuration, collection_eligibility, local_state, safe_cutoff, soak_progress
+from .pilot_auto import latest_trading_day, load_holidays
 
 
 def daily_plan(now: datetime | None = None, personal: bool = False) -> dict:
@@ -70,27 +71,32 @@ def daily_plan(now: datetime | None = None, personal: bool = False) -> dict:
         return gate
 
     if personal:
-        # Personal mode: collect the most recent session that has its own completion
-        # evidence, instead of demanding every intervening session. The strict path is
-        # unchanged and remains the default; this only relaxes sequence, never proof.
+        # Personal capture: the latest prior Jakarta trading day from the cited calendar,
+        # proven or not. An unproven session is written only to data/personal/bars and never
+        # enters canonical ingestion, so this relaxes capture, never admission. The strict
+        # path below is unchanged and remains the default.
         dates = {day for _, day in current}
         full = {day for day in dates if all((instrument, day) in current for instrument in ids)}
         result["partial_canonical_sessions"] = sorted(day for day in dates
             if day > str(latest) and day not in full)
         if any(date.fromisoformat(day) > latest for day in full):
             result["warnings"].append("CANONICAL_AHEAD_OF_LEDGER_PERSONAL")
-        proven = sorted(date.fromisoformat(row["date"]) for row in sessions
-            if date.fromisoformat(row["date"]) < today
-            and proof(date.fromisoformat(row["date"]))["eligible"])
-        if not proven:
-            result.update(decision="WAITING_FOR_SESSION_PROOF",
-                          reason="COMPLETED_SESSION_EVIDENCE_REQUIRED")
-            return result
-        chosen = max(proven)
-        result.update(next_candidate_session=str(chosen), decision="ELIGIBLE",
-                      reason="READY", session_proof="CONFIRMED")
-        if chosen > latest:
+        year, holidays = load_holidays()
+        candidate = latest_trading_day(today, holidays, year)
+        result["next_candidate_session"] = str(candidate)
+        if candidate > latest:
             result["warnings"].append("PERSONAL_MODE_SKIPS_INTERVENING_SESSIONS")
+        gate = collection_eligibility(candidate, now, sessions, cutoff, allow_unproven=True)
+        if gate["session_proof"] == "UNPROVEN_PERSONAL":
+            result.update(decision="ELIGIBLE", reason="READY_UNPROVEN_PERSONAL",
+                          session_proof="UNPROVEN_PERSONAL")
+            result["warnings"].append("PERSONAL_MODE_UNPROVEN_SESSION")
+            return result
+        proven = proof(candidate)
+        if proven["eligible"]:
+            result.update(decision="ELIGIBLE", reason="READY", session_proof="CONFIRMED")
+        else:
+            result.update(decision="WAITING_FOR_SESSION_PROOF", reason=proven["reason"])
         return result
 
     if latest > today or any(date.fromisoformat(d) > latest for _, d in current):
