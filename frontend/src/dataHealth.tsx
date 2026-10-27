@@ -1,7 +1,8 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { api, errorMessage } from './api.js';
 import { jakartaToday, recorded } from './view.js';
-import { Badge, Empty, Icon, LoadingSkeleton, Metric, Notice, PageHeader, QualityBadge } from './ui.js';
+import { Badge, Empty, Icon, LoadingSkeleton, Metric, Notice, PageHeader, PersonalBadge, QualityBadge } from './ui.js';
+import { PERSONAL_BAR_NOTE, usePersonalBars, type PersonalBars } from './personal.js';
 
 export type DataHealthSession = { date: string; bars: number; instruments: number; coverageGap: number; quality: Record<string, number>; flat: number; zeroVolume: number };
 export type DataHealthGap = { date: string; knownHoliday: boolean; holidayName: string | null; holidayKind: string | null };
@@ -70,6 +71,31 @@ export function TodaySection({onNavigate}: {onNavigate: (page:string)=>void}) {
   return <TodayCard report={report} error={error} onNavigate={onNavigate}/>;
 }
 
+/**
+ * Latest personal capture beside the canonical health cards. An empty store is a normal
+ * state, not an error: it renders the explicit "no personal capture yet" copy and never
+ * stands in for a canonical session.
+ */
+export function PersonalCaptureCard({bars, error}: {bars?: PersonalBars | null; error?: string}) {
+  const latest = bars?.sessions.length ? bars.sessions[bars.sessions.length - 1] : null;
+  return <section className="panel panel-body personal-card" aria-label="Personal capture">
+    <div className="section-heading"><h2>Personal capture</h2>{latest && <PersonalBadge/>}</div>
+    {error
+      ? <Notice kind="error">Personal capture unavailable: {error}</Notice>
+      : !bars
+        ? <p className="loading-text"><span className="spinner"/>Loading personal capture…</p>
+        : latest
+          ? <>
+              <div className="summary-strip personal-metrics">
+                <Metric label="Latest personal session" value={latest.sessionDate} note="Newest stored capture file"/>
+                <Metric label="Symbols captured" value={latest.rows.length} note="Rows in that session"/>
+              </div>
+              <p className="muted">{PERSONAL_BAR_NOTE}</p>
+            </>
+          : <p className="muted">No personal capture yet. The personal file store returned no session, and no personal price is shown in place of a canonical bar.</p>}
+  </section>;
+}
+
 function Section({title, count, children}: {title: string; count?: number; children: ReactNode}) {
   return <section className="panel results-panel">
     <div className="table-toolbar"><span className="tab active">{title}{count===undefined?null:<span className="tab-count">{count}</span>}</span></div>
@@ -77,7 +103,7 @@ function Section({title, count, children}: {title: string; count?: number; child
   </section>;
 }
 
-export function DataHealthView({report}: {report: DataHealthReport}) {
+export function DataHealthView({report, personal, personalError}: {report: DataHealthReport; personal?: PersonalBars | null; personalError?: string}) {
   const last = report.lastSession ? report.sessions.find(session=>session.date===report.lastSession) : undefined;
   const holidayGaps = report.gaps.filter(gap=>gap.knownHoliday).length;
   return <div className="page-stack data-health-page">
@@ -90,6 +116,7 @@ export function DataHealthView({report}: {report: DataHealthReport}) {
       <Metric label="Row quality" value={report.degraded ? 'DEGRADED' : 'NO NON-VALID ROWS'} note="Stored quality_status counts"/>
       <Metric label="Generated" value={recorded(report.generatedAt)} note="UTC record time · WIB display"/>
     </div>
+    <PersonalCaptureCard bars={personal} error={personalError}/>
     {report.degraded
       ? <Notice kind="review"><strong>DEGRADED rows are present.</strong> At least one retained bar is not marked VALID. This is the local quality status, not exchange verification.</Notice>
       : <Notice>No retained bar is marked outside VALID. That is a local status, not proof of accuracy or exchange provenance.</Notice>}
@@ -115,8 +142,9 @@ export function DataHealthView({report}: {report: DataHealthReport}) {
 
 export function DataHealthPage() {
   const {report,error,busy} = useDataHealth();
+  const personal = usePersonalBars();
   if (busy && !report) return <LoadingSkeleton label="Loading data health…"/>;
-  if (error) return <div className="page-stack"><PageHeader eyebrow="LOCAL DATA · READ ONLY" title="Data Health" subtitle="Coverage of locally retained canonical bars."/><Notice kind="error">{error}</Notice></div>;
+  if (error) return <div className="page-stack"><PageHeader eyebrow="LOCAL DATA · READ ONLY" title="Data Health" subtitle="Coverage of locally retained canonical bars."/><Notice kind="error">{error}</Notice><PersonalCaptureCard bars={personal.bars} error={personal.error}/></div>;
   if (!report) return <Empty title="Data health unavailable">The local API returned no report.</Empty>;
-  return <DataHealthView report={report}/>;
+  return <DataHealthView report={report} personal={personal.bars} personalError={personal.error}/>;
 }

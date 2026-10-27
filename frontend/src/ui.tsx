@@ -35,6 +35,8 @@ export function Icon({name}: {name: string}) { return <svg viewBox="0 0 24 24" a
 export const PERSONAL_DATA_TOOLTIP='Personal, unverified data — not an exchange tape.';
 export function Badge({children, kind='outline', icon, title}: {children: ReactNode; kind?: string; icon?: string; title?: string}) { return <span className={`badge ${kind}`} title={title}>{icon && <Icon name={icon}/>} {children}</span>; }
 export function QualityBadge({quality}: {quality?: string | null}) { if(!quality||quality==='VALID')return null; return <Badge kind="degraded" icon="warning" title={`${quality} · ${PERSONAL_DATA_TOOLTIP}`}>DEGRADED</Badge>; }
+export const PERSONAL_BAR_TOOLTIP = 'Personal capture — no independent session proof; not a canonical bar.';
+export function PersonalBadge({title=PERSONAL_BAR_TOOLTIP}: {title?: string}) { return <Badge kind="personal" icon="file" title={title}>PERSONAL</Badge>; }
 const statuses: Record<string, [string,string,string]> = { MATCH:['Match','match','check'], REVIEW:['Review','review','warning'], MISSING_FROM_LEDGER:['Missing from ledger','missing','journal'], MISSING_FROM_EXPECTED:['Missing from expected','missing-expected','file'], UNKNOWN_INSTRUMENT:['Unknown instrument','unknown','unknown'] };
 export function StatusBadge({status}: {status: string}) { const [label,kind,icon] = statuses[status] ?? [status,'outline','info'];return <Badge kind={kind} icon={icon}>{label}</Badge>; }
 export function PageHeader({eyebrow, title, subtitle, children}: {eyebrow: string; title: string; subtitle: string; children?: ReactNode}) {return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div><div className="header-actions">{children}</div></header>;}

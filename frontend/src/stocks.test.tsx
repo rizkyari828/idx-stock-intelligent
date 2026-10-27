@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { type Request, ApiError } from './api.js';
 import { Navigation } from './ui.js';
 import { PriceChart, StockLink, StockResults } from './StocksPage.js';
-import { StockSession, emptyStockState, type StockHistory, type StockResult, type StockState } from './stocks.js';
+import { StockSession, emptyStockState, type HistoryRow, type StockHistory, type StockResult, type StockState } from './stocks.js';
+import { type PersonalBars } from './personal.js';
 import { type ScreenerResponse } from './screener.js';
 const id='10000000-0000-4000-8000-000000000001';
 const history:StockHistory={registry:{id,symbol:'SYN',name:'Synthetic',type:'UNKNOWN',currency:'UNKNOWN'},registryAsOf:'2026-10-03',through:'2026-09-30',cutoff:'2026-10-01T12:00:00Z',limit:60,order:'MARKET_DATE_ASCENDING',rows:[]};
@@ -21,3 +22,44 @@ test('invalid UUID does not request and unknown UUID reports not found',async()=
 test('Screener service failure leaves retained history available',async()=>{const h=harness(),p=h.session.load(id,{through:history.through,cutoff:''});h.calls[0].resolve(history);await Promise.resolve();h.calls[1].reject(new ApiError('Unavailable',503));await p;assert.equal(h.state().result?.history,history);assert.equal(h.state().result?.screener,null);assert.equal(h.state().error,'');});
 
 test('benchmark reference provenance is visible without inventing a stock setup',()=>{const r=result();r.screener={universeSnapshotId:'known',rows:[],marketContext:{instrumentId:id,trend:'UNKNOWN',volatility:'UNKNOWN',fieldStates:{},provenance:{referenceSnapshotIds:['index-reference'],priceBasis:'RAW_AS_TRADED'}}} as unknown as ScreenerResponse;const html=renderToStaticMarkup(<StockResults result={r} portfolioSelected={false}/>);assert.match(html,/Retained knowledge-dated evidence/);assert.match(html,/index-reference/);assert.doesNotMatch(html,/NONE \/ No setup/);});
+
+const personalBars:PersonalBars={source:'PERSONAL_FILE_STORE',generatedAt:'2026-10-27T02:00:00Z',sessions:[{sessionDate:'2026-10-26',sessionProof:'UNPROVEN_PERSONAL',capturedAt:'2026-10-26T11:00:00+00:00',rows:[{symbol:'SYN',open:'100.25',high:'101.5',low:'99.75',close:'100.50',adjustedClose:'100.50',volume:1234567,qualityStatus:'UNPROVEN_PERSONAL'}]}]};
+const canonicalRow=(date:string):HistoryRow=>({date,open:110,high:112,low:109,close:111.25,volume:900,availability:'AVAILABLE',reason:null,evidence:{revisionNumber:1,knownAt:'2026-10-26T11:00:00Z',retrievedAt:null,sourceId:'synthetic',canonicalQuality:'VALID',volumeUnit:'SHARES',volumeBasis:'RAW_AS_TRADED',marketSegment:'MAIN',contentHash:'hash',sessionReference:'synthetic-session',sessionKnownAt:'2026-10-26T11:00:00Z',open:'110',high:'112',low:'109',close:'111.25'}});
+const withCanonical=(dates:string[],cutoff='2026-10-27T00:00:00Z'):StockResult=>{const r=result();r.history={...structuredClone(history),cutoff,rows:dates.map(canonicalRow)};return r;};
+
+test('a personal-only instrument shows its price with the PERSONAL badge and session date',()=>{
+ const html=renderToStaticMarkup(<StockResults result={withCanonical([])} portfolioSelected={false} personal={personalBars}/>);
+ for(const text of ['Latest personal capture','PERSONAL','100.50','2026-10-26','No visible canonical price','no independent session proof','not a canonical bar'])assert.ok(html.includes(text),text);
+ assert.match(html,/badge personal/);
+});
+
+test('canonical bars win: no personal price or badge for a session a canonical bar covers',()=>{
+ const sameDate=renderToStaticMarkup(<StockResults result={withCanonical(['2026-10-26'])} portfolioSelected={false} personal={personalBars}/>);
+ assert.doesNotMatch(sameDate,/badge personal/);
+ assert.doesNotMatch(sameDate,/100\.50/);
+ assert.match(sameDate,/111\.25/);
+ const newerCanonical=renderToStaticMarkup(<StockResults result={withCanonical(['2026-10-26','2026-10-27'])} portfolioSelected={false} personal={personalBars}/>);
+ assert.doesNotMatch(newerCanonical,/badge personal/);
+ assert.doesNotMatch(newerCanonical,/100\.50/);
+});
+
+test('a personal capture fills only the session after the newest canonical bar',()=>{
+ const html=renderToStaticMarkup(<StockResults result={withCanonical(['2026-10-23'])} portfolioSelected={false} personal={personalBars}/>);
+ assert.match(html,/badge personal/);
+ assert.match(html,/100\.50/);
+ assert.match(html,/No canonical bar exists for 2026-10-26/);
+ assert.match(html,/111\.25/);
+});
+
+test('a personal capture is withheld until the knowledge cutoff reaches its capture time',()=>{
+ const tooEarly=renderToStaticMarkup(<StockResults result={withCanonical([],'2026-10-26T10:00:00Z')} portfolioSelected={false} personal={personalBars}/>);
+ assert.doesNotMatch(tooEarly,/badge personal/);
+ assert.doesNotMatch(tooEarly,/100\.50/);
+});
+
+test('another instrument\'s personal capture is never attributed to this one',()=>{
+ const other:PersonalBars={...personalBars,sessions:[{...personalBars.sessions[0],rows:[{...personalBars.sessions[0].rows[0],symbol:'OTHER.JK'}]}]};
+ const html=renderToStaticMarkup(<StockResults result={withCanonical([])} portfolioSelected={false} personal={other}/>);
+ assert.doesNotMatch(html,/badge personal/);
+ assert.doesNotMatch(html,/100\.50/);
+});
