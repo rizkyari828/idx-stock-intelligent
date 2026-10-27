@@ -34,6 +34,9 @@ builder.Services.AddSingleton<OutcomeTrackingService>();
 builder.Services.AddSingleton<OutcomeVerificationService>();
 builder.Services.AddSingleton(sp => new OutcomeV02VerificationService(sp.GetRequiredService<NpgsqlDataSource>(), Path.GetFullPath("data/raw")));
 builder.Services.AddSingleton<ResearchService>();
+// The personal store is resolved only from the application content root, never from a request.
+builder.Services.AddSingleton(_ => new PersonalBarFileStore(
+    Path.Combine(builder.Environment.ContentRootPath, PersonalBarFileStore.RelativeRoot)));
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -300,6 +303,21 @@ app.MapGet("/api/data-health", async (HttpRequest request, DataHealthDatabase da
     try { return Results.Ok(await database.ReadAsync(ct)); }
     catch (Exception error) when (error is NpgsqlException or InvalidOperationException or IOException or UnauthorizedAccessException or JsonException)
     { return Results.Json(new { code = "DATA_HEALTH_UNAVAILABLE", error = "Data health is unavailable." }, statusCode: 503); }
+});
+// Read-only personal file store: no database, canonical reader, cache or admission.
+app.MapGet("/api/personal/bars", async (HttpRequest request, PersonalBarFileStore store, CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Any(parameter => parameter.Value.Count != 1))
+            throw new PersonalBarsException(400, "PERSONAL_BARS_QUERY_INVALID",
+                "Personal bars accepts each query parameter once.");
+        var query = PersonalBarsQuery.Resolve(
+            request.Query.ToDictionary(parameter => parameter.Key, parameter => (string?)parameter.Value[0], StringComparer.Ordinal));
+        return Results.Ok(await store.ReadAsync(query, ct));
+    }
+    catch (PersonalBarsException error)
+    { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
 });
 app.UseDefaultFiles();
 app.UseStaticFiles();
