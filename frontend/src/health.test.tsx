@@ -2,9 +2,23 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PersonalBadge, QualityBadge } from './ui.js';
-import { DataHealthView, TodayCard, type DataHealthReport } from './dataHealth.js';
+import { DataHealthView, SinceLastSessionCard, TodayCard, type DataHealthDelta, type DataHealthReport } from './dataHealth.js';
 import { type PersonalBars } from './personal.js';
 import { workspaceRoute } from './decisions.js';
+
+const delta: DataHealthDelta = {
+  since: null,
+  previousSession: '2026-10-22',
+  newSession: '2026-10-23',
+  newSessions: ['2026-10-23'],
+  changes: [
+    { instrumentId: 'instrument-a', symbol: 'BBCA.JK', status: 'COMPARED', previousSession: '2026-10-22', previousClose: 9000, newSession: '2026-10-23', newClose: 9100, change: 100, changePercent: 1.1111111111111112, reason: null },
+    { instrumentId: 'instrument-b', symbol: 'BBRI.JK', status: 'MISSING', previousSession: '2026-10-22', previousClose: 4500, newSession: null, newClose: null, change: null, changePercent: null, reason: 'MISSING_NEW_SESSION' }
+  ],
+  coverageDifferences: [{ instrumentId: 'instrument-b', symbol: 'BBRI.JK', presentIn: 'PREVIOUS_ONLY' }],
+  flat: 1, zeroVolume: 2, quality: { DEGRADED: 1 }, degraded: true,
+  note: 'Facts only: a close change is not a cause, signal, breakout or recommendation.',
+};
 
 const report: DataHealthReport = {
   generatedAt: '2026-10-26T09:37:02+00:00',
@@ -20,7 +34,8 @@ const report: DataHealthReport = {
   ],
   anomalies: [{ date: '2026-08-24', instrumentId: 'instrument-1', symbol: 'GOTO.JK', observation: 'FLAT_OHLC', qualityStatus: 'DEGRADED' }],
   quality: { VALID: 10, DEGRADED: 11 },
-  degraded: true
+  degraded: true,
+  delta
 };
 
 test('DEGRADED badge appears for every non-VALID quality and is absent for VALID', () => {
@@ -114,4 +129,40 @@ test('personal capture read failure is reported on Data Health without hiding ca
   const html = renderToStaticMarkup(<DataHealthView report={report} personal={null} personalError="The personal bar store is unavailable."/>);
   assert.match(html, /Personal capture unavailable: The personal bar store is unavailable\./);
   assert.match(html, /Retained sessions/);
+});
+
+test('Since last session compares the two newest sessions and flags missing rows', () => {
+  const html = renderToStaticMarkup(<SinceLastSessionCard report={report}/>);
+  for (const text of ['Since last session', '2026-10-22 → 2026-10-23', 'BBCA.JK', '9,000', '9,100', '+100',
+    '+1.11%', 'DEGRADED', 'MISSING', 'MISSING_NEW_SESSION', 'BBRI.JK', 'Observation only', 'Coverage differences',
+    'only in the previous session', 'do not prove']) {
+    assert.ok(html.includes(text), text);
+  }
+  assert.match(html, /data-delta-status="MISSING"/);
+  assert.doesNotMatch(html, /Rp 0/);
+});
+
+test('a missing instrument is never treated as unchanged', () => {
+  const html = renderToStaticMarkup(<SinceLastSessionCard report={{ ...report, delta: { ...delta,
+    changes: [delta.changes[1]], coverageDifferences: delta.coverageDifferences } }}/>);
+  assert.match(html, /4,500/);
+  assert.match(html, /MISSING/);
+  assert.doesNotMatch(html, /0\.00%/);
+});
+
+test('an empty canonical store has an explicit delta empty state', () => {
+  const empty: DataHealthReport = { ...report, lastSession: null, sessions: [], gaps: [], anomalies: [],
+    quality: {}, degraded: false, delta: { since: null, previousSession: null, newSession: null, newSessions: [],
+      changes: [], coverageDifferences: [], flat: 0, zeroVolume: 0, quality: {}, degraded: false, note: '' } };
+  const html = renderToStaticMarkup(<SinceLastSessionCard report={empty}/>);
+  assert.match(html, /No canonical session is retained, so no delta is computed\./);
+  assert.doesNotMatch(html, /data-delta-status/);
+});
+
+test('one retained session states that no comparison is possible', () => {
+  const html = renderToStaticMarkup(<SinceLastSessionCard report={{ ...report, delta: { ...delta,
+    previousSession: null, changes: [], coverageDifferences: [] } }}/>);
+  assert.match(html, /Only one canonical session \(2026-10-23\) is retained/);
+  assert.match(html, /no change is inferred/);
+  assert.doesNotMatch(html, /data-delta-status/);
 });

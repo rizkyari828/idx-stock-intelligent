@@ -34,7 +34,7 @@ public sealed class DataHealthDatabase(NpgsqlDataSource dataSource)
                  coalesce(history.symbol, listing.symbol, instrument.issuer_name)
         """;
 
-    public async Task<DataHealthReport> ReadAsync(CancellationToken ct)
+    public async Task<DataHealthReport> ReadAsync(DateOnly? since, CancellationToken ct)
     {
         var bars = new List<DataHealthBar>();
         await using var connection = await dataSource.OpenConnectionAsync(ct);
@@ -54,7 +54,7 @@ public sealed class DataHealthDatabase(NpgsqlDataSource dataSource)
         }
         await transaction.CommitAsync(ct);
         return DataHealthReport.Build(DateTimeOffset.UtcNow, ExpectedPanel(), bars,
-            DataHealthCalendar.Load(Path.GetFullPath("pilot/holidays-2026.json")));
+            DataHealthCalendar.Load(Path.GetFullPath("pilot/holidays-2026.json")), since);
     }
 
     private static int ExpectedPanel()

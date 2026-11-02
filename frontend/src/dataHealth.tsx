@@ -1,16 +1,27 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { api, errorMessage } from './api.js';
-import { jakartaToday, recorded } from './view.js';
+import { jakartaToday, money, percent, recorded } from './view.js';
 import { Badge, Empty, Icon, LoadingSkeleton, Metric, Notice, PageHeader, PersonalBadge, QualityBadge } from './ui.js';
 import { PERSONAL_BAR_NOTE, usePersonalBars, type PersonalBars } from './personal.js';
 
 export type DataHealthSession = { date: string; bars: number; instruments: number; coverageGap: number; quality: Record<string, number>; flat: number; zeroVolume: number };
 export type DataHealthGap = { date: string; knownHoliday: boolean; holidayName: string | null; holidayKind: string | null };
 export type DataHealthAnomaly = { date: string; instrumentId: string; symbol: string; observation: string; qualityStatus: string };
+export type DataHealthDeltaChange = {
+  instrumentId: string; symbol: string; status: 'COMPARED' | 'MISSING';
+  previousSession: string | null; previousClose: number | null; newSession: string | null; newClose: number | null;
+  change: number | null; changePercent: number | null; reason: string | null;
+};
+export type DataHealthDeltaCoverage = { instrumentId: string; symbol: string; presentIn: 'PREVIOUS_ONLY' | 'NEW_ONLY' };
+export type DataHealthDelta = {
+  since: string | null; previousSession: string | null; newSession: string | null; newSessions: string[];
+  changes: DataHealthDeltaChange[]; coverageDifferences: DataHealthDeltaCoverage[];
+  flat: number; zeroVolume: number; quality: Record<string, number>; degraded: boolean; note: string;
+};
 export type DataHealthReport = {
   generatedAt: string; lastSession: string | null; expectedPanel: number;
   sessions: DataHealthSession[]; gaps: DataHealthGap[]; anomalies: DataHealthAnomaly[];
-  quality: Record<string, number>; degraded: boolean;
+  quality: Record<string, number>; degraded: boolean; delta: DataHealthDelta;
 };
 
 export const dataHealthRoute = '/data-health';
@@ -66,9 +77,50 @@ export function TodayCard({report, error, onNavigate}: {report: DataHealthReport
   </section>;
 }
 
+export function SinceLastSessionCard({report}: {report: DataHealthReport | null}) {
+  if(!report) return null;
+  const delta = report.delta;
+  return <section className="panel panel-body delta-card" aria-label="Since last session">
+    <div className="section-heading"><h2>Since last session</h2><DegradedFlag degraded={delta.degraded}/></div>
+    {delta.newSession === null
+      ? <p className="muted">No canonical session is retained, so no delta is computed.</p>
+      : delta.previousSession === null
+        ? <p className="muted">Only one canonical session ({delta.newSession}) is retained. A delta needs two sessions; no change is inferred.</p>
+        : <>
+            <p className="muted">Comparing {delta.previousSession} → {delta.newSession}. Facts only: a close change is not a cause, signal, breakout or recommendation.</p>
+            {delta.newSessions.length > 1 && <p className="muted">New sessions since {delta.since ?? delta.previousSession}: {delta.newSessions.join(', ')}</p>}
+            {delta.changes.length
+              ? <div className="table-scroll" tabIndex={0} aria-label="Close changes between the two newest canonical sessions"><table className="stocks-table delta-table">
+                  <caption className="sr-only">Close change for every instrument present in either compared session; a missing instrument is explicit, never unchanged.</caption>
+                  <thead><tr>{['Symbol','Previous close','New close','Change · IDR','Change · %','State'].map(column=><th key={column} scope="col">{column}</th>)}</tr></thead>
+                  <tbody>{delta.changes.map(change=><tr key={change.instrumentId} data-delta-status={change.status}>
+                    <td>{change.symbol}</td>
+                    <td className="num">{change.previousClose===null?'MISSING':money(change.previousClose)}</td>
+                    <td className="num">{change.newClose===null?'MISSING':money(change.newClose)}</td>
+                    <td className="num">{change.change===null?'MISSING':`${change.change>0?'+':change.change<0?'−':''}${money(Math.abs(change.change))}`}</td>
+                    <td className="num">{change.changePercent===null?'MISSING':percent(change.changePercent)}</td>
+                    <td>{change.status==='MISSING'
+                      ? <><Badge kind="unknown" icon="missing">MISSING</Badge><small>{change.reason??'No row in one compared session'}</small></>
+                      : change.reason
+                        ? <><Badge kind="review" icon="warning">COMPARED</Badge><small>{change.reason}</small></>
+                        : <Badge kind="outline" icon="check">COMPARED</Badge>}</td>
+                  </tr>)}</tbody>
+                </table></div>
+              : <p className="muted">No instrument appears in either compared session.</p>}
+            <div className="summary-strip delta-metrics">
+              <Metric label="Flat rows · new session" value={delta.flat} note="Observation only"/>
+              <Metric label="Zero volume · new session" value={delta.zeroVolume} note="Observation only"/>
+              <Metric label="Coverage differences" value={delta.coverageDifferences.length} note="Present in only one compared session"/>
+            </div>
+            <p className="muted">Flat OHLC and zero-volume rows are observations about retained rows only. They do not prove no trade, suspension, a holiday or a completed session.</p>
+            {delta.coverageDifferences.length>0&&<ul className="delta-coverage">{delta.coverageDifferences.map(item=><li key={item.instrumentId}>{item.symbol} · {item.presentIn==='PREVIOUS_ONLY'?'only in the previous session':'only in the new session'}</li>)}</ul>}
+          </>}
+  </section>;
+}
+
 export function TodaySection({onNavigate}: {onNavigate: (page:string)=>void}) {
   const {report,error} = useDataHealth();
-  return <TodayCard report={report} error={error} onNavigate={onNavigate}/>;
+  return <><TodayCard report={report} error={error} onNavigate={onNavigate}/><SinceLastSessionCard report={report}/></>;
 }
 
 /**

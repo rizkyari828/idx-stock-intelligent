@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using IdxStockIntelligence.Api;
@@ -306,9 +307,20 @@ app.MapPost("/api/portfolio-imports", async (ImportRequest input, PortfolioDatab
 // Read-only canonical aggregate; it never mutates or infers session/tradability state.
 app.MapGet("/api/data-health", async (HttpRequest request, DataHealthDatabase database, CancellationToken ct) =>
 {
-    if (request.Query.Count != 0)
-        return Results.BadRequest(new { code = "DATA_HEALTH_QUERY_INVALID", error = "Data health accepts no query parameters." });
-    try { return Results.Ok(await database.ReadAsync(ct)); }
+    // The only accepted control is one optional since date; the delta always compares the two newest sessions.
+    if (request.Query.Count > 1
+        || request.Query.Any(parameter => !string.Equals(parameter.Key, "since", StringComparison.Ordinal)
+            || parameter.Value.Count != 1))
+        return Results.BadRequest(new { code = "DATA_HEALTH_QUERY_INVALID", error = "Data health accepts only one optional since parameter." });
+    DateOnly? since = null;
+    if (request.Query.TryGetValue("since", out var values))
+    {
+        if (!DateOnly.TryParseExact(values[0], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+            || parsed < new DateOnly(1900, 1, 1) || parsed > ProductQuery.Today)
+            return Results.BadRequest(new { code = "DATA_HEALTH_QUERY_INVALID", error = "since must be YYYY-MM-DD within 1900-01-01..today (Jakarta)." });
+        since = parsed;
+    }
+    try { return Results.Ok(await database.ReadAsync(since, ct)); }
     catch (Exception error) when (error is NpgsqlException or InvalidOperationException or IOException or UnauthorizedAccessException or JsonException)
     { return Results.Json(new { code = "DATA_HEALTH_UNAVAILABLE", error = "Data health is unavailable." }, statusCode: 503); }
 });
