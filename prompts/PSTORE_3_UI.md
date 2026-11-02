@@ -44,7 +44,7 @@ Reuse the existing UI template and components; do **not** redesign. Optimise onl
 
 ## Acceptance
 
-- `cd frontend && npm run build && npm test` passes (baseline 105 tests) with new tests:
+- `cd frontend && npm run build && npm test` passes (current baseline 123 tests) with new tests:
   `PERSONAL` badge renders for a personal-only instrument; it is absent when canonical
   exists; the Data Health card shows the personal session date; an empty store renders an
   explicit "no personal capture yet" state.

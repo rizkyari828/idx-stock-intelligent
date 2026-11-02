@@ -40,7 +40,7 @@ do not touch outcomes.**
 
 - Frontend tests: bar present → date + close + quality shown; bar absent → explicit
   message; warmup feature → not rendered as a number.
-- `cd frontend && npm run build && npm test` passes (baseline 105 tests).
+- `cd frontend && npm run build && npm test` passes (current baseline 123 tests).
 - If any .NET endpoint changes, full root `dotnet test` passes and new totals are reported.
 - `git diff --check` clean; no push. Report which files changed and confirm the thesis
   create/invalidate path is untouched (ideally by pointing at the unchanged tests).

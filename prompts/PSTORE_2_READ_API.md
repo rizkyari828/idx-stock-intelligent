@@ -58,6 +58,6 @@ for the content-root conventions.
 
 - Focused tests: happy path, missing directory, malformed JSON, reversed range, and a
   session file with `UNPROVEN_PERSONAL` surfaced verbatim.
-- Full root `dotnet test` from the repo root passes (baseline 1,271 total / 1,067 passed /
+- Full root `dotnet test` from the repo root passes (current baseline 1,314 total / 1,110 passed /
   204 skipped / 0 failed); report new totals.
 - `git diff --check` clean; commit scoped; no push. Report the exact JSON shape.

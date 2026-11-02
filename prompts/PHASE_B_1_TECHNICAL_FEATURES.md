@@ -55,9 +55,9 @@ be `WARMUP` for a while. That is correct behaviour, not a bug.
 
 - Focused .NET tests: AVAILABLE when the window is met, WARMUP one session short,
   UNAVAILABLE with reason passed through, and index symbols omitting share-volume fields.
-- Full root `dotnet test` from the repo root passes (baseline now 1,271 total / 1,067
+- Full root `dotnet test` from the repo root passes (current baseline 1,314 total / 1,110
   passed / 204 skipped / 0 failed); report the new totals.
-- `cd frontend && npm run build && npm test` passes with a test asserting warmup is shown
+- `cd frontend && npm run build && npm test` passes (current baseline 123) with a test asserting warmup is shown
   as warmup, not as a blank or zero.
 - `git diff --check` clean; no push. Report the exact JSON shape and which features are
   currently WARMUP for the real panel.
