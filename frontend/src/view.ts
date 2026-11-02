@@ -1,7 +1,7 @@
 export type Thesis = { id: string; version: number; mandate: string; text: string; knownAt: string; supersedes: string | null; invalidationNote: string | null; active: boolean };
 export type Holding = {
   position: { instrumentId: string; shares: number; averageCost: number | null; investedCost: number; realizedPnl: number; cashImpact: number; latestEventDate: string };
-  market: { displaySymbol: string; freshness: string; quality: string; completeness: string; retrievedAt: string | null; knownAt: string | null; revision: number | null; source: string | null; priceBasis: string; features: Record<string, { availability: string; unavailableReason: string | null }> };
+  market: { displaySymbol: string; freshness: string; quality: string; completeness: string; retrievedAt: string | null; knownAt: string | null; revision: number | null; source: string | null; priceBasis: string; marketDate?: string | null; price?: number | null; unavailableReason?: string | null; features: Record<string, { availability: string; unavailableReason: string | null }> };
   valuation: { availability: string; price: number | null; date: string | null; priceAgeDays: number | null; marketValue: number | null; unrealizedPnl: number | null; unavailableReason: string | null; unrealizedPercent: number | null };
   activeThesis: Thesis | null;
 };
