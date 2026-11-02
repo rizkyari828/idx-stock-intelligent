@@ -41,6 +41,10 @@ builder.Services.AddSingleton(_ => new PersonalBarFileStore(
 builder.Services.AddSingleton(sp => new PersonalTechnicalFeatureService(
     sp.GetRequiredService<PersonalBarFileStore>(),
     Path.Combine(builder.Environment.ContentRootPath, "pilot", "holidays-2026.json")));
+builder.Services.AddSingleton(sp => new PersonalScreeningService(
+    sp.GetRequiredService<PersonalBarFileStore>(),
+    Path.Combine(builder.Environment.ContentRootPath, "pilot", "holidays-2026.json"),
+    Path.Combine(builder.Environment.ContentRootPath, "pilot", "universe.json")));
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -342,6 +346,25 @@ app.MapGet("/api/personal/technical-features/{symbol}", async (string symbol, Ht
     catch (PersonalBarsException error)
     { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
 });
+// Descriptive, personal diagnostics over the pilot panel: no admission, capture or readiness token is produced.
+app.MapGet("/api/personal/screening", async (HttpRequest request, PersonalScreeningService service,
+    CancellationToken ct) =>
+{
+    try
+    {
+        if (request.Query.Any(parameter => parameter.Value.Count != 1))
+            throw new PersonalScreeningException(400, "PERSONAL_SCREENING_QUERY_INVALID",
+                "Personal screening accepts each query parameter once.");
+        var query = PersonalScreening.Query(
+            request.Query.ToDictionary(parameter => parameter.Key, parameter => (string?)parameter.Value[0],
+                StringComparer.Ordinal), ProductQuery.Today, DateTimeOffset.UtcNow);
+        return Results.Ok(await service.ReadAsync(query, ct));
+    }
+    catch (PersonalScreeningException error)
+    { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
+    catch (PersonalBarsException error)
+    { return Results.Json(new { code = error.Code, error = error.Message }, statusCode: error.StatusCode); }
+});
 // Read-only features over retained canonical bars: the existing arithmetic, no cache or admission.
 app.MapGet("/api/instruments/{id:guid}/technical-features", async (Guid id, DateOnly? through, DateTimeOffset? cutoff,
     TechnicalFeatureService service, CancellationToken ct) =>
@@ -354,6 +377,7 @@ app.UseStaticFiles();
 app.MapFallbackToFile("/stocks/{**path}", "index.html");
 app.MapFallbackToFile("/decisions/{**path:nonfile}", "index.html");
 app.MapFallbackToFile("/data-health", "index.html");
+app.MapFallbackToFile("/diagnostics", "index.html");
 await app.RunAsync();
 
 static Dictionary<string, string?> SnapshotQuery(HttpRequest request)
